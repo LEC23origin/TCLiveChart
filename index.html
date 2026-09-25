@@ -981,10 +981,23 @@
     .oracle-history-meta b { color:#ccecf6; font-weight:650; }
     .oracle-history-change.positive { color:var(--green); }
     .oracle-history-change.negative { color:var(--red); }
+    .oracle-history-actions { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:9px; padding-top:8px; border-top:1px solid rgba(111,205,239,.09); }
+    .history-action {
+      min-height:29px; display:inline-flex; align-items:center; justify-content:center; gap:6px; padding:0 9px;
+      border:1px solid rgba(112,205,239,.13); border-radius:9px; background:linear-gradient(180deg,rgba(10,27,45,.76),rgba(5,16,29,.66));
+      color:#9eb9c8; font-size:.56rem; font-weight:700; letter-spacing:.035em; cursor:pointer;
+      transition:color .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease;
+    }
+    .history-action:hover,.history-action:focus-visible { outline:none; transform:translateY(-1px); color:#effcff; border-color:rgba(81,220,255,.35); background:linear-gradient(180deg,rgba(15,54,78,.82),rgba(6,27,43,.76)); box-shadow:0 8px 18px rgba(0,0,0,.15),0 0 14px rgba(57,208,255,.06); }
+    .history-action.primary { color:#dffaff; border-color:rgba(57,208,255,.26); background:linear-gradient(180deg,rgba(18,87,119,.38),rgba(6,38,59,.30)); }
+    .history-action.gold { color:#ffe8ad; border-color:rgba(242,200,112,.22); background:linear-gradient(180deg,rgba(126,91,31,.28),rgba(53,35,11,.24)); }
+    .history-save-status { margin-left:auto; min-width:0; color:#66889b; font-size:.54rem; font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .history-save-status.ok { color:#67e4bf; }
+    .history-save-status.error { color:#ff8591; }
     .focus-hint { position:absolute; left:50%; top:16px; z-index:5; transform:translate(-50%,-8px); opacity:0; visibility:hidden; pointer-events:none; padding:6px 11px; border:1px solid rgba(247,195,87,.25); border-radius:999px; background:rgba(4,14,26,.78); color:#d9edf5; font-size:.58rem; letter-spacing:.05em; backdrop-filter:blur(9px); transition:opacity .3s ease,transform .3s ease,visibility .3s; }
     .canvas-wrap.pool-focused .focus-hint { opacity:1; visibility:visible; transform:translate(-50%,0); }
     @media (max-width:1180px) { .right-rail { grid-template-columns:repeat(4,minmax(240px,1fr)); grid-template-rows:auto; } }
-    @media (max-width:640px) { .right-rail { grid-template-columns:repeat(4,250px); } .oracle-history-card { min-height:176px; } .oracle-history-chart { height:96px; } .focus-hint { top:10px; max-width:76%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } }
+    @media (max-width:640px) { .right-rail { grid-template-columns:repeat(4,250px); } .oracle-history-card { min-height:176px; } .oracle-history-chart { height:96px; } .history-action { min-height:28px; padding:0 8px; } .history-save-status { width:100%; margin-left:0; } .focus-hint { top:10px; max-width:76%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } }
 </style>
 </head>
 <body>
@@ -1129,6 +1142,12 @@
               <div class="oracle-history-empty" id="oracleHistoryEmpty">Vorhandene Snapshots aus der früheren Oracle-Watcher-Seite erscheinen hier automatisch.</div>
             </div>
             <div class="oracle-history-meta"><span id="oracleHistorySummary">Snapshots —</span><b class="oracle-history-change" id="oracleHistoryChange">—</b><span id="oracleHistoryCoverage">Abdeckung —</span><span></span></div>
+            <div class="oracle-history-actions" aria-label="Oracle Snapshot Historie sichern">
+              <button class="history-action primary" id="saveOracleHistoryButton" type="button">Browser speichern</button>
+              <button class="history-action" id="downloadOracleCsvButton" type="button">CSV Zeitraum</button>
+              <button class="history-action gold" id="downloadOracleJsonButton" type="button">JSON Backup</button>
+              <span class="history-save-status" id="oracleHistorySaveStatus">Auto-Speicherung aktiv</span>
+            </div>
           </section>
 
           <section class="rail-card" id="flowRailCard" aria-label="Flow und Momentum">
@@ -1250,7 +1269,7 @@ void main() {
         "pricePill","candleDetail","detailTime",
         "detailDirection","detailOpen","detailHigh","detailLow","detailClose",
         "detailVolume","loading","loadingText","retryButton","footSource","clock","tickerLuncPrice","tickerLuncChange","tickerUstcPrice","tickerUstcChange","railFlow",
-        "sceneCoreLabel","oracleInspect","oracleInspectClose","inspectBalance","inspectRunway","inspectDelta","inspectUstc","inspectDailyIncome","inspectConsumption","inspectRiskSwatch","inspectRiskTitle","inspectRiskText","contextInfo","contextInfoTitle","contextInfoText","contextInfoClose","focusHint","oracleHistoryCanvas","oracleHistoryEmpty","oracleHistorySummary","oracleHistoryChange","oracleHistoryCoverage","oracleHistoryRanges","uiParticleCanvas","primaryNav","oracleHistoryCard","flowRailCard","sourcesRailCard"
+        "sceneCoreLabel","oracleInspect","oracleInspectClose","inspectBalance","inspectRunway","inspectDelta","inspectUstc","inspectDailyIncome","inspectConsumption","inspectRiskSwatch","inspectRiskTitle","inspectRiskText","contextInfo","contextInfoTitle","contextInfoText","contextInfoClose","focusHint","oracleHistoryCanvas","oracleHistoryEmpty","oracleHistorySummary","oracleHistoryChange","oracleHistoryCoverage","oracleHistoryRanges","saveOracleHistoryButton","downloadOracleCsvButton","downloadOracleJsonButton","oracleHistorySaveStatus","uiParticleCanvas","primaryNav","oracleHistoryCard","flowRailCard","sourcesRailCard"
       ];
       var el = {};
       ids.forEach(function (id) { el[id] = document.getElementById(id); });
@@ -1526,7 +1545,72 @@ void main() {
           .filter(function(p){return Number(p.t)>=now-730*86400000;})
           .slice(-6000);
         oracle.history=history;
-        try { localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(history)); } catch(error) {}
+        try {
+          localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(history));
+          if(typeof setHistorySaveStatus==="function") setHistorySaveStatus("Auto gespeichert · "+history.length+" Snapshots","ok");
+        } catch(error) {
+          if(typeof setHistorySaveStatus==="function") setHistorySaveStatus("Auto-Speicherung fehlgeschlagen","error");
+        }
+      }
+      function setHistorySaveStatus(message,tone){
+        if(!el.oracleHistorySaveStatus) return;
+        el.oracleHistorySaveStatus.textContent=message;
+        el.oracleHistorySaveStatus.classList.remove("ok","error");
+        if(tone) el.oracleHistorySaveStatus.classList.add(tone);
+      }
+      function forceSaveOracleHistory(){
+        try {
+          localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(oracle.history||[]));
+          var stamp=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+          setHistorySaveStatus("Gespeichert · "+stamp,"ok");
+          return true;
+        } catch(error) {
+          setHistorySaveStatus("Speichern fehlgeschlagen","error");
+          return false;
+        }
+      }
+      function safeDownloadFilenamePart(value){
+        return String(value||"").replace(/[^a-zA-Z0-9_-]+/g,"-").replace(/^-+|-+$/g,"")||"history";
+      }
+      function downloadTextFile(filename,textContent,mimeType){
+        try {
+          var blob=new Blob([textContent],{type:mimeType||"text/plain;charset=utf-8"});
+          var url=URL.createObjectURL(blob);
+          var link=document.createElement("a");
+          link.href=url; link.download=filename; document.body.appendChild(link); link.click(); link.remove();
+          setTimeout(function(){URL.revokeObjectURL(url);},1000);
+          return true;
+        } catch(error) {
+          setHistorySaveStatus("Download fehlgeschlagen","error");
+          return false;
+        }
+      }
+      function exportOracleHistoryCsv(){
+        var points=oracleHistoryPoints(state.oracleHistoryRange);
+        if(!points.length){setHistorySaveStatus("Keine Snapshots im Zeitraum","error");return;}
+        var rows=[["timestamp_iso","timestamp_ms","denom","amount_micro","balance_lunc"]];
+        points.forEach(function(p){
+          var amount=String(p.amount||"0");
+          var balance=Number(amount)/1e6;
+          rows.push([new Date(Number(p.t)).toISOString(),String(Number(p.t)),p.denom||"uluna",amount,Number.isFinite(balance)?String(balance):""]);
+        });
+        var csv=rows.map(function(row){return row.map(function(cell){return '"'+String(cell).replace(/"/g,'""')+'"';}).join(",");}).join("\r\n");
+        var date=new Date().toISOString().slice(0,10);
+        if(downloadTextFile("oracle-pool-history-"+safeDownloadFilenamePart(state.oracleHistoryRange)+"-"+date+".csv",csv,"text/csv;charset=utf-8")) setHistorySaveStatus("CSV heruntergeladen","ok");
+      }
+      function exportOracleHistoryJson(){
+        var history=(oracle.history||[]).slice().sort(function(a,b){return Number(a.t)-Number(b.t);});
+        if(!history.length){setHistorySaveStatus("Keine Snapshots vorhanden","error");return;}
+        var payload={
+          format:"terra-classic-oracle-pool-history",
+          version:1,
+          localStorageKey:ORACLE_HISTORY_KEY,
+          exportedAt:new Date().toISOString(),
+          snapshotCount:history.length,
+          snapshots:history
+        };
+        var date=new Date().toISOString().slice(0,10);
+        if(downloadTextFile("oracle-pool-history-backup-"+date+".json",JSON.stringify(payload,null,2),"application/json;charset=utf-8")) setHistorySaveStatus("JSON Backup heruntergeladen","ok");
       }
       var ORACLE_HISTORY_WINDOWS={"1D":86400000,"30D":30*86400000,"90D":90*86400000,"6M":183*86400000,"12M":365*86400000,"ALL":null};
       function oracleHistoryPoints(rangeKey){
@@ -2976,6 +3060,9 @@ void main() {
         var button=event.target.closest("[data-oracle-range]"); if(!button) return;
         state.oracleHistoryRange=button.dataset.oracleRange||"12M"; drawOracleHistoryChart();
       });
+      if(el.saveOracleHistoryButton) el.saveOracleHistoryButton.addEventListener("click",forceSaveOracleHistory);
+      if(el.downloadOracleCsvButton) el.downloadOracleCsvButton.addEventListener("click",exportOracleHistoryCsv);
+      if(el.downloadOracleJsonButton) el.downloadOracleJsonButton.addEventListener("click",exportOracleHistoryJson);
       if(el.sceneCoreLabel) el.sceneCoreLabel.addEventListener("click",function(){if(state.showPool) toggleOracleSelection();});
       document.addEventListener("keydown",function(event){if(event.key==="Escape"){hideContextInfo();if(state.oracleSelected) toggleOracleSelection(false);}});
 

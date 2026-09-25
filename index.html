@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#050912">
-  <meta name="description" content="Räumlicher WebGL-Live-Chart für LUNC und USTC mit bestätigten Binance-Spotdaten ohne Simulation.">
-  <title>LUNC · USTC Spatial Market</title>
+  <meta name="description" content="Räumlicher WebGL-Live-Chart für LUNC und USTC mit Binance-Spotdaten und integriertem Terra Classic Oracle Pool.">
+  <title>Terra Classic Spatial Market · Oracle Pool</title>
   <style>
     :root {
       --bg: #040913;
@@ -40,7 +40,8 @@
         linear-gradient(180deg,#040913 0%,#020711 100%);
     }
     button { font: inherit; color: inherit; -webkit-tap-highlight-color: transparent; }
-    .app { width: 100%; height: 100%; display: grid; grid-template-rows: auto auto minmax(0,1fr); }
+    .ui-particle-canvas { position:fixed; inset:0; width:100%; height:100%; z-index:0; pointer-events:none; opacity:.78; mix-blend-mode:screen; }
+    .app { position:relative; z-index:1; width: 100%; height: 100%; display: grid; grid-template-rows: auto auto minmax(0,1fr); }
     .top {
       position: relative; z-index: 5; display: grid;
       grid-template-columns: minmax(210px,.9fr) minmax(390px,1.3fr) minmax(180px,.7fr);
@@ -461,6 +462,40 @@
       background: linear-gradient(145deg,rgba(90,108,223,.24),rgba(30,39,86,.20));
       box-shadow: inset 0 0 18px rgba(152,163,255,.08),0 0 18px rgba(152,163,255,.08);
     }
+    .tool-button.pool.active {
+      border-color: rgba(86,238,255,.46);
+      background: linear-gradient(145deg,rgba(20,142,174,.27),rgba(21,72,93,.22));
+      box-shadow: inset 0 0 18px rgba(74,225,255,.09),0 0 20px rgba(74,225,255,.10);
+    }
+    .oracle-hud {
+      position: absolute; right: 18px; top: 58px; z-index: 5;
+      width: min(310px, calc(100% - 36px)); min-height: 78px;
+      padding: 10px 12px; border: 1px solid rgba(108,225,255,.22); border-radius: 14px;
+      background: linear-gradient(145deg,rgba(8,23,39,.88),rgba(6,15,27,.78));
+      box-shadow: 0 14px 34px rgba(0,0,0,.26), inset 0 1px rgba(255,255,255,.03), 0 0 28px rgba(57,208,255,.055);
+      backdrop-filter: blur(11px) saturate(1.15); -webkit-backdrop-filter: blur(11px) saturate(1.15);
+      pointer-events: none; transition: opacity .25s ease, transform .25s ease, border-color .25s ease;
+    }
+    .oracle-hud[hidden] { display: none; }
+    .oracle-hud.pool-error { border-color: rgba(255,105,121,.34); }
+    .oracle-hud.pool-warn { border-color: rgba(242,200,112,.34); }
+    .oracle-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; }
+    .oracle-title { display:flex; align-items:center; gap:7px; min-width:0; }
+    .oracle-dot { width:7px; height:7px; flex:0 0 auto; border-radius:50%; background:var(--gold); box-shadow:0 0 10px rgba(242,200,112,.62); }
+    .oracle-hud.pool-live .oracle-dot { background:var(--green); box-shadow:0 0 12px rgba(25,214,165,.7); animation:breathe 1.9s infinite; }
+    .oracle-hud.pool-error .oracle-dot { background:var(--red); box-shadow:0 0 12px rgba(255,105,121,.7); }
+    .oracle-title b { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:.69rem; letter-spacing:.1em; text-transform:uppercase; color:#dff8ff; }
+    .oracle-age { color:rgba(145,181,197,.78); font-size:.58rem; white-space:nowrap; }
+    .oracle-main { display:grid; grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr); gap:10px; align-items:end; }
+    .oracle-balance { min-width:0; }
+    .oracle-balance span,.oracle-runway span { display:block; color:var(--muted); font-size:.58rem; letter-spacing:.065em; text-transform:uppercase; }
+    .oracle-balance strong { display:block; margin-top:3px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:1rem; font-weight:690; font-variant-numeric:tabular-nums; color:#dffbff; text-shadow:0 0 18px rgba(57,208,255,.15); }
+    .oracle-runway { text-align:right; }
+    .oracle-runway strong { display:block; margin-top:3px; font-size:.9rem; font-weight:680; font-variant-numeric:tabular-nums; }
+    .oracle-meta { display:flex; justify-content:space-between; gap:8px; margin-top:8px; padding-top:7px; border-top:1px solid rgba(115,211,243,.12); color:rgba(157,190,202,.84); font-size:.58rem; font-variant-numeric:tabular-nums; }
+    .oracle-meta span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .oracle-meter { position:relative; height:4px; margin-top:8px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.06); }
+    .oracle-meter > i { position:absolute; inset:0 auto 0 0; width:0; border-radius:inherit; background:linear-gradient(90deg,#ff6979,#f2c870 42%,#19d6a5 72%,#39d0ff); box-shadow:0 0 12px rgba(57,208,255,.32); transition:width .6s ease; }
     @media (max-width: 900px) {
       .top { grid-template-columns: minmax(190px,1fr) auto; gap: 10px; }
       .markets { grid-row: 2; grid-column: 1/-1; }
@@ -502,6 +537,20 @@
         top: 11px; right: 11px; max-width: calc(100% - 24px); padding: 5px 8px; gap: 6px;
       }
       .flow-meta { max-width: 41vw; font-size: .62rem; }
+      .oracle-hud {
+        top: 49px; right: 10px; width: min(158px, 44vw); min-height: 66px; padding: 7px 8px; border-radius: 11px;
+      }
+      .oracle-head { margin-bottom:5px; }
+      .oracle-title b { font-size:.57rem; letter-spacing:.07em; }
+      .oracle-age { display:none; }
+      .oracle-main { grid-template-columns:1fr; gap:4px; }
+      .oracle-balance strong { font-size:.77rem; }
+      .oracle-runway { display:flex; align-items:center; justify-content:space-between; gap:5px; text-align:left; }
+      .oracle-runway strong { margin-top:0; font-size:.68rem; }
+      .oracle-balance span,.oracle-runway span { font-size:.51rem; }
+      .oracle-meta { margin-top:5px; padding-top:5px; font-size:.51rem; }
+      .oracle-meta span:last-child { display:none; }
+      .oracle-meter { margin-top:5px; height:3px; }
 
       .background-art { width: min(88vw,520px); height: min(58vh,520px); max-width: 88%; max-height: 72%; opacity: .18; }
       .momentum-readout { left: 12px; top: 47px; min-height: 31px; padding: 4px 8px 4px 5px; gap: 6px; }
@@ -525,18 +574,443 @@
         scroll-behavior: auto !important;
       }
     }
-  </style>
+
+
+    /* ===== CINEMATIC CONCEPT V3 ===== */
+    :root {
+      --bg-deep:#020711;
+      --glass:rgba(5,15,29,.78);
+      --glass-strong:rgba(7,19,36,.92);
+      --edge:rgba(105,220,255,.20);
+      --edge-hot:rgba(81,221,255,.52);
+      --gold-edge:rgba(247,195,87,.42);
+    }
+    html,body { background:#020711; }
+    body {
+      background:
+        radial-gradient(70vw 48vh at 48% 48%, rgba(32,115,177,.15), transparent 64%),
+        radial-gradient(48vw 40vh at 88% 64%, rgba(247,183,74,.07), transparent 66%),
+        radial-gradient(54vw 34vh at 5% 18%, rgba(49,197,255,.09), transparent 70%),
+        linear-gradient(180deg,#030a16 0%,#020711 58%,#02050c 100%);
+    }
+    .app { grid-template-rows:auto auto minmax(0,1fr); min-height:100dvh; }
+    .top {
+      grid-template-columns:minmax(230px,.74fr) minmax(420px,1.35fr) minmax(260px,.9fr);
+      gap:18px; padding:10px 18px;
+      background:linear-gradient(180deg,rgba(3,12,24,.98),rgba(4,14,28,.92));
+      border-bottom:1px solid rgba(77,207,255,.15);
+      box-shadow:0 18px 48px rgba(0,0,0,.27), inset 0 -1px rgba(81,221,255,.06);
+    }
+    .brand-mark { width:46px; height:46px; }
+    .brand-copy strong { font-size:1rem; letter-spacing:.15em; }
+    .brand-copy > span { color:#7f9eb0; letter-spacing:.18em; font-size:.62rem; }
+    .brand-title-row .dev-button { display:none; }
+    .primary-nav {
+      display:flex; align-items:center; justify-content:center; gap:10px; min-width:0;
+      width:max-content; max-width:100%; justify-self:center; overflow:visible;
+      padding:8px 10px; border:1px solid rgba(109,205,236,.14); border-radius:22px;
+      background:linear-gradient(180deg,rgba(9,23,41,.90),rgba(5,14,27,.82));
+      box-shadow:inset 0 1px rgba(255,255,255,.03), inset 0 -1px rgba(57,208,255,.05), 0 16px 36px rgba(0,0,0,.18);
+      backdrop-filter:blur(14px) saturate(1.1); -webkit-backdrop-filter:blur(14px) saturate(1.1);
+    }
+    .primary-nav button {
+      position:relative; display:inline-flex; align-items:center; justify-content:center;
+      min-height:44px; padding:0 20px; border:1px solid rgba(255,255,255,.02); border-radius:15px;
+      background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0)); color:#92adbf;
+      font-size:.7rem; line-height:1; font-weight:700; letter-spacing:.08em; text-transform:uppercase; cursor:pointer;
+      white-space:nowrap; flex:0 0 auto;
+      transition:color .22s ease,background .22s ease,border-color .22s ease,box-shadow .22s ease,transform .22s ease;
+      box-shadow:inset 0 1px rgba(255,255,255,.01);
+    }
+    .primary-nav button::before {
+      content:""; position:absolute; inset:1px; border-radius:14px; pointer-events:none; opacity:0;
+      background:linear-gradient(135deg,rgba(57,208,255,.08),rgba(242,200,112,.045));
+      transition:opacity .22s ease;
+    }
+    .primary-nav button:hover,.primary-nav button:focus-visible {
+      color:#eefaff; border-color:rgba(102,207,244,.14); background:rgba(255,255,255,.03); transform:translateY(-1px); outline:none;
+      box-shadow:0 10px 22px rgba(0,0,0,.14), 0 0 18px rgba(57,208,255,.045);
+    }
+    .primary-nav button:hover::before,.primary-nav button:focus-visible::before { opacity:1; }
+    .primary-nav button.active {
+      color:#ffffff; border-color:rgba(95,220,255,.34);
+      background:linear-gradient(180deg,rgba(22,92,135,.44),rgba(7,34,57,.34));
+      box-shadow:0 14px 30px rgba(0,0,0,.16), 0 0 24px rgba(54,209,255,.10), inset 0 0 18px rgba(54,209,255,.08);
+    }
+    .primary-nav button.active::before { opacity:1; }
+    .primary-nav button.active::after {
+      content:""; position:absolute; left:14px; right:14px; bottom:6px; height:2px; border-radius:99px;
+      background:linear-gradient(90deg,rgba(57,208,255,.18),#39d0ff,#f2c870,rgba(242,200,112,.18));
+      box-shadow:0 0 12px rgba(57,208,255,.42);
+    }
+    .top-tools { display:grid; grid-template-columns:minmax(120px,1fr) auto; gap:12px; align-items:center; min-width:0; }
+    .search-shell {
+      height:38px; display:flex; align-items:center; gap:9px; min-width:0; padding:0 12px;
+      border:1px solid rgba(114,207,241,.18); border-radius:10px; background:rgba(7,18,33,.72);
+      box-shadow:inset 0 1px rgba(255,255,255,.025);
+    }
+    .search-shell svg { width:15px; height:15px; color:#86a8ba; flex:0 0 auto; }
+    .search-shell span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:#708fa2; font-size:.65rem; }
+    .connection { min-height:38px; padding:0 11px; border-radius:10px; background:rgba(6,20,30,.72); }
+
+    .overview {
+      grid-template-columns:minmax(360px,1.15fr) minmax(420px,1.3fr);
+      padding:8px 18px; gap:12px; background:linear-gradient(180deg,rgba(3,11,22,.95),rgba(5,13,25,.88));
+    }
+    .markets { gap:9px; }
+    .market-card {
+      min-height:66px; border-radius:15px;
+      background:linear-gradient(155deg,rgba(12,31,53,.92),rgba(6,18,31,.84));
+      border:1px solid rgba(103,196,226,.12);
+      box-shadow:inset 0 1px rgba(255,255,255,.03), inset 0 -1px rgba(57,208,255,.03), 0 14px 30px rgba(0,0,0,.16);
+      transition:border-color .24s ease,box-shadow .24s ease,transform .24s ease,background .24s ease;
+    }
+    .market-card.active {
+      border-color:rgba(86,220,255,.42);
+      background:linear-gradient(150deg,rgba(16,58,87,.98),rgba(8,22,37,.92));
+      box-shadow:0 16px 34px rgba(0,0,0,.18), 0 0 26px rgba(36,201,244,.08), inset 0 0 38px rgba(36,201,244,.08);
+    }
+    .overview-metrics {
+      display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); min-width:0;
+      gap:10px; border:none; border-radius:16px; background:transparent; overflow:visible;
+      box-shadow:none;
+    }
+    .metric-cell {
+      min-width:0; position:relative; padding:11px 13px 12px; border:1px solid rgba(106,197,233,.10); border-left:1px solid rgba(106,197,233,.10);
+      border-radius:14px; background:linear-gradient(180deg,rgba(8,20,36,.78),rgba(5,14,27,.66));
+      box-shadow:inset 0 1px rgba(255,255,255,.025), 0 10px 24px rgba(0,0,0,.12);
+      transition:background .22s ease,border-color .22s ease,box-shadow .22s ease,transform .22s ease;
+    }
+    .metric-cell:first-child { border-left:1px solid rgba(106,197,233,.10); }
+    .metric-cell span { display:block; color:#6f8ea0; font-size:.56rem; text-transform:uppercase; letter-spacing:.1em; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .metric-cell b { display:block; margin-top:6px; color:#eef9ff; font-size:.84rem; font-weight:670; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .metric-cell .positive,.metric-cell .negative { font-size:.62rem; margin-top:3px; }
+    .market-card:hover,.market-card:focus-visible {
+      transform:translateY(-2px); border-color:rgba(104,226,255,.32);
+      box-shadow:0 18px 36px rgba(0,0,0,.2), 0 0 26px rgba(57,208,255,.06), inset 0 1px rgba(255,255,255,.04); outline:none;
+    }
+    .metric-cell:hover {
+      transform:translateY(-1px); border-color:rgba(93,220,255,.22);
+      background:linear-gradient(180deg,rgba(10,27,46,.9),rgba(7,17,30,.72));
+      box-shadow:0 14px 28px rgba(0,0,0,.16), 0 0 18px rgba(57,208,255,.045), inset 0 1px rgba(255,255,255,.03);
+    }
+    .metric-cell::after {
+      content:""; position:absolute; left:14px; right:14px; bottom:0; height:1px;
+      background:linear-gradient(90deg,transparent,rgba(57,208,255,.22),rgba(242,200,112,.18),transparent);
+      opacity:0; transition:opacity .22s ease;
+    }
+    .metric-cell:hover::after { opacity:1; }
+
+    .chart-shell { grid-template-rows:auto minmax(0,1fr) auto; background:rgba(1,6,12,.45); }
+    .toolbar {
+      min-height:52px; padding:7px 17px; border-bottom:1px solid rgba(95,212,247,.10);
+      background:linear-gradient(180deg,rgba(8,20,36,.98),rgba(4,12,24,.95));
+      box-shadow:inset 0 -1px rgba(72,213,255,.08),0 12px 30px rgba(0,0,0,.16);
+    }
+    .toolbar-group {
+      gap:7px; padding:5px; border:1px solid rgba(105,196,230,.09); border-radius:16px;
+      background:linear-gradient(180deg,rgba(255,255,255,.018),rgba(255,255,255,.005));
+      box-shadow:inset 0 1px rgba(255,255,255,.02);
+      overflow:visible;
+    }
+    .toolbar-title { margin:0 6px 0 4px; font-size:.64rem; letter-spacing:.12em; color:#6d8b9d; }
+    .tool-button {
+      display:inline-flex; align-items:center; justify-content:center;
+      min-height:38px; padding:0 13px; border-radius:12px;
+      border:1px solid rgba(255,255,255,.03); background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));
+      color:#a9c0ce; font-weight:680; line-height:1; white-space:nowrap; letter-spacing:.03em;
+      transition:color .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease,transform .2s ease;
+    }
+    .tool-button:hover,.tool-button:focus-visible {
+      transform:translateY(-1px); color:#eefaff; border-color:rgba(91,206,236,.16);
+      background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.01));
+      box-shadow:0 9px 18px rgba(0,0,0,.14),0 0 14px rgba(57,208,255,.05); outline:none;
+    }
+    .tool-button.active {
+      color:#ffffff; border-color:rgba(84,220,255,.28);
+      background:linear-gradient(145deg,rgba(30,95,134,.30),rgba(12,39,61,.20));
+      box-shadow:inset 0 0 18px rgba(57,208,255,.07),0 0 18px rgba(57,208,255,.07);
+    }
+    .tool-button.gold.active {
+      border-color:rgba(242,184,75,.24); background:linear-gradient(145deg,rgba(138,100,39,.22),rgba(54,35,13,.18));
+      box-shadow:inset 0 0 14px rgba(242,184,75,.06),0 0 14px rgba(242,184,75,.05);
+    }
+    .tool-button.flow.active {
+      border-color:rgba(152,163,255,.28); background:linear-gradient(145deg,rgba(90,108,223,.22),rgba(30,39,86,.16));
+      box-shadow:inset 0 0 18px rgba(152,163,255,.07),0 0 18px rgba(152,163,255,.06);
+    }
+    .tool-button.pool.active {
+      color:#fff0c4; border-color:rgba(247,195,87,.38);
+      background:linear-gradient(180deg,rgba(155,104,27,.30),rgba(66,43,13,.26));
+      box-shadow:0 0 20px rgba(247,195,87,.09),inset 0 0 17px rgba(247,195,87,.06);
+    }
+
+    .workspace { min-height:0; display:grid; grid-template-columns:minmax(0,1fr) clamp(300px,22vw,365px); gap:10px; padding:10px 12px 9px; }
+    .canvas-wrap {
+      border:1px solid rgba(101,207,244,.16); border-radius:18px; overflow:hidden;
+      box-shadow:0 24px 70px rgba(0,0,0,.31), inset 0 0 100px rgba(0,0,0,.35);
+      background:
+        radial-gradient(circle at 50% 34%,rgba(43,139,204,.11),transparent 38%),
+        radial-gradient(circle at 50% 105%,rgba(43,207,255,.08),transparent 36%),
+        linear-gradient(180deg,#03101d 0%,#020914 70%,#02060d 100%);
+    }
+    .canvas-wrap::before {
+      background:
+        radial-gradient(ellipse at 50% 85%,rgba(62,200,255,.07),transparent 45%),
+        linear-gradient(90deg,rgba(55,203,255,.03),transparent 20%,transparent 80%,rgba(247,195,87,.025));
+      box-shadow:inset 0 0 135px rgba(0,0,0,.5); opacity:1;
+    }
+    .background-art { width:min(54vw,620px); height:min(72vh,620px); opacity:.12; filter:saturate(1.25) contrast(1.22) brightness(.72) drop-shadow(0 0 32px rgba(49,202,248,.17)); }
+    .pair-watermark { top:18px; left:20px; }
+    .pair-watermark b { font-size:clamp(.9rem,1.3vw,1.12rem); color:rgba(233,249,255,.88); }
+    .pair-watermark span { color:rgba(115,161,181,.78); }
+    .flow-hud { top:16px; right:16px; max-width:min(45vw,420px); border-radius:10px; background:rgba(3,13,24,.68); }
+    .momentum-readout { position:relative; inset:auto; width:100%; min-height:0; padding:0; border:0; background:transparent; box-shadow:none; backdrop-filter:none; pointer-events:none; }
+    .momentum-arrow { width:34px; height:34px; border-radius:10px; font-size:1rem; }
+    .momentum-copy b { font-size:.76rem; }
+    .momentum-copy small { font-size:.64rem; }
+    .depth-note { right:16px; bottom:15px; }
+    .spatial-key { left:18px; bottom:15px; }
+
+    .scene-core-label {
+      position:absolute; z-index:4; left:50%; bottom:18px; transform:translateX(-50%); pointer-events:auto; cursor:pointer;
+      display:flex; flex-direction:column; align-items:center; gap:3px; min-width:170px; padding:7px 18px 8px;
+      border:1px solid rgba(247,195,87,.22); border-radius:11px;
+      background:linear-gradient(180deg,rgba(6,17,31,.76),rgba(3,10,19,.84));
+      box-shadow:0 0 26px rgba(247,195,87,.08), inset 0 1px rgba(255,255,255,.025);
+      backdrop-filter:blur(8px);
+    }
+    .scene-core-label b { color:#f2f9ff; letter-spacing:.23em; font-size:.68rem; }
+    .scene-core-label span { color:#7e9db0; letter-spacing:.19em; font-size:.5rem; text-transform:uppercase; }
+    .scene-core-label.is-selected { border-color:rgba(247,195,87,.56); box-shadow:0 0 34px rgba(247,195,87,.15),0 0 44px rgba(57,208,255,.08),inset 0 1px rgba(255,255,255,.04); }
+
+    .mini-info {
+      width:20px; height:20px; display:inline-grid; place-items:center; flex:0 0 auto; padding:0;
+      border:1px solid rgba(118,216,249,.24); border-radius:50%; background:rgba(6,23,39,.74); color:#a8eaff;
+      font-size:.65rem; font-weight:800; line-height:1; cursor:pointer; box-shadow:inset 0 0 10px rgba(57,208,255,.05);
+      transition:transform .18s ease,border-color .18s ease,color .18s ease,background .18s ease,box-shadow .18s ease;
+    }
+    .mini-info:hover,.mini-info:focus-visible { outline:none; transform:translateY(-1px); color:#fff; border-color:rgba(101,230,255,.64); background:rgba(14,55,79,.86); box-shadow:0 0 16px rgba(57,208,255,.13); }
+    .mini-info.active { color:#102030; background:#8feeff; border-color:#bff8ff; box-shadow:0 0 18px rgba(57,208,255,.28); }
+    .pair-watermark { pointer-events:auto; display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:8px; align-items:start; }
+    .pair-watermark b,.pair-watermark span { grid-column:1; }
+    .pair-watermark .mini-info { grid-column:2; grid-row:1 / span 2; align-self:center; }
+    .oracle-title .mini-info { margin-left:2px; }
+    .rail-heading .heading-left { display:flex; align-items:center; gap:7px; min-width:0; }
+
+    .context-info {
+      position:absolute; z-index:11; left:50%; bottom:72px; width:min(360px,calc(100% - 28px));
+      transform:translate(-50%,12px); opacity:0; visibility:hidden; pointer-events:none;
+      border:1px solid rgba(107,215,250,.23); border-radius:15px; padding:13px 14px 14px;
+      background:linear-gradient(155deg,rgba(7,24,42,.95),rgba(3,12,23,.96));
+      box-shadow:0 18px 48px rgba(0,0,0,.38),0 0 30px rgba(57,208,255,.07),inset 0 1px rgba(255,255,255,.03);
+      backdrop-filter:blur(16px) saturate(1.12); -webkit-backdrop-filter:blur(16px) saturate(1.12);
+      transition:opacity .22s ease,transform .22s ease,visibility .22s;
+    }
+    .context-info.visible { opacity:1; visibility:visible; pointer-events:auto; transform:translate(-50%,0); }
+    .context-info-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:7px; }
+    .context-info-head b { font-size:.77rem; color:#eefaff; letter-spacing:.02em; }
+    .context-info-close { width:25px; height:25px; display:grid; place-items:center; padding:0; border:1px solid rgba(126,203,230,.15); border-radius:8px; background:rgba(255,255,255,.025); color:#8aa9ba; cursor:pointer; }
+    .context-info-close:hover,.context-info-close:focus-visible { outline:none; color:#fff; border-color:rgba(126,223,255,.38); }
+    .context-info p { margin:0; color:#9bb4c3; font-size:.67rem; line-height:1.55; }
+
+    .oracle-inspect {
+      position:absolute; z-index:10; left:18px; top:88px; width:min(310px,calc(100% - 36px));
+      opacity:0; visibility:hidden; pointer-events:none; transform:translateY(10px) scale(.985);
+      border:1px solid rgba(247,195,87,.28); border-radius:16px; padding:13px 14px 14px;
+      background:linear-gradient(155deg,rgba(10,27,45,.94),rgba(4,13,25,.95));
+      box-shadow:0 18px 50px rgba(0,0,0,.4),0 0 34px rgba(247,195,87,.08),0 0 30px rgba(57,208,255,.06);
+      backdrop-filter:blur(16px) saturate(1.16); -webkit-backdrop-filter:blur(16px) saturate(1.16);
+      transition:opacity .24s ease,transform .24s ease,visibility .24s;
+    }
+    .oracle-inspect.visible { opacity:1; visibility:visible; pointer-events:auto; transform:translateY(0) scale(1); }
+    .oracle-inspect-head { display:flex; align-items:center; justify-content:space-between; gap:10px; padding-bottom:9px; border-bottom:1px solid rgba(117,206,239,.11); }
+    .oracle-inspect-title { display:flex; align-items:center; gap:8px; min-width:0; }
+    .oracle-inspect-title i { width:8px; height:8px; border-radius:50%; background:#f4c75c; box-shadow:0 0 12px rgba(247,195,87,.7); }
+    .oracle-inspect-title b { font-size:.76rem; color:#fff2c7; }
+    .oracle-inspect-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+    .oracle-inspect-cell { min-width:0; padding:8px 9px; border:1px solid rgba(116,205,238,.09); border-radius:10px; background:rgba(3,12,22,.33); }
+    .oracle-inspect-cell span { display:block; color:#718fa1; font-size:.54rem; text-transform:uppercase; letter-spacing:.07em; }
+    .oracle-inspect-cell b { display:block; margin-top:4px; color:#e9f9ff; font-size:.71rem; font-variant-numeric:tabular-nums; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .oracle-inspect-cell b.positive { color:#62efc6; }
+    .oracle-inspect-cell b.negative { color:#ff8791; }
+    .oracle-inspect-note { margin:10px 0 0; color:#92acbc; font-size:.61rem; line-height:1.5; }
+    .oracle-inspect-note strong { color:#c9f4ff; font-weight:650; }
+    .oracle-color-legend { margin-top:10px; padding:9px 10px; border:1px solid rgba(116,205,238,.09); border-radius:12px; background:rgba(4,13,25,.42); }
+    .oracle-color-legend > b { display:block; margin-bottom:8px; color:#e9f8ff; font-size:.63rem; letter-spacing:.08em; text-transform:uppercase; }
+    .oracle-color-grid { display:grid; grid-template-columns:1fr 1fr; gap:7px 10px; }
+    .oracle-legend-item { min-width:0; display:flex; align-items:flex-start; gap:8px; }
+    .oracle-swatch { width:11px; height:11px; flex:0 0 auto; margin-top:2px; border-radius:50%; box-shadow:0 0 14px rgba(255,255,255,.14); }
+    .oracle-swatch.blue { background:#39d0ff; box-shadow:0 0 14px rgba(57,208,255,.45); }
+    .oracle-swatch.gold { background:#f2c870; box-shadow:0 0 14px rgba(242,200,112,.45); }
+    .oracle-swatch.pulse { background:linear-gradient(135deg,#19d6a5,#8feeff); box-shadow:0 0 14px rgba(25,214,165,.38); }
+    .oracle-swatch.risk { background:#39d0ff; box-shadow:0 0 14px rgba(57,208,255,.45); }
+    .oracle-legend-copy { min-width:0; display:flex; flex-direction:column; gap:2px; }
+    .oracle-legend-copy span { color:#e8f7ff; font-size:.61rem; line-height:1.2; }
+    .oracle-legend-copy small { color:#7e9aab; font-size:.55rem; line-height:1.35; }
+    .canvas-wrap.pool-hover #chartCanvas { cursor:pointer; }
+
+    .right-rail { min-height:0; display:grid; grid-template-rows:auto auto minmax(0,1fr); gap:10px; overflow:auto; scrollbar-width:none; }
+    .right-rail::-webkit-scrollbar { display:none; }
+    .rail-card,.oracle-hud {
+      position:relative; inset:auto; width:auto; max-width:none; padding:14px; overflow:hidden;
+      border:1px solid rgba(102,207,244,.18); border-radius:17px;
+      background:linear-gradient(155deg,rgba(10,29,49,.92),rgba(4,13,25,.90));
+      box-shadow:0 16px 45px rgba(0,0,0,.28), inset 0 1px rgba(255,255,255,.03);
+      backdrop-filter:blur(18px) saturate(1.14); -webkit-backdrop-filter:blur(18px) saturate(1.14);
+      transition:border-color .25s ease,box-shadow .25s ease,transform .25s ease,background .25s ease;
+    }
+    .rail-card::before,.oracle-hud::before { content:""; position:absolute; left:11%; right:11%; top:0; height:1px; background:linear-gradient(90deg,transparent,rgba(97,229,255,.48),rgba(242,200,112,.28),transparent); opacity:.62; pointer-events:none; }
+    .rail-card:hover,.oracle-hud:hover { border-color:rgba(105,218,255,.27); box-shadow:0 20px 54px rgba(0,0,0,.32),0 0 28px rgba(57,208,255,.045),inset 0 1px rgba(255,255,255,.035); }
+    .rail-card.spotlight,.oracle-hud.spotlight { border-color:rgba(91,225,255,.55); background:linear-gradient(155deg,rgba(13,40,64,.96),rgba(5,17,31,.94)); box-shadow:0 20px 60px rgba(0,0,0,.34),0 0 34px rgba(57,208,255,.13),inset 0 0 32px rgba(57,208,255,.045); transform:translateY(-1px); }
+    .oracle-hud { top:auto; right:auto; z-index:auto; pointer-events:auto; cursor:pointer; }
+    .oracle-head { margin-bottom:11px; padding-bottom:10px; border-bottom:1px solid rgba(106,197,233,.11); }
+    .oracle-title b { font-size:.77rem; letter-spacing:.05em; text-transform:none; }
+    .oracle-balance strong { font-size:clamp(1.38rem,2vw,1.8rem); color:#fff1c4; text-shadow:0 0 20px rgba(247,195,87,.18); }
+    .oracle-main { gap:13px; }
+    .oracle-runway strong { font-size:1.05rem; }
+    .oracle-meta { display:grid; grid-template-columns:1fr 1fr; gap:7px 10px; margin-top:12px; padding-top:10px; font-size:.63rem; }
+    .oracle-meta span { min-height:25px; display:flex; align-items:center; padding:0 8px; border:1px solid rgba(102,207,244,.08); border-radius:8px; background:rgba(3,12,22,.28); }
+    .oracle-meta .daily-income { grid-column:1/-1; justify-content:space-between; color:#e7fbff; font-weight:700; }
+    .oracle-meta .daily-income.positive { color:#62efc6; border-color:rgba(25,214,165,.18); background:rgba(14,72,57,.18); }
+    .oracle-meta .daily-income.negative { color:#ff8791; border-color:rgba(255,105,121,.18); background:rgba(85,20,31,.18); }
+    .oracle-meter { height:7px; margin-top:10px; background:rgba(255,255,255,.055); }
+    .oracle-meter > i { background:linear-gradient(90deg,#23cfff 0%,#65f1ff 40%,#f4d175 72%,#f0b54b 100%); box-shadow:0 0 16px rgba(55,211,255,.36); }
+
+    .rail-heading { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:11px; }
+    .rail-heading b { font-size:.76rem; letter-spacing:.03em; }
+    .rail-heading span { color:#63879b; font-size:.56rem; text-transform:uppercase; letter-spacing:.08em; }
+    .flow-card-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+    .flow-stat { min-width:0; padding:10px; border:1px solid rgba(108,205,241,.10); border-radius:12px; background:rgba(2,10,19,.34); }
+    .flow-stat span { display:block; color:#7291a2; font-size:.57rem; text-transform:uppercase; letter-spacing:.06em; }
+    .flow-stat b { display:block; margin-top:5px; font-size:.84rem; font-variant-numeric:tabular-nums; overflow:hidden; white-space:nowrap; text-overflow:ellipsis; }
+    .flow-hist { height:48px; margin-top:12px; display:flex; align-items:end; gap:4px; }
+    .flow-hist i { flex:1; min-width:3px; border-radius:3px 3px 1px 1px; background:linear-gradient(180deg,#5be8ff,#0a8cc9); box-shadow:0 0 7px rgba(43,211,255,.18); opacity:.75; }
+    .flow-hist i:nth-child(n+8) { background:linear-gradient(180deg,#ffe098,#c18426); box-shadow:0 0 7px rgba(247,195,87,.13); }
+    .feed-list { display:grid; gap:7px; }
+    .feed-row { display:grid; grid-template-columns:auto minmax(0,1fr) auto; gap:9px; align-items:center; min-height:34px; padding:0 9px; border:1px solid rgba(109,201,237,.09); border-radius:10px; background:rgba(3,12,22,.32); }
+    .feed-row i { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 10px rgba(25,214,165,.55); }
+    .feed-row b { font-size:.62rem; font-weight:640; }
+    .feed-row span { color:#7392a4; font-size:.56rem; white-space:nowrap; }
+
+    .foot {
+      min-height:42px; padding:0 13px; border-top:1px solid rgba(103,206,244,.14);
+      background:linear-gradient(180deg,rgba(3,11,20,.97),rgba(2,8,15,.99));
+    }
+    .market-ticker { display:flex; align-items:center; gap:8px; min-width:0; overflow:hidden; }
+    .ticker-live { display:inline-flex; align-items:center; gap:7px; color:#54ebc4; font-size:.61rem; font-weight:700; white-space:nowrap; }
+    .ticker-live i { width:7px; height:7px; border-radius:50%; background:var(--green); box-shadow:0 0 10px rgba(25,214,165,.7); }
+    .ticker-item { display:inline-flex; align-items:center; gap:6px; height:27px; padding:0 9px; border:1px solid rgba(106,197,233,.10); border-radius:8px; background:rgba(6,17,29,.58); white-space:nowrap; font-size:.58rem; }
+    .ticker-item b { font-variant-numeric:tabular-nums; color:#dff7ff; }
+    .ticker-sep { width:1px; height:18px; background:rgba(102,207,244,.14); flex:0 0 auto; }
+    .foot-clock { white-space:nowrap; }
+
+    @media (max-width:1180px) {
+      .top { grid-template-columns:minmax(210px,.72fr) minmax(360px,1.25fr) auto; }
+      .primary-nav { padding:6px 7px; border-radius:18px; width:max-content; min-width:100%; justify-content:flex-start; }
+      .primary-nav button { min-height:38px; padding:0 14px; border-radius:12px; }
+      .search-shell { display:none; }
+      .top-tools { grid-template-columns:auto; }
+      .workspace { grid-template-columns:minmax(0,1fr) 300px; }
+      .overview { grid-template-columns:minmax(340px,1fr) minmax(360px,1fr); }
+    }
+    @media (max-width:900px) {
+      html,body { height:auto; min-height:100%; overflow:auto; }
+      .app { height:auto; min-height:100dvh; grid-template-rows:auto auto auto; }
+      .top { position:sticky; top:0; grid-template-columns:minmax(180px,1fr) auto; grid-template-rows:auto auto; }
+      .primary-nav { grid-column:1/-1; display:flex; justify-content:flex-start; overflow-x:auto; scrollbar-width:none; padding-top:2px; }
+      .primary-nav::-webkit-scrollbar { display:none; }
+      .primary-nav button { flex:0 0 auto; }
+      .overview { grid-template-columns:1fr; }
+      .overview-metrics { grid-template-columns:repeat(4,minmax(110px,1fr)); overflow-x:auto; }
+      .chart-shell { min-height:760px; grid-template-rows:auto auto auto; }
+      .workspace { grid-template-columns:1fr; grid-template-rows:minmax(510px,62vh) auto; }
+      .right-rail { grid-template-columns:repeat(3,minmax(240px,1fr)); grid-template-rows:auto; overflow-x:auto; overflow-y:hidden; padding-bottom:2px; }
+      .oracle-inspect { left:10px; right:10px; top:auto; bottom:58px; width:auto; }
+      .oracle-color-grid { grid-template-columns:1fr; gap:7px; }
+      .context-info { bottom:62px; }
+      .right-rail > * { min-width:260px; }
+      .oracle-hud { min-width:290px; }
+    }
+    @media (max-width:640px) {
+      .top { padding:max(9px,env(safe-area-inset-top)) 10px 8px; }
+      .brand-copy strong { font-size:.76rem; }
+      .brand-copy > span { font-size:.52rem; letter-spacing:.12em; }
+      .connection span { display:none; }
+      .connection { min-width:34px; padding:0 12px; }
+      .overview { padding:7px 10px; }
+      .markets { grid-template-columns:1fr 1fr; }
+      .market-card { min-height:52px; }
+      .market-name span { display:none; }
+      .overview-metrics { grid-template-columns:repeat(4,130px); gap:8px; }
+      .metric-cell { padding:10px 11px; border-radius:12px; }
+      .toolbar { padding:5px 7px; }
+      .toolbar-group { padding:4px; border-radius:14px; }
+      .tool-button { min-height:35px; padding:0 10px; border-radius:11px; }
+      .workspace { padding:7px; grid-template-rows:minmax(430px,59vh) auto; }
+      .canvas-wrap { border-radius:14px; }
+      .flow-hud { top:10px; right:10px; max-width:54%; }
+      .flow-meta { display:none; }
+      .pair-watermark { top:10px; left:11px; }
+      .scene-core-label { bottom:42px; min-width:145px; padding:6px 12px; }
+      .scene-core-label b { font-size:.58rem; }
+      .depth-note { display:none; }
+      .spatial-key { bottom:10px; }
+      .right-rail { grid-template-columns:repeat(3,250px); }
+      .foot { min-height:38px; }
+      .ticker-item:nth-of-type(n+4) { display:none; }
+    }
+
+  
+    /* ===== ORACLE FOCUS CAMERA + LEGACY HISTORY ===== */
+    .right-rail { grid-template-rows:auto auto auto minmax(0,1fr); }
+    .oracle-history-card { min-height:190px; }
+    .oracle-history-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:7px; }
+    .oracle-history-head b { font-size:.73rem; color:#ecfaff; letter-spacing:.02em; }
+    .oracle-history-head span { color:#6f93a6; font-size:.56rem; text-transform:uppercase; letter-spacing:.08em; }
+    .oracle-history-ranges { display:flex; gap:3px; overflow-x:auto; scrollbar-width:none; margin-bottom:7px; }
+    .oracle-history-ranges::-webkit-scrollbar { display:none; }
+    .history-range { min-width:31px; height:24px; padding:0 7px; border:1px solid rgba(112,205,239,.12); border-radius:7px; background:rgba(5,18,31,.62); color:#7f9daf; font-size:.55rem; font-weight:700; cursor:pointer; }
+    .history-range:hover,.history-range:focus-visible { outline:none; color:#fff; border-color:rgba(94,222,255,.38); }
+    .history-range.active { color:#effdff; border-color:rgba(60,219,255,.5); background:linear-gradient(180deg,rgba(15,111,153,.35),rgba(6,46,70,.28)); box-shadow:0 0 16px rgba(57,208,255,.08); }
+    .oracle-history-chart { position:relative; height:112px; border:1px solid rgba(111,205,239,.11); border-radius:10px; overflow:hidden; background:linear-gradient(180deg,rgba(3,14,27,.72),rgba(3,9,18,.88)); }
+    .oracle-history-chart canvas { width:100%; height:100%; display:block; }
+    .oracle-history-empty { position:absolute; inset:0; display:grid; place-items:center; padding:12px; color:#728fa0; font-size:.6rem; text-align:center; line-height:1.45; }
+    .oracle-history-empty[hidden] { display:none; }
+    .oracle-history-meta { display:grid; grid-template-columns:1fr auto; gap:6px 10px; margin-top:7px; color:#7593a5; font-size:.56rem; font-variant-numeric:tabular-nums; }
+    .oracle-history-meta b { color:#ccecf6; font-weight:650; }
+    .oracle-history-change.positive { color:var(--green); }
+    .oracle-history-change.negative { color:var(--red); }
+    .focus-hint { position:absolute; left:50%; top:16px; z-index:5; transform:translate(-50%,-8px); opacity:0; visibility:hidden; pointer-events:none; padding:6px 11px; border:1px solid rgba(247,195,87,.25); border-radius:999px; background:rgba(4,14,26,.78); color:#d9edf5; font-size:.58rem; letter-spacing:.05em; backdrop-filter:blur(9px); transition:opacity .3s ease,transform .3s ease,visibility .3s; }
+    .canvas-wrap.pool-focused .focus-hint { opacity:1; visibility:visible; transform:translate(-50%,0); }
+    @media (max-width:1180px) { .right-rail { grid-template-columns:repeat(4,minmax(240px,1fr)); grid-template-rows:auto; } }
+    @media (max-width:640px) { .right-rail { grid-template-columns:repeat(4,250px); } .oracle-history-card { min-height:176px; } .oracle-history-chart { height:96px; } .focus-hint { top:10px; max-width:76%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } }
+</style>
 </head>
 <body>
+  <canvas class="ui-particle-canvas" id="uiParticleCanvas" aria-hidden="true"></canvas>
   <main class="app">
     <header class="top">
       <div class="brand">
         <div class="brand-mark" aria-hidden="true"><img class="brand-logo-base" src="https://i.postimg.cc/HnkwHk7w/Screenshot-20260317-182016-Gallery.png" alt=""><canvas class="brand-particle-canvas" id="brandParticleCanvas" width="96" height="96"></canvas></div>
         <div class="brand-copy">
-          <div class="brand-title-row"><strong>TERRA CLASSIC</strong><a class="dev-button" href="https://lec23.pages.dev/" target="_blank" rel="noopener noreferrer" aria-label="LEC23 DEV-Seite öffnen">DEV</a></div>
-          <span>Spatial Market</span>
+          <div class="brand-title-row"><strong>TERRA CLASSIC</strong></div>
+          <span>Spatial Market · Oracle Pool</span>
         </div>
       </div>
+      <nav class="primary-nav" id="primaryNav" aria-label="Hauptnavigation">
+        <button class="active" type="button" data-nav="market" aria-pressed="true">Market</button><button type="button" data-nav="oracle" aria-pressed="false">Oracle Pool</button><button type="button" data-nav="analytics" aria-pressed="false">Analytics</button><button type="button" data-nav="ecosystem" aria-pressed="false">Ecosystem</button><button type="button" data-nav="network" aria-pressed="false">Network</button>
+      </nav>
+      <div class="top-tools">
+        <div class="search-shell" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
+          <span>Search markets, address, blocks…</span>
+        </div>
+        <div class="connection" id="connection" role="status" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><span id="connectionText">Marktdaten laden</span></div>
+      </div>
+    </header>
+
+    <section class="overview" aria-label="Marktübersicht">
       <div class="markets" aria-label="Markt auswählen">
         <button class="market-card active" type="button" data-symbol="LUNC-USDT" aria-pressed="true">
           <span class="coin" aria-hidden="true"><img src="https://i.postimg.cc/HnkwHk7w/Screenshot-20260317-182016-Gallery.png" alt=""><canvas id="luncLogoCanvas" width="72" height="72"></canvas></span>
@@ -549,20 +1023,12 @@
           <span class="market-price"><b id="ustcCardPrice">—</b><span id="ustcCardChange">—</span></span>
         </button>
       </div>
-      <div class="connection" id="connection" role="status" aria-live="polite">
-        <i class="status-dot" aria-hidden="true"></i><span id="connectionText">Marktdaten laden</span>
+      <div class="overview-metrics">
+        <div class="metric-cell"><span id="activePair">LUNC / USDT</span><b class="main-price" id="mainPrice">—</b><em class="main-change" id="mainChange">—</em></div>
+        <div class="metric-cell"><span>24h High</span><b id="highValue">—</b></div>
+        <div class="metric-cell"><span>24h Low</span><b id="lowValue">—</b></div>
+        <div class="metric-cell"><span>24h Volume</span><b id="volumeValue">—</b></div>
       </div>
-    </header>
-
-    <section class="overview" aria-label="Marktübersicht">
-      <div class="pair-overview">
-        <span class="pair-label" id="activePair">LUNC / USDT</span>
-        <b class="main-price" id="mainPrice">—</b>
-        <span class="main-change" id="mainChange">—</span>
-      </div>
-      <div class="stat"><span>24h Hoch</span><b id="highValue">—</b></div>
-      <div class="stat"><span>24h Tief</span><b id="lowValue">—</b></div>
-      <div class="stat"><span>24h Volumen</span><b id="volumeValue">—</b></div>
     </section>
 
     <section class="chart-shell">
@@ -579,56 +1045,122 @@
         <div class="toolbar-group">
           <button class="tool-button active" id="perspectiveButton" type="button" aria-pressed="true" title="360° Auto-Orbit starten oder stoppen">360°</button>
           <button class="tool-button" id="frontButton" type="button">Front</button>
-          <button class="tool-button" id="dualButton" type="button" aria-pressed="false" title="LUNC und USTC nebeneinander anzeigen">Dual</button>
+          <button class="tool-button" id="dualButton" type="button" aria-pressed="false">Dual</button>
           <span class="divider" aria-hidden="true"></span>
           <button class="tool-button active" id="maButton" type="button" aria-pressed="true">MA</button>
           <button class="tool-button active gold" id="volumeButton" type="button" aria-pressed="true">Vol</button>
           <button class="tool-button active flow" id="flowButton" type="button" aria-pressed="true">Flow</button>
-          <button class="tool-button active" id="bookButton" type="button" aria-pressed="true" title="Orderbook-Liquidität als räumliche Wände">Book</button>
-          <button class="tool-button active" id="pulseButton" type="button" aria-pressed="true" title="Lebendige Live-Candle mit organischer Bewegung">Live</button>
-          <button class="tool-button active" id="linkButton" type="button" aria-pressed="true" title="LUNC und USTC im Dual-Modus visuell verbinden">Link</button>
-          <button class="tool-button" id="perfButton" type="button" aria-pressed="false" title="Leistungsmodus: reduziert Renderlast">Eco</button>
+          <button class="tool-button active pool" id="poolButton" type="button" aria-pressed="true">Pool</button>
+          <button class="tool-button active" id="bookButton" type="button" aria-pressed="true">Book</button>
+          <button class="tool-button active" id="pulseButton" type="button" aria-pressed="true">Live</button>
+          <button class="tool-button active" id="linkButton" type="button" aria-pressed="true">Link</button>
+          <button class="tool-button" id="perfButton" type="button" aria-pressed="false">Eco</button>
           <button class="tool-button" id="resetButton" type="button">Reset</button>
         </div>
       </nav>
-      <div class="canvas-wrap" id="canvasWrap" data-direction="flat" data-level="calm" data-flow="on" style="--energy-rgb:36,201,244;--energy-opacity:.035;--energy-speed:8s;--tick-rgb:36,201,244;--tick-pulse:0">
-        <canvas id="chartCanvas" tabindex="0" aria-label="Interaktiver räumlicher Candlestick-Chart mit Terra-Classic-Hintergrundmotiv. Frei um 360 Grad drehen und zoomen."></canvas>
-        <img class="background-art" src="https://i.postimg.cc/9Mt6pSv2/Screenshot-20260905-211950-Chrome.png" alt="" aria-hidden="true" decoding="async" referrerpolicy="no-referrer">
-        <div class="market-energy" aria-hidden="true"></div>
-        <canvas id="flowCanvas" aria-hidden="true"></canvas>
-        <canvas id="labelCanvas" aria-hidden="true"></canvas>
-        <div class="pair-watermark" aria-hidden="true">
-          <b id="watermarkPair">LUNC / USDT · 1h</b>
-          <span id="watermarkSource">Binance Spot · öffentlicher Marktfeed</span>
+
+      <div class="workspace">
+        <div class="canvas-wrap" id="canvasWrap" data-direction="flat" data-level="calm" data-flow="on" style="--energy-rgb:36,201,244;--energy-opacity:.035;--energy-speed:8s;--tick-rgb:36,201,244;--tick-pulse:0">
+          <canvas id="chartCanvas" tabindex="0" aria-label="Interaktiver räumlicher Candlestick-Chart. Frei um 360 Grad drehen und zoomen."></canvas>
+          <img class="background-art" src="https://i.postimg.cc/9Mt6pSv2/Screenshot-20260905-211950-Chrome.png" alt="" aria-hidden="true" decoding="async" referrerpolicy="no-referrer">
+          <div class="market-energy" aria-hidden="true"></div>
+          <canvas id="flowCanvas" aria-hidden="true"></canvas>
+          <canvas id="labelCanvas" aria-hidden="true"></canvas>
+          <div class="pair-watermark"><b id="watermarkPair">LUNC / USDT · 1h</b><span id="watermarkSource">Binance Spot · öffentlicher Marktfeed</span><button class="mini-info" type="button" data-info="chart" aria-label="Chart Erklärung öffnen">i</button></div>
+          <div class="flow-hud" id="flowHud" aria-live="polite"><span class="flow-chip" id="flowState">Flow Ready</span><span class="flow-meta" id="flowValue">Warte auf Live-Trades …</span></div>
+          <div class="focus-hint" id="focusHint">Oracle Focus · ziehen zum Erkunden · × oder Esc zum Zurückkehren</div>
+          <div class="spatial-key" aria-hidden="true"><span class="key-item"><i class="key-line"></i>MA 7</span><span class="key-item"><i class="key-line gold"></i>MA 25</span></div>
+          <div class="depth-note">Ziehen: 360° drehen · Rad/Pinch: zoomen</div>
+          <div class="scene-core-label" id="sceneCoreLabel"><b>ORACLE POOL</b><span>Terra Classic · On-chain core</span></div>
+          <div class="price-pill" id="pricePill">—</div>
+          <section class="oracle-inspect" id="oracleInspect" aria-hidden="true" aria-label="Oracle Pool Details">
+            <div class="oracle-inspect-head"><span class="oracle-inspect-title"><i aria-hidden="true"></i><b>Oracle Pool · ausgewählt</b></span><button class="context-info-close" id="oracleInspectClose" type="button" aria-label="Oracle Pool Details schließen">×</button></div>
+            <div class="oracle-inspect-grid">
+              <div class="oracle-inspect-cell"><span>Balance</span><b id="inspectBalance">—</b></div>
+              <div class="oracle-inspect-cell"><span>Runway</span><b id="inspectRunway">—</b></div>
+              <div class="oracle-inspect-cell"><span>Netto Δ / Tag</span><b id="inspectDelta">—</b></div>
+              <div class="oracle-inspect-cell"><span>USTC im Modul</span><b id="inspectUstc">—</b></div>
+              <div class="oracle-inspect-cell"><span>% Daily Income</span><b id="inspectDailyIncome">—</b></div>
+              <div class="oracle-inspect-cell"><span>Verbrauch / Tag</span><b id="inspectConsumption">—</b></div>
+            </div>
+            <div class="oracle-color-legend" aria-label="Farblegende des Oracle Pools">
+              <b>Farben im Oracle Pool</b>
+              <div class="oracle-color-grid">
+                <div class="oracle-legend-item"><i class="oracle-swatch blue" aria-hidden="true"></i><span class="oracle-legend-copy"><span>LUNC-Energie</span><small>Der cyan-blaue Kern steht für die primäre LUNC-Poolenergie bzw. die sichtbare Hauptbalance.</small></span></div>
+                <div class="oracle-legend-item"><i class="oracle-swatch gold" aria-hidden="true"></i><span class="oracle-legend-copy"><span>USTC-Begleitstrom</span><small>Gold markiert den zweiten Reserve-/Begleitstrom und macht die USTC-Seite im Modul sichtbar.</small></span></div>
+                <div class="oracle-legend-item"><i class="oracle-swatch pulse" aria-hidden="true"></i><span class="oracle-legend-copy"><span>Live-Marktimpuls</span><small>Kurze grün-cyan Pulse kommen vom Live-Chart und zeigen Marktaktivität – sie ändern den On-chain-Pool nicht.</small></span></div>
+                <div class="oracle-legend-item"><i class="oracle-swatch risk" id="inspectRiskSwatch" aria-hidden="true"></i><span class="oracle-legend-copy"><span id="inspectRiskTitle">Runway-Zustand</span><small id="inspectRiskText">Cyan steht für lange Reservezeit; bei sinkender Runway wechselt die Zustandsfarbe zu grün, amber oder rot.</small></span></div>
+              </div>
+            </div>
+            <p class="oracle-inspect-note"><strong>Was du siehst:</strong> Die Kugel visualisiert den echten Terra-Classic-Oracle-Pool. Die innere Energie folgt den On-Chain-Daten; Markt-Ticks erzeugen nur einen visuellen Puls und verändern den Poolstand nicht.</p>
+          </section>
+          <aside class="context-info" id="contextInfo" aria-hidden="true">
+            <div class="context-info-head"><b id="contextInfoTitle">Info</b><button class="context-info-close" id="contextInfoClose" type="button" aria-label="Info schließen">×</button></div>
+            <p id="contextInfoText"></p>
+          </aside>
+          <aside class="candle-detail" id="candleDetail" aria-hidden="true">
+            <div class="detail-top"><b id="detailTime">—</b><span id="detailDirection">—</span></div>
+            <div class="ohlc"><div><span>Open</span><b id="detailOpen">—</b></div><div><span>High</span><b id="detailHigh">—</b></div><div><span>Low</span><b id="detailLow">—</b></div><div><span>Close</span><b id="detailClose">—</b></div></div>
+            <div class="detail-volume"><span>Volumen</span><b id="detailVolume">—</b></div>
+          </aside>
+          <div class="loading visible" id="loading"><div class="loading-inner"><i class="loader" aria-hidden="true"></i><span id="loadingText">Bestätigte Live-Daten werden geladen …</span><button class="retry-button" id="retryButton" type="button">Erneut verbinden</button></div></div>
         </div>
-        <div class="flow-hud" id="flowHud" aria-live="polite"><span class="flow-chip" id="flowState">Flow Ready</span><span class="flow-meta" id="flowValue">Warte auf Live-Trades …</span></div>
-        <div class="momentum-readout" id="momentumReadout" aria-label="Binance 24-Stunden Marktimpuls">
-          <span class="momentum-arrow" id="momentumArrow" aria-hidden="true">→</span>
-          <span class="momentum-copy"><b id="momentumLabel">Marktimpuls</b><small id="momentumValue">Binance 24h · —</small></span>
-        </div>
-        <div class="spatial-key" aria-hidden="true">
-          <span class="key-item"><i class="key-line"></i>MA 7</span>
-          <span class="key-item"><i class="key-line gold"></i>MA 25</span>
-        </div>
-        <div class="depth-note">Ziehen: 360° drehen · Rad/Pinch: zoomen</div>
-        <div class="price-pill" id="pricePill">—</div>
-        <aside class="candle-detail" id="candleDetail" aria-hidden="true">
-          <div class="detail-top"><b id="detailTime">—</b><span id="detailDirection">—</span></div>
-          <div class="ohlc">
-            <div><span>Open</span><b id="detailOpen">—</b></div>
-            <div><span>High</span><b id="detailHigh">—</b></div>
-            <div><span>Low</span><b id="detailLow">—</b></div>
-            <div><span>Close</span><b id="detailClose">—</b></div>
+
+        <aside class="right-rail" aria-label="Live Datenkonsole">
+          <div class="oracle-hud" id="oracleHud" role="status" aria-live="polite">
+            <div class="oracle-head"><span class="oracle-title"><i class="oracle-dot" aria-hidden="true"></i><b>Oracle Pool</b><button class="mini-info" type="button" data-info="oracle" aria-label="Oracle Pool Erklärung öffnen">i</button></span><span class="oracle-age" id="oracleAge">lädt …</span></div>
+            <div class="oracle-main"><div class="oracle-balance"><span>Pool Balance</span><strong id="oracleBalance">—</strong></div><div class="oracle-runway"><span>Runway</span><strong id="oracleRunway">—</strong></div></div>
+            <div class="oracle-meta"><span id="oracleDelta">Δ/Tag —</span><span id="oracleUstc">USTC —</span><span class="daily-income" id="oracleDailyIncome" title="Netto Δ/Tag ÷ aktueller LUNC-Pool × 100">% Daily Income —</span></div>
+            <div class="oracle-meter" aria-hidden="true"><i id="oracleMeter"></i></div>
           </div>
-          <div class="detail-volume"><span>Volumen</span><b id="detailVolume">—</b></div>
+
+          <section class="rail-card oracle-history-card" id="oracleHistoryCard" aria-label="Oracle Pool Verlauf">
+            <div class="oracle-history-head"><b>Oracle Verlauf</b><span>Browser-Historie</span></div>
+            <div class="oracle-history-ranges" id="oracleHistoryRanges" aria-label="Oracle Verlauf Zeitraum">
+              <button class="history-range" type="button" data-oracle-range="1D">1T</button>
+              <button class="history-range" type="button" data-oracle-range="30D">30T</button>
+              <button class="history-range" type="button" data-oracle-range="90D">90T</button>
+              <button class="history-range" type="button" data-oracle-range="6M">6M</button>
+              <button class="history-range active" type="button" data-oracle-range="12M">12M</button>
+              <button class="history-range" type="button" data-oracle-range="ALL">ALLE</button>
+            </div>
+            <div class="oracle-history-chart">
+              <canvas id="oracleHistoryCanvas" aria-label="Historischer Verlauf der Oracle Pool Balance"></canvas>
+              <div class="oracle-history-empty" id="oracleHistoryEmpty">Vorhandene Snapshots aus der früheren Oracle-Watcher-Seite erscheinen hier automatisch.</div>
+            </div>
+            <div class="oracle-history-meta"><span id="oracleHistorySummary">Snapshots —</span><b class="oracle-history-change" id="oracleHistoryChange">—</b><span id="oracleHistoryCoverage">Abdeckung —</span><span></span></div>
+          </section>
+
+          <section class="rail-card" id="flowRailCard" aria-label="Flow und Momentum">
+            <div class="rail-heading"><span class="heading-left"><b>Flow & Momentum</b><button class="mini-info" type="button" data-info="flow" aria-label="Flow Erklärung öffnen">i</button></span><span>Live market</span></div>
+            <div class="flow-card-grid">
+              <div class="flow-stat"><span>Market impulse</span><div class="momentum-readout" id="momentumReadout" aria-label="Binance 24-Stunden Marktimpuls"><span class="momentum-arrow" id="momentumArrow" aria-hidden="true">→</span><span class="momentum-copy"><b id="momentumLabel">Marktimpuls</b><small id="momentumValue">Binance 24h · —</small></span></div></div>
+              <div class="flow-stat"><span>Active flow</span><b id="railFlow">Waiting…</b></div>
+            </div>
+            <div class="flow-hist" aria-hidden="true"><i style="height:26%"></i><i style="height:44%"></i><i style="height:74%"></i><i style="height:58%"></i><i style="height:47%"></i><i style="height:35%"></i><i style="height:29%"></i><i style="height:34%"></i><i style="height:46%"></i><i style="height:64%"></i><i style="height:78%"></i><i style="height:55%"></i></div>
+          </section>
+
+          <section class="rail-card" id="sourcesRailCard" aria-label="Live Feeds">
+            <div class="rail-heading"><span class="heading-left"><b>Live Data Fabric</b><button class="mini-info" type="button" data-info="sources" aria-label="Datenquellen Erklärung öffnen">i</button></span><span>Sources</span></div>
+            <div class="feed-list">
+              <div class="feed-row"><i></i><b>Binance Spot</b><span>Price · Trades</span></div>
+              <div class="feed-row"><i></i><b>Orderbook</b><span>Depth stream</span></div>
+              <div class="feed-row"><i></i><b>Terra Classic LCD</b><span>Oracle pool</span></div>
+              <div class="feed-row"><i></i><b>WebGL Engine</b><span>Spatial live</span></div>
+            </div>
+          </section>
         </aside>
-        <div class="loading visible" id="loading">
-          <div class="loading-inner"><i class="loader" aria-hidden="true"></i><span id="loadingText">Bestätigte Live-Daten werden geladen …</span><button class="retry-button" id="retryButton" type="button">Erneut verbinden</button></div>
-        </div>
       </div>
+
       <footer class="foot">
-        <span><strong id="footSource">Binance Spot</strong> · Originaldaten · keine Simulation</span>
-        <span id="clock">UTC —:—:—</span>
+        <div class="market-ticker">
+          <span class="ticker-live"><i></i>Live Market Data</span><span class="ticker-sep"></span>
+          <span class="ticker-item">LUNC <b id="tickerLuncPrice">—</b><em id="tickerLuncChange">—</em></span>
+          <span class="ticker-item">USTC <b id="tickerUstcPrice">—</b><em id="tickerUstcChange">—</em></span>
+          <span class="ticker-item"><strong id="footSource">Binance Spot</strong> · Originaldaten</span>
+          <span class="ticker-item">Oracle · On-chain</span>
+        </div>
+        <span class="foot-clock" id="clock">UTC —:—:—</span>
       </footer>
     </section>
   </main>
@@ -689,6 +1221,10 @@ void main() {
       "use strict";
       var API = "https://data-api.binance.vision";
       var WS_API = "wss://data-stream.binance.vision/stream";
+      var ORACLE_LCD = "https://terra-classic-lcd.publicnode.com";
+      var ORACLE_HISTORY_KEY = "oracle_pool_history_only_balance_v5";
+      var ORACLE_REFRESH_MS = 30000;
+      var ORACLE_META_REFRESH_MS = 10 * 60 * 1000;
       var LUNC_LOGO_SRC = "https://i.postimg.cc/HnkwHk7w/Screenshot-20260317-182016-Gallery.png";
       var USTC_LOGO_SRC = "https://i.postimg.cc/BnGTPvhk/Screenshot-20260518-173816-Gallery.png";
       var SYMBOLS = ["LUNC-USDT","USTC-USDT"];
@@ -709,17 +1245,19 @@ void main() {
         "brandParticleCanvas","luncLogoCanvas","ustcLogoCanvas",
         "luncCardPrice","luncCardChange","ustcCardPrice","ustcCardChange","activePair",
         "mainPrice","mainChange","highValue","lowValue","volumeValue","timeframes",
-        "perspectiveButton","frontButton","dualButton","maButton","volumeButton","flowButton","bookButton","pulseButton","linkButton","perfButton","resetButton",
-        "watermarkPair","watermarkSource","flowState","flowValue","momentumReadout","momentumArrow","momentumLabel","momentumValue",
+        "perspectiveButton","frontButton","dualButton","maButton","volumeButton","flowButton","poolButton","bookButton","pulseButton","linkButton","perfButton","resetButton",
+        "watermarkPair","watermarkSource","flowState","flowValue","oracleHud","oracleAge","oracleBalance","oracleRunway","oracleDelta","oracleUstc","oracleDailyIncome","oracleMeter","momentumReadout","momentumArrow","momentumLabel","momentumValue",
         "pricePill","candleDetail","detailTime",
         "detailDirection","detailOpen","detailHigh","detailLow","detailClose",
-        "detailVolume","loading","loadingText","retryButton","footSource","clock"
+        "detailVolume","loading","loadingText","retryButton","footSource","clock","tickerLuncPrice","tickerLuncChange","tickerUstcPrice","tickerUstcChange","railFlow",
+        "sceneCoreLabel","oracleInspect","oracleInspectClose","inspectBalance","inspectRunway","inspectDelta","inspectUstc","inspectDailyIncome","inspectConsumption","inspectRiskSwatch","inspectRiskTitle","inspectRiskText","contextInfo","contextInfoTitle","contextInfoText","contextInfoClose","focusHint","oracleHistoryCanvas","oracleHistoryEmpty","oracleHistorySummary","oracleHistoryChange","oracleHistoryCoverage","oracleHistoryRanges","uiParticleCanvas","primaryNav","oracleHistoryCard","flowRailCard","sourcesRailCard"
       ];
       var el = {};
       ids.forEach(function (id) { el[id] = document.getElementById(id); });
       var gl = el.chartCanvas && el.chartCanvas.getContext("webgl2",{alpha:false,antialias:true,powerPreference:"high-performance"});
       var labelContext = el.labelCanvas ? el.labelCanvas.getContext("2d") : null;
       var flowContext = el.flowCanvas ? el.flowCanvas.getContext("2d") : null;
+      var uiParticleContext = el.uiParticleCanvas ? el.uiParticleCanvas.getContext("2d") : null;
       var brandParticleContext = el.brandParticleCanvas.getContext("2d");
       var luncLogoContext = el.luncLogoCanvas.getContext("2d");
       var ustcLogoContext = el.ustcLogoCanvas.getContext("2d");
@@ -729,19 +1267,26 @@ void main() {
         "LUNC-USDT": {stats:null,statsAt:0,ticker:null,tickerAt:0,candles:{},candleAt:{},source:{},lastTrade:null,tradesAt:0,depth:null,depthAt:0},
         "USTC-USDT": {stats:null,statsAt:0,ticker:null,tickerAt:0,candles:{},candleAt:{},source:{},lastTrade:null,tradesAt:0,depth:null,depthAt:0}
       };
+      var oracle = {
+        address:null, balanceLunc:null, balanceUstc:null, rewardWindow:null, blocksPerDay:null,
+        consumptionPerDay:null, netDeltaPerDay:null, movementPct:null, dailyIncomePct:null, daysLeft:null,
+        updatedAt:0, metaAt:0, loading:false, error:null, history:loadOracleHistory(),
+        fillRatio:.22, visualFillRatio:.22, visualPulse:0
+      };
       var state = {
         symbol:"LUNC-USDT", timeframe:"1h", loadingToken:0, mode:"loading",
-        showMA:true, showVolume:true, showFlow:true, showBook:true, showPulse:true, showLink:true, dualView:false, selectedIndex:null, hoverIndex:null,
+        showMA:true, showVolume:true, showFlow:true, showPool:true, showBook:true, showPulse:true, showLink:true, dualView:false, selectedIndex:null, hoverIndex:null,
         visibleCandles:[], visibleCandlesBySymbol:{}, sceneCandles:[], sceneCandlesMap:{}, chartMap:null, chartMaps:{}, retiringCandles:[], liveNodes:{}, pricePulse:0, tickPulse:0,
         momentumDirection:"flat", momentumLevel:"calm", momentumStrength:0,
         ws:null, wsRetry:0, wsRequestId:0, wsKlineStream:null, wsTradeStream:null, dragMoved:false,
         tradeParticles:[], flowActivity:0, flowLastQuantity:0, flowLastSide:"flat", flowFrame:0, perfMode:"auto", livePulseBySymbol:{},
+        oracleSelected:false, oracleHover:false, oracleHistoryRange:"12M", oracleCameraBackup:null, activeInfo:null, infoTimer:null, navSection:"market", uiParticles:[], uiPointerX:-9999, uiPointerY:-9999,
         reducedMotion:window.matchMedia("(prefers-reduced-motion: reduce)").matches
       };
       var logoContours = {lunc:createFallbackContours("lunc"),ustc:createFallbackContours("ustc")};
       var camera = {
-        yaw:-.29,pitch:.13,distance:38,target:[0,-.7,0],
-        desiredYaw:-.29,desiredPitch:.13,desiredDistance:38,autoOrbit:!state.reducedMotion
+        yaw:-.22,pitch:.10,distance:35.5,target:[0,-.75,0],
+        desiredYaw:-.22,desiredPitch:.10,desiredDistance:35.5,desiredTarget:[0,-.75,0],autoOrbit:!state.reducedMotion
       };
       var pointers = new Map();
       var pinchDistance = 0;
@@ -918,6 +1463,37 @@ void main() {
         ctx.globalAlpha=.96;ctx.lineWidth=.9;ctx.shadowBlur=2.5;ctx.stroke();
         ctx.globalAlpha=1;ctx.shadowBlur=0;ctx.globalCompositeOperation="source-over";
       }
+      function ensureUIParticles(){
+        if(!el.uiParticleCanvas||!uiParticleContext) return;
+        var target=window.innerWidth<700?28:window.innerWidth<1200?42:58;
+        while(state.uiParticles.length<target){
+          var gold=Math.random()>.78,green=!gold&&Math.random()>.88;
+          state.uiParticles.push({x:Math.random()*window.innerWidth,y:Math.random()*window.innerHeight,vx:(Math.random()-.5)*.045,vy:-.012-Math.random()*.04,r:.45+Math.random()*1.35,a:.08+Math.random()*.24,phase:Math.random()*Math.PI*2,rgb:gold?"242,200,112":green?"25,214,165":"57,208,255"});
+        }
+        if(state.uiParticles.length>target) state.uiParticles.length=target;
+      }
+      function drawUIParticles(now,delta){
+        if(!el.uiParticleCanvas||!uiParticleContext) return;
+        var dpr=Math.min(window.devicePixelRatio||1,1.5),w=Math.max(1,Math.floor(window.innerWidth*dpr)),h=Math.max(1,Math.floor(window.innerHeight*dpr));
+        if(el.uiParticleCanvas.width!==w||el.uiParticleCanvas.height!==h){el.uiParticleCanvas.width=w;el.uiParticleCanvas.height=h;el.uiParticleCanvas.style.width=window.innerWidth+"px";el.uiParticleCanvas.style.height=window.innerHeight+"px";}
+        ensureUIParticles();
+        var ctx=uiParticleContext;ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,window.innerWidth,window.innerHeight);ctx.save();ctx.globalCompositeOperation="lighter";
+        for(var i=0;i<state.uiParticles.length;i++){
+          var p=state.uiParticles[i],dx=p.x-state.uiPointerX,dy=p.y-state.uiPointerY,dist=Math.hypot(dx,dy);
+          if(dist<150&&dist>1){var repel=(150-dist)/150*.018;p.vx+=dx/dist*repel;p.vy+=dy/dist*repel;}
+          p.vx*=.995;p.vy*=.998;p.x+=p.vx*delta*1000;p.y+=p.vy*delta*1000;
+          if(p.y<-20){p.y=window.innerHeight+20;p.x=Math.random()*window.innerWidth;} if(p.x<-20)p.x=window.innerWidth+20; if(p.x>window.innerWidth+20)p.x=-20;
+          var pulse=.72+.28*Math.sin(now*.0012+p.phase),alpha=p.a*pulse;
+          ctx.beginPath();ctx.fillStyle="rgba("+p.rgb+","+(alpha*.16)+")";ctx.shadowColor="rgba("+p.rgb+","+(alpha*.55)+")";ctx.shadowBlur=8+p.r*4;ctx.arc(p.x,p.y,p.r*3.2,0,Math.PI*2);ctx.fill();
+          ctx.shadowBlur=0;ctx.beginPath();ctx.fillStyle="rgba("+p.rgb+","+alpha+")";ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fill();
+        }
+        for(var a=0;a<state.uiParticles.length;a+=4){
+          var p1=state.uiParticles[a],best=null,bestD=115;
+          for(var b=a+1;b<Math.min(state.uiParticles.length,a+9);b++){var p2=state.uiParticles[b],d=Math.hypot(p1.x-p2.x,p1.y-p2.y);if(d<bestD){bestD=d;best=p2;}}
+          if(best){ctx.beginPath();ctx.moveTo(p1.x,p1.y);ctx.lineTo(best.x,best.y);ctx.strokeStyle="rgba(75,214,255,"+(0.035*(1-bestD/115))+")";ctx.lineWidth=.45;ctx.stroke();}
+        }
+        ctx.restore();
+      }
       function drawContourInterfaces(now) {
         drawMiniNeonLogo(el.brandParticleCanvas,brandParticleContext,logoContours.lunc,now,"lunc",0);
         drawMiniNeonLogo(el.luncLogoCanvas,luncLogoContext,logoContours.lunc,now,"lunc",.7);
@@ -933,6 +1509,317 @@ void main() {
         for(var i=0;i<symbols.length;i++) if(state.chartMaps&&state.chartMaps[symbols[i]]) return state.chartMaps[symbols[i]];
         return null;
       }
+      function clampValue(value,min,max) { return Math.max(min,Math.min(max,value)); }
+      function loadOracleHistory() {
+        try {
+          var parsed=JSON.parse(localStorage.getItem(ORACLE_HISTORY_KEY)||"[]");
+          return Array.isArray(parsed)?parsed.filter(function(p){return p&&Number.isFinite(Number(p.t))&&p.amount!==undefined;}):[];
+        } catch(error) { return []; }
+      }
+      function saveOracleSnapshot(amount) {
+        if(amount===null||amount===undefined) return;
+        var now=Date.now(),history=oracle.history||[];
+        var last=history.length?history[history.length-1]:null;
+        var changed=!last||String(last.amount)!==String(amount);
+        if(last&&now-Number(last.t)<10*60*1000&&!changed) return;
+        history=history.concat([{t:now,denom:"uluna",amount:String(amount)}])
+          .filter(function(p){return Number(p.t)>=now-730*86400000;})
+          .slice(-6000);
+        oracle.history=history;
+        try { localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(history)); } catch(error) {}
+      }
+      var ORACLE_HISTORY_WINDOWS={"1D":86400000,"30D":30*86400000,"90D":90*86400000,"6M":183*86400000,"12M":365*86400000,"ALL":null};
+      function oracleHistoryPoints(rangeKey){
+        var source=(oracle.history||[]).filter(function(p){return p&&p.denom==="uluna"&&Number.isFinite(Number(p.t))&&p.amount!==undefined;}).sort(function(a,b){return Number(a.t)-Number(b.t);});
+        var windowMs=ORACLE_HISTORY_WINDOWS[rangeKey];
+        if(windowMs) source=source.filter(function(p){return Number(p.t)>=Date.now()-windowMs;});
+        if(rangeKey!=="1D") {
+          var perDay=new Map();
+          source.forEach(function(p){var d=new Date(Number(p.t));var key=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),12);perDay.set(key,p);});
+          source=Array.from(perDay.entries()).sort(function(a,b){return a[0]-b[0];}).map(function(entry){var p=entry[1];return {t:entry[0],amount:p.amount,denom:p.denom};});
+        }
+        return source.map(function(p){return {t:Number(p.t),v:Number(p.amount)/1e6};}).filter(function(p){return Number.isFinite(p.t)&&Number.isFinite(p.v);});
+      }
+      function formatHistoryAxis(value){
+        if(!Number.isFinite(value)) return "—";
+        if(Math.abs(value)>=1e12) return (value/1e12).toFixed(2)+"T";
+        if(Math.abs(value)>=1e9) return (value/1e9).toFixed(2)+"B";
+        if(Math.abs(value)>=1e6) return (value/1e6).toFixed(1)+"M";
+        return Math.round(value).toLocaleString("de-DE");
+      }
+      function drawOracleHistoryChart(){
+        if(!el.oracleHistoryCanvas) return;
+        var points=oracleHistoryPoints(state.oracleHistoryRange);
+        var rawCount=(oracle.history||[]).filter(function(p){return p&&p.denom==="uluna";}).length;
+        el.oracleHistorySummary.textContent="Snapshots "+rawCount.toLocaleString("de-DE");
+        document.querySelectorAll("[data-oracle-range]").forEach(function(btn){btn.classList.toggle("active",btn.dataset.oracleRange===state.oracleHistoryRange);});
+        if(points.length<2){
+          el.oracleHistoryEmpty.hidden=false;
+          el.oracleHistoryCanvas.style.opacity=".18";
+          el.oracleHistoryChange.textContent="—"; el.oracleHistoryChange.className="oracle-history-change";
+          el.oracleHistoryCoverage.textContent=rawCount?"Mindestens 2 Punkte im gewählten Zeitraum nötig":"Keine gespeicherte Historie gefunden";
+          var emptyCtx=el.oracleHistoryCanvas.getContext("2d"); emptyCtx.clearRect(0,0,el.oracleHistoryCanvas.width,el.oracleHistoryCanvas.height);
+          return;
+        }
+        el.oracleHistoryEmpty.hidden=true; el.oracleHistoryCanvas.style.opacity="1";
+        var first=points[0],last=points[points.length-1];
+        var change=first.v!==0?(last.v-first.v)/first.v*100:0;
+        el.oracleHistoryChange.textContent=(change>=0?"+":"")+change.toFixed(2)+"%";
+        el.oracleHistoryChange.className="oracle-history-change "+(change>=0?"positive":"negative");
+        var coverageMs=Math.max(0,last.t-first.t),coverageDays=coverageMs/86400000;
+        el.oracleHistoryCoverage.textContent="Abdeckung "+(coverageDays<2?Math.max(1,Math.round(coverageMs/3600000))+" h":Math.round(coverageDays)+" Tage")+" · "+formatHistoryAxis(first.v)+" → "+formatHistoryAxis(last.v);
+        var canvas=el.oracleHistoryCanvas,rect=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
+        var w=Math.max(240,Math.round(rect.width*dpr)),h=Math.max(90,Math.round(rect.height*dpr));
+        if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
+        var ctx=canvas.getContext("2d");ctx.clearRect(0,0,w,h);ctx.save();ctx.scale(dpr,dpr);
+        var cw=w/dpr,ch=h/dpr,pad={l:8,r:8,t:9,b:16};
+        var minV=Math.min.apply(null,points.map(function(p){return p.v;})),maxV=Math.max.apply(null,points.map(function(p){return p.v;}));
+        var span=Math.max(1,maxV-minV),extra=span*.12;minV-=extra;maxV+=extra;span=maxV-minV;
+        var minT=first.t,maxT=Math.max(first.t+1,last.t);
+        function X(t){return pad.l+(t-minT)/(maxT-minT)*(cw-pad.l-pad.r);}
+        function Y(v){return pad.t+(maxV-v)/span*(ch-pad.t-pad.b);}
+        ctx.strokeStyle="rgba(101,205,242,.10)";ctx.lineWidth=1;
+        for(var gy=0;gy<4;gy++){var yy=pad.t+(ch-pad.t-pad.b)*gy/3;ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(cw-pad.r,yy);ctx.stroke();}
+        var area=ctx.createLinearGradient(0,pad.t,0,ch-pad.b);area.addColorStop(0,"rgba(60,220,255,.22)");area.addColorStop(.7,"rgba(25,150,210,.06)");area.addColorStop(1,"rgba(25,150,210,0)");
+        ctx.beginPath();points.forEach(function(p,i){var x=X(p.t),y=Y(p.v);if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.lineTo(X(last.t),ch-pad.b);ctx.lineTo(X(first.t),ch-pad.b);ctx.closePath();ctx.fillStyle=area;ctx.fill();
+        ctx.beginPath();points.forEach(function(p,i){var x=X(p.t),y=Y(p.v);if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.lineWidth=1.6;ctx.strokeStyle="rgba(106,232,255,.92)";ctx.shadowColor="rgba(57,208,255,.5)";ctx.shadowBlur=7;ctx.stroke();ctx.shadowBlur=0;
+        var lx=X(last.t),ly=Y(last.v);ctx.beginPath();ctx.arc(lx,ly,2.6,0,Math.PI*2);ctx.fillStyle=change>=0?"#19d6a5":"#ff6979";ctx.fill();
+        ctx.fillStyle="rgba(137,168,184,.74)";ctx.font="9px Inter,system-ui,sans-serif";ctx.textBaseline="bottom";ctx.textAlign="left";ctx.fillText(new Date(first.t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"}),pad.l,ch-2);ctx.textAlign="right";ctx.fillText(new Date(last.t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"}),cw-pad.r,ch-2);ctx.restore();
+      }
+      function microToUnit(value) {
+        if(value===null||value===undefined) return null;
+        var number=Number(value);
+        return Number.isFinite(number)?number/1e6:null;
+      }
+      function formatPoolNumber(value) {
+        if(!Number.isFinite(value)) return "—";
+        var abs=Math.abs(value),digits=2,divisor=1,suffix="";
+        if(abs>=1e12){divisor=1e12;suffix=" T";}
+        else if(abs>=1e9){divisor=1e9;suffix=" B";}
+        else if(abs>=1e6){divisor=1e6;suffix=" M";}
+        else if(abs>=1e3){divisor=1e3;suffix=" K";digits=1;}
+        return (value/divisor).toLocaleString("de-DE",{minimumFractionDigits:digits,maximumFractionDigits:digits})+suffix;
+      }
+      async function fetchOracleJSON(path) {
+        var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},8500);
+        try {
+          var response=await fetch(ORACLE_LCD+path,{signal:controller.signal,cache:"no-store",headers:{"Accept":"application/json"}});
+          if(!response.ok) throw new Error("LCD HTTP "+response.status);
+          return await response.json();
+        } finally { clearTimeout(timer); }
+      }
+      async function estimateOracleBlocksPerDay(sample) {
+        sample=sample||360;
+        var latest=await fetchOracleJSON("/cosmos/base/tendermint/v1beta1/blocks/latest");
+        var latestHeight=Number(latest&&latest.block&&latest.block.header&&latest.block.header.height);
+        var latestTime=Date.parse(latest&&latest.block&&latest.block.header&&latest.block.header.time);
+        if(!Number.isFinite(latestHeight)||!Number.isFinite(latestTime)) throw new Error("Blockdaten ungültig");
+        var olderHeight=Math.max(1,latestHeight-sample);
+        var older=await fetchOracleJSON("/cosmos/base/tendermint/v1beta1/blocks/"+olderHeight);
+        var gotHeight=Number(older&&older.block&&older.block.header&&older.block.header.height);
+        var olderTime=Date.parse(older&&older.block&&older.block.header&&older.block.header.time);
+        if(!Number.isFinite(gotHeight)||!Number.isFinite(olderTime)||latestHeight<=gotHeight||latestTime<=olderTime) throw new Error("Blockzeit ungültig");
+        return (latestHeight-gotHeight)*86400000/(latestTime-olderTime);
+      }
+      function oracleNetDeltaPerDay() {
+        var cutoff=Date.now()-72*86400000;
+        var points=(oracle.history||[]).filter(function(p){return p.denom==="uluna"&&Number(p.t)>=cutoff;}).sort(function(a,b){return Number(a.t)-Number(b.t);});
+        if(points.length<2) return null;
+        var first=points[0],last=points[points.length-1],dt=Number(last.t)-Number(first.t);
+        if(!(dt>0)) return null;
+        var delta=microToUnit(last.amount)-microToUnit(first.amount);
+        return Number.isFinite(delta)?delta*86400000/dt:null;
+      }
+      function recomputeOracleMetrics(balanceMicro) {
+        oracle.balanceLunc=microToUnit(balanceMicro);
+        oracle.netDeltaPerDay=oracleNetDeltaPerDay();
+        if(Number.isFinite(oracle.balanceLunc)&&Number.isFinite(oracle.rewardWindow)&&oracle.rewardWindow>0&&Number.isFinite(oracle.blocksPerDay)&&oracle.blocksPerDay>0) {
+          oracle.consumptionPerDay=oracle.balanceLunc*oracle.blocksPerDay/oracle.rewardWindow;
+          oracle.daysLeft=oracle.consumptionPerDay>0?oracle.balanceLunc/oracle.consumptionPerDay:null;
+        } else {
+          oracle.consumptionPerDay=null; oracle.daysLeft=null;
+        }
+        oracle.movementPct=Number.isFinite(oracle.netDeltaPerDay)&&Number.isFinite(oracle.consumptionPerDay)&&oracle.consumptionPerDay>0?oracle.netDeltaPerDay/oracle.consumptionPerDay*100:null;
+        oracle.dailyIncomePct=Number.isFinite(oracle.netDeltaPerDay)&&Number.isFinite(oracle.balanceLunc)&&oracle.balanceLunc>0?oracle.netDeltaPerDay/oracle.balanceLunc*100:null;
+        oracle.fillRatio=Number.isFinite(oracle.daysLeft)?clampValue(oracle.daysLeft/540,.035,1):.18;
+      }
+      function oracleAddressFromAccounts(accounts) {
+        var list=(accounts&&accounts.accounts)||[];
+        for(var i=0;i<list.length;i++) {
+          var item=list[i]||{},name=String(item.name||"").toLowerCase();
+          if(name.indexOf("oracle")<0) continue;
+          return (item.base_account&&item.base_account.address)||item.address||(item.baseAccount&&item.baseAccount.address)||null;
+        }
+        return null;
+      }
+      function updateOracleUI() {
+        if(!el.oracleHud) return;
+        el.oracleHud.hidden=!state.showPool;
+        el.oracleHud.classList.toggle("pool-live",Boolean(oracle.updatedAt&&!oracle.error));
+        el.oracleHud.classList.toggle("pool-error",Boolean(oracle.error));
+        el.oracleHud.classList.toggle("pool-warn",!oracle.error&&Number.isFinite(oracle.daysLeft)&&oracle.daysLeft<=180);
+        el.oracleBalance.textContent=Number.isFinite(oracle.balanceLunc)?formatPoolNumber(oracle.balanceLunc)+" LUNC":"—";
+        el.oracleRunway.textContent=Number.isFinite(oracle.daysLeft)?Math.round(oracle.daysLeft).toLocaleString("de-DE")+" d":"—";
+        el.oracleDelta.textContent=Number.isFinite(oracle.netDeltaPerDay)?"Δ/Tag "+(oracle.netDeltaPerDay>=0?"+":"")+formatPoolNumber(oracle.netDeltaPerDay):"Δ/Tag —";
+        el.oracleUstc.textContent=Number.isFinite(oracle.balanceUstc)?"USTC "+formatPoolNumber(oracle.balanceUstc):"USTC —";
+        if(el.oracleDailyIncome){ var daily=oracle.dailyIncomePct; el.oracleDailyIncome.textContent=Number.isFinite(daily)?"% Daily Income "+(daily>=0?"+":"")+daily.toFixed(4)+"% / Tag":"% Daily Income —"; el.oracleDailyIncome.classList.toggle("positive",Number.isFinite(daily)&&daily>0); el.oracleDailyIncome.classList.toggle("negative",Number.isFinite(daily)&&daily<0); }
+        el.oracleMeter.style.width=(clampValue(oracle.fillRatio||0,0,1)*100).toFixed(1)+"%";
+        if(oracle.loading&&!oracle.updatedAt) el.oracleAge.textContent="lädt …";
+        else if(oracle.error&&!oracle.updatedAt) el.oracleAge.textContent="LCD Fehler";
+        else if(oracle.updatedAt) {
+          var seconds=Math.max(0,Math.round((Date.now()-oracle.updatedAt)/1000));
+          el.oracleAge.textContent=seconds<5?"jetzt":seconds<60?seconds+" s":Math.floor(seconds/60)+" min";
+        } else el.oracleAge.textContent="—";
+        var label="Oracle Pool";
+        if(oracle.error) label+=" nicht erreichbar";
+        else if(Number.isFinite(oracle.balanceLunc)) label+=" "+formatPoolNumber(oracle.balanceLunc)+" LUNC";
+        if(Number.isFinite(oracle.daysLeft)) label+=", Runway "+Math.round(oracle.daysLeft)+" Tage";
+        el.oracleHud.setAttribute("aria-label",label);
+        updateOracleInspect();
+        drawOracleHistoryChart();
+      }
+      async function loadOraclePool(forceMeta) {
+        if(oracle.loading||!navigator.onLine) return false;
+        oracle.loading=true; oracle.error=null; updateOracleUI();
+        try {
+          var needMeta=forceMeta||!oracle.address||!oracle.rewardWindow||!oracle.blocksPerDay||Date.now()-oracle.metaAt>ORACLE_META_REFRESH_MS;
+          if(needMeta) {
+            var metaResults=await Promise.all([
+              fetchOracleJSON("/cosmos/auth/v1beta1/module_accounts?pagination.limit=500"),
+              fetchOracleJSON("/terra/oracle/v1beta1/params"),
+              estimateOracleBlocksPerDay(360)
+            ]);
+            oracle.address=oracleAddressFromAccounts(metaResults[0]);
+            if(!oracle.address) throw new Error("Oracle Moduladresse nicht gefunden");
+            var params=(metaResults[1]&&metaResults[1].params)||metaResults[1]||{};
+            oracle.rewardWindow=Number(params.reward_distribution_window||params.rewardDistributionWindow);
+            oracle.blocksPerDay=Number(metaResults[2]);
+            oracle.metaAt=Date.now();
+          }
+          var balances=await fetchOracleJSON("/cosmos/bank/v1beta1/balances/"+encodeURIComponent(oracle.address)+"?pagination.limit=1000");
+          var coins=(balances&&balances.balances)||[],lunc="0",ustc="0";
+          coins.forEach(function(coin){if(coin.denom==="uluna") lunc=coin.amount||"0"; if(coin.denom==="uusd") ustc=coin.amount||"0";});
+          saveOracleSnapshot(lunc);
+          oracle.balanceUstc=microToUnit(ustc);
+          recomputeOracleMetrics(lunc);
+          oracle.updatedAt=Date.now(); oracle.error=null; updateOracleUI(); return true;
+        } catch(error) {
+          oracle.error=error&&error.name==="AbortError"?"LCD Timeout":(error&&error.message)||String(error);
+          updateOracleUI(); return false;
+        } finally { oracle.loading=false; updateOracleUI(); }
+      }
+      function poolRiskColor(alpha) {
+        alpha=alpha===undefined?.32:alpha;
+        if(!Number.isFinite(oracle.daysLeft)) return [.23,.82,1,alpha];
+        if(oracle.daysLeft<=90) return [1,.31,.39,alpha];
+        if(oracle.daysLeft<=180) return [.95,.72,.29,alpha];
+        if(oracle.daysLeft<=365) return [.1,.84,.63,alpha];
+        return [.23,.82,1,alpha];
+      }
+      function addOraclePoolGeometry(triangles,lines,now) {
+        if(!state.showPool) return;
+        var x=0,z=5.05,centerY=-.72;
+        var radius=state.dualView?1.92:2.28;
+        var fill=clampValue(oracle.visualFillRatio||oracle.fillRatio||.18,.035,1);
+        var pulse=1+(state.reducedMotion?0:Math.sin(now*.00105)*.012)+oracle.visualPulse*.03;
+        var shellR=radius*pulse;
+        var segments=state.perfMode==="eco"?18:28;
+        var latitudes=state.perfMode==="eco"?6:9;
+        var longitudes=state.perfMode==="eco"?7:11;
+        var selectionBoost=state.oracleSelected?.16:(state.oracleHover?.07:0);
+        var accent=poolRiskColor(.38+oracle.visualPulse*.08+selectionBoost);
+        var faint=[.45,.89,1,.11+selectionBoost*.45], edge=[.60,.95,1,.19+selectionBoost*.55];
+        var i,j;
+
+        function ellipseRing(y,rx,rz,color,phase) {
+          phase=phase||0;
+          for(var s=0;s<segments;s++) {
+            var a1=phase+s/segments*Math.PI*2, a2=phase+(s+1)/segments*Math.PI*2;
+            addLine(lines,[x+Math.cos(a1)*rx,y,z+Math.sin(a1)*rz],[x+Math.cos(a2)*rx,y,z+Math.sin(a2)*rz],color);
+          }
+        }
+        function orbitRing(y,rx,rz,tilt,color,phase) {
+          var last=null,count=state.perfMode==="eco"?22:34;
+          for(var s=0;s<=count;s++) {
+            var a=phase+s/count*Math.PI*2;
+            var p=[x+Math.cos(a)*rx,y+Math.sin(a)*tilt,z+Math.sin(a)*rz];
+            if(last) addLine(lines,last,p,color); last=p;
+          }
+        }
+
+        // Monumental but soft pedestal.
+        var baseY=centerY-radius-1.0;
+        addBox(triangles,[x,baseY+.04,z],[radius*2.55,.16,radius*2.05],[.06,.15,.24,.34]);
+        addBox(triangles,[x,baseY+.24,z],[radius*2.18,.20,radius*1.78],[accent[0],accent[1],accent[2],.12]);
+        ellipseRing(baseY+.42,radius*1.15,radius*.94,[.70,.96,1,.22],0);
+        ellipseRing(baseY+.60,radius*.95,radius*.77,[accent[0],accent[1],accent[2],.29],Math.PI/segments);
+        ellipseRing(baseY+.76,radius*.72,radius*.59,[.78,.97,1,.12],0);
+
+        // Glass sphere horizontal latitude rings.
+        for(i=1;i<latitudes;i++) {
+          var nv=-1+2*i/latitudes;
+          var y=centerY+nv*shellR;
+          var rr=shellR*Math.sqrt(Math.max(0,1-nv*nv));
+          ellipseRing(y,rr,rr*.92,i===Math.round(latitudes*.5)?edge:faint,(i%2)*Math.PI/segments);
+        }
+        // Longitudinal ribs: spherical cage.
+        for(i=0;i<longitudes;i++) {
+          var lon=i/longitudes*Math.PI*2;
+          var prev=null;
+          for(j=0;j<=18;j++) {
+            var lat=-Math.PI/2+j/18*Math.PI;
+            var cp=Math.cos(lat),sp=Math.sin(lat);
+            var p=[x+Math.cos(lon)*cp*shellR,centerY+sp*shellR,z+Math.sin(lon)*cp*shellR*.92];
+            if(prev) addLine(lines,prev,p,[.42,.86,1,.10+(j>5&&j<13?.05:0)]); prev=p;
+          }
+        }
+
+        // True on-chain fill as smooth internal energy volume inside the orb.
+        var bottom=centerY-shellR*.83;
+        var top=centerY-shellR*.83+shellR*1.66*fill;
+        var layers=state.perfMode==="eco"?8:13;
+        for(i=0;i<layers;i++) {
+          var t=(i+.5)/layers;
+          var y=bottom+(top-bottom)*t;
+          var yn=(y-centerY)/shellR;
+          var cross=Math.sqrt(Math.max(.03,1-yn*yn));
+          var wave=state.reducedMotion?0:Math.sin(now*.0014+i*.67)*.018;
+          var rx=shellR*cross*(.86+wave+oracle.visualPulse*.025);
+          var rz=rx*.84;
+          var h=Math.max(.055,(top-bottom)/layers*.82);
+          var goldMix=.42+.34*Math.sin(t*Math.PI);
+          var c=t<.52?[.06,.77,1,.055+.05*goldMix]:[.98,.67,.17,.05+.05*goldMix];
+          addBox(triangles,[x,y,z],[rx*1.9,h,rz*1.9],c);
+          if(state.perfMode!=="eco"&&i%2===0) ellipseRing(y,rx*.92,rz*.92,[accent[0],accent[1],accent[2],.055],Math.PI/segments);
+        }
+        // Fluid surface halo and floating core.
+        var surfaceY=Math.min(centerY+shellR*.83,top+.02);
+        var sn=(surfaceY-centerY)/shellR, sr=shellR*Math.sqrt(Math.max(.05,1-sn*sn));
+        var surfacePulse=1+(state.reducedMotion?0:Math.sin(now*.002)*.018)+oracle.visualPulse*.035;
+        ellipseRing(surfaceY,sr*.92*surfacePulse,sr*.78*surfacePulse,[accent[0],accent[1],accent[2],.42],0);
+        ellipseRing(surfaceY+.07,sr*.68*surfacePulse,sr*.58*surfacePulse,[.86,.98,1,.17],Math.PI/segments);
+        var coreSize=.32+oracle.visualPulse*.12;
+        addBox(triangles,[x,centerY+.12,z],[coreSize,coreSize,coreSize],[.96,.75,.30,.38]);
+        addBox(triangles,[x,centerY+.12,z],[coreSize*.62,coreSize*.62,coreSize*.62],[.18,.82,1,.32]);
+
+        // Wide cinematic orbital rings around the sphere.
+        var phase=state.reducedMotion?0:now*.00036;
+        orbitRing(centerY+.34,shellR*1.42,shellR*1.08,.28,[.28,.85,1,.18],phase);
+        orbitRing(centerY-.18,shellR*1.58,shellR*.82,.20,[.98,.72,.24,.19],-phase*.83+1.2);
+        if(state.perfMode!=="eco") orbitRing(centerY+.86,shellR*1.22,shellR*.72,.17,[.69,.95,1,.11],phase*1.15+2.1);
+
+        if(state.oracleSelected) {
+          var selectPhase=state.reducedMotion?0:now*.0007;
+          orbitRing(centerY+.05,shellR*1.82,shellR*1.18,.34,[1,.79,.32,.30],selectPhase);
+          orbitRing(centerY+.05,shellR*1.68,shellR*1.10,.24,[.27,.88,1,.22],-selectPhase*.84);
+        }
+
+        // Connection beams to the chart floor make the core part of the market world.
+        var beamY=baseY+.46;
+        addLine(lines,[x-radius*1.04,beamY,z-.2],[-5.4,beamY,-.15],[.22,.68,.88,.08]);
+        addLine(lines,[x+radius*1.04,beamY,z-.2],[5.4,beamY,-.15],[.22,.68,.88,.08]);
+      }
+
       function updateFlowUI() {
         var active=markets[state.symbol],trade=active.lastTrade,freshTrade=isFresh(active.tradesAt,15000);
         el.canvasWrap.dataset.flow=state.showFlow?"on":"off";
@@ -1292,6 +2179,7 @@ void main() {
             addLine(lines,[xMin,marker.closeY,1.06],[xMax,marker.closeY,1.06],[.72,.91,1,.25]);
           }
         });
+        addOraclePoolGeometry(triangles,lines,now);
         if(!anyPanel) { state.chartMap=null; return {triangles:triangles,lines:lines}; }
         if(!state.visibleCandles.length) {
           var symbols=renderSymbols();
@@ -1309,8 +2197,11 @@ void main() {
         camera.yaw+=(camera.desiredYaw-camera.yaw)*Math.min(1,delta*7);
         camera.pitch+=(camera.desiredPitch-camera.pitch)*Math.min(1,delta*7);
         camera.distance+=(camera.desiredDistance-camera.distance)*Math.min(1,delta*7);
+        for(var targetAxis=0;targetAxis<3;targetAxis++) camera.target[targetAxis]+=(camera.desiredTarget[targetAxis]-camera.target[targetAxis])*Math.min(1,delta*5.2);
         state.pricePulse=Math.max(0,state.pricePulse-delta*1.8);
         state.tickPulse=Math.max(0,state.tickPulse-delta*3.1);
+        oracle.visualFillRatio+=(clampValue(oracle.fillRatio||.18,.035,1)-oracle.visualFillRatio)*Math.min(1,delta*2.2);
+        oracle.visualPulse+=(Math.max(state.tickPulse*.75,state.flowActivity*.42)-oracle.visualPulse)*Math.min(1,delta*3.0);
         Object.keys(state.livePulseBySymbol).forEach(function(symbol){
           state.livePulseBySymbol[symbol]=Math.max(0,(state.livePulseBySymbol[symbol]||0)-delta*2.2);
           if(state.livePulseBySymbol[symbol]<.001) delete state.livePulseBySymbol[symbol];
@@ -1336,7 +2227,7 @@ void main() {
         gl.depthMask(false); gl.blendFunc(gl.SRC_ALPHA,gl.ONE);
         drawGeometry(built.lines,gl.LINES,false);
         gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA); drawGeometry(built.lines,gl.LINES,false); gl.depthMask(true);
-        drawFlowField(now,delta); drawLabels(); drawContourInterfaces(now); updateFloatingUI(); requestAnimationFrame(render);
+        drawFlowField(now,delta); drawLabels(); drawContourInterfaces(now); drawUIParticles(now,delta); updateFloatingUI(); requestAnimationFrame(render);
       }
       function resizeCanvases() {
         var rect=el.canvasWrap.getBoundingClientRect();
@@ -1485,6 +2376,88 @@ void main() {
           }
         }
       }
+      var INFO_COPY={
+        chart:{title:"Spatial Live Chart",text:"Die Candles, Preise und Marktbewegungen stammen aus dem öffentlichen Binance-Spotfeed. MA 7 und MA 25 liegen räumlich über dem Chart; 360° dreht die gemeinsame WebGL-Szene."},
+        oracle:{title:"Oracle Pool",text:"Die zentrale Kugel steht für den Terra-Classic-Oracle-Pool. Blau zeigt die LUNC-Hauptenergie, Gold den USTC-Begleitstrom. Kurze grün-cyane Pulse kommen nur vom Live-Markt. Die äußere Zustandsfarbe spiegelt die Runway-Lage: cyan sehr lang, grün solide, amber angespannt, rot kritisch."},
+        flow:{title:"Flow & Momentum",text:"Flow-Partikel reagieren auf bestätigte Live-Trades. Momentum beschreibt die aktuelle Marktrichtung. Diese Marktbewegung darf den echten Oracle-Pool nur optisch pulsieren lassen – sie verändert keine On-Chain-Balance."},
+        sources:{title:"Live Data Fabric",text:"Binance Spot liefert Marktpreis, Candles, Trades und Orderbook. Terra Classic LCD liefert den Oracle-Pool. WebGL verbindet beide Quellen ausschließlich visuell; fehlende Live-Daten werden nicht simuliert."},
+        analytics:{title:"Analytics",text:"Die Analytics-Ansicht hebt den gespeicherten Oracle-Verlauf hervor. % Daily Income ist Netto Δ/Tag geteilt durch den aktuellen LUNC-Pool × 100 und kann daher positiv oder negativ sein."},
+        ecosystem:{title:"Ecosystem View",text:"Ecosystem aktiviert die Dual-Ansicht, damit LUNC und USTC gleichzeitig im selben räumlichen Marktmodell sichtbar werden. Der Oracle Pool bleibt als gemeinsamer On-chain-Kern erhalten."},
+        network:{title:"Network",text:"Network hebt die aktiven Datenquellen hervor: Binance Spot für Marktfeeds, Terra Classic LCD für Oracle-Daten und WebGL für die gemeinsame räumliche Darstellung."}
+      };
+      function hideContextInfo(){
+        if(state.infoTimer){clearTimeout(state.infoTimer);state.infoTimer=null;}
+        state.activeInfo=null;
+        if(el.contextInfo){el.contextInfo.classList.remove("visible");el.contextInfo.setAttribute("aria-hidden","true");}
+        document.querySelectorAll(".mini-info.active").forEach(function(btn){btn.classList.remove("active");});
+      }
+      function showContextInfo(key,sourceButton){
+        if(state.activeInfo===key){hideContextInfo();return;}
+        var item=INFO_COPY[key]; if(!item||!el.contextInfo) return;
+        hideContextInfo(); state.activeInfo=key;
+        el.contextInfoTitle.textContent=item.title; el.contextInfoText.textContent=item.text;
+        el.contextInfo.classList.add("visible"); el.contextInfo.setAttribute("aria-hidden","false");
+        if(sourceButton) sourceButton.classList.add("active");
+        state.infoTimer=setTimeout(hideContextInfo,8500);
+      }
+      function updateOracleInspect(){
+        if(!el.oracleInspect) return;
+        var visible=state.oracleSelected&&state.showPool;
+        el.oracleInspect.classList.toggle("visible",visible); el.oracleInspect.setAttribute("aria-hidden",String(!visible));
+        if(el.sceneCoreLabel) el.sceneCoreLabel.classList.toggle("is-selected",visible);
+        el.inspectBalance.textContent=Number.isFinite(oracle.balanceLunc)?formatPoolNumber(oracle.balanceLunc)+" LUNC":"—";
+        el.inspectRunway.textContent=Number.isFinite(oracle.daysLeft)?Math.round(oracle.daysLeft).toLocaleString("de-DE")+" Tage":"—";
+        el.inspectDelta.textContent=Number.isFinite(oracle.netDeltaPerDay)?(oracle.netDeltaPerDay>=0?"+":"")+formatPoolNumber(oracle.netDeltaPerDay)+" LUNC":"—";
+        el.inspectUstc.textContent=Number.isFinite(oracle.balanceUstc)?formatPoolNumber(oracle.balanceUstc)+" USTC":"—";
+        if(el.inspectDailyIncome){ var dailyIncome=oracle.dailyIncomePct; el.inspectDailyIncome.textContent=Number.isFinite(dailyIncome)?(dailyIncome>=0?"+":"")+dailyIncome.toFixed(4)+"% / Tag":"—"; el.inspectDailyIncome.classList.toggle("positive",Number.isFinite(dailyIncome)&&dailyIncome>0); el.inspectDailyIncome.classList.toggle("negative",Number.isFinite(dailyIncome)&&dailyIncome<0); }
+        if(el.inspectConsumption) el.inspectConsumption.textContent=Number.isFinite(oracle.consumptionPerDay)?formatPoolNumber(oracle.consumptionPerDay)+" LUNC":"—";
+        if(el.inspectRiskSwatch&&el.inspectRiskTitle&&el.inspectRiskText){
+          var riskRgb="57,208,255", riskHex="#39d0ff", riskTitle="Runway-Zustand · sehr lang", riskText="Cyan bedeutet: sehr lange Reservezeit und entspannter Poolzustand (mehr als 365 Tage Runway).";
+          if(Number.isFinite(oracle.daysLeft)){
+            if(oracle.daysLeft<=90){ riskRgb="255,105,121"; riskHex="#ff6979"; riskTitle="Runway-Zustand · kritisch"; riskText="Rot bedeutet: kritische Reservezeit. Die Runway liegt bei 90 Tagen oder darunter."; }
+            else if(oracle.daysLeft<=180){ riskRgb="242,200,112"; riskHex="#f2c870"; riskTitle="Runway-Zustand · angespannt"; riskText="Amber/Gold bedeutet: mittlere Reservezeit. Die Runway liegt zwischen 91 und 180 Tagen."; }
+            else if(oracle.daysLeft<=365){ riskRgb="25,214,165"; riskHex="#19d6a5"; riskTitle="Runway-Zustand · solide"; riskText="Grün bedeutet: solide Reservezeit. Die Runway liegt zwischen 181 und 365 Tagen."; }
+          } else {
+            riskTitle="Runway-Zustand";
+            riskText="Die Zustandsfarbe hängt von der berechneten Runway ab: cyan sehr lang, grün solide, amber angespannt, rot kritisch.";
+          }
+          el.inspectRiskSwatch.style.background=riskHex;
+          el.inspectRiskSwatch.style.boxShadow="0 0 14px rgba("+riskRgb+",.45)";
+          el.inspectRiskTitle.textContent=riskTitle;
+          el.inspectRiskText.textContent=riskText;
+        }
+      }
+      function oracleScreenHit(clientX,clientY){
+        if(!state.showPool) return false;
+        var rect=el.chartCanvas.getBoundingClientRect();
+        var x=clientX-rect.left,y=clientY-rect.top;
+        var c=project([0,-.72,5.05]);
+        var e1=project([state.dualView?1.92:2.28,-.72,5.05]);
+        var e2=project([0,-.72+(state.dualView?1.92:2.28),5.05]);
+        if(!c||(!e1&&!e2)) return false;
+        var r1=e1?Math.hypot(e1[0]-c[0],e1[1]-c[1]):0;
+        var r2=e2?Math.hypot(e2[0]-c[0],e2[1]-c[1]):0;
+        var radius=Math.max(34,Math.min(150,Math.max(r1,r2)*1.12));
+        return Math.hypot(x-c[0],y-c[1])<=radius;
+      }
+      function toggleOracleSelection(force){
+        var next=typeof force==="boolean"?force:!state.oracleSelected;
+        if(next===state.oracleSelected){updateOracleInspect();return;}
+        state.oracleSelected=next; state.selectedIndex=null; state.hoverIndex=null;
+        if(state.oracleSelected){ setNavActive("oracle");
+          state.oracleCameraBackup={yaw:camera.desiredYaw,pitch:camera.desiredPitch,distance:camera.desiredDistance,target:camera.desiredTarget.slice(),autoOrbit:camera.autoOrbit};
+          camera.autoOrbit=false; camera.desiredYaw=closestYaw(0); camera.desiredPitch=.035; camera.desiredDistance=17.2; camera.desiredTarget=[0,-.72,4.85];
+          el.canvasWrap.classList.add("pool-focused"); oracle.visualPulse=Math.max(oracle.visualPulse,.45); updateCameraControls();
+        } else {
+          if(state.navSection==="oracle") setNavActive("market");
+          var backup=state.oracleCameraBackup; state.oracleCameraBackup=null; el.canvasWrap.classList.remove("pool-focused");
+          if(backup){camera.desiredYaw=backup.yaw;camera.desiredPitch=backup.pitch;camera.desiredDistance=backup.distance;camera.desiredTarget=backup.target.slice();camera.autoOrbit=backup.autoOrbit&&!state.reducedMotion;}
+          else {camera.desiredTarget=[0,-.75,0];camera.desiredDistance=35.5;}
+          updateCameraControls();
+        }
+        updateOracleInspect();
+      }
+
       function updateFloatingUI() {
         var map=activeChartMap(),activeCandles=state.visibleCandlesBySymbol[state.symbol]||state.visibleCandles;
         if(!map||!activeCandles.length) {
@@ -1613,6 +2586,13 @@ void main() {
           priceElement.textContent=price?formatPrice(price):"—";
           changeElement.textContent=Number.isFinite(change)?signedPercent(change):"—";
           changeElement.className=Number.isFinite(change)?(change>=0?"positive":"negative"):"";
+          var tickerPrice=el["ticker"+(short==="lunc"?"Lunc":"Ustc")+"Price"];
+          var tickerChange=el["ticker"+(short==="lunc"?"Lunc":"Ustc")+"Change"];
+          if(tickerPrice) tickerPrice.textContent=price?formatPrice(price):"—";
+          if(tickerChange) {
+            tickerChange.textContent=Number.isFinite(change)?signedPercent(change):"—";
+            tickerChange.className=Number.isFinite(change)?(change>=0?"positive":"negative"):"";
+          }
         });
         var active=markets[state.symbol],price=getCurrentPrice(state.symbol),statsFresh=isFresh(active.statsAt,90000);
         var changeRate=statsFresh?Number(active.stats.changeRate)*100:NaN;
@@ -1628,6 +2608,11 @@ void main() {
         el.watermarkPair.textContent=(state.dualView?"LUNC / USDT + USTC / USDT":state.symbol.replace("-"," / "))+" · "+state.timeframe;
         el.watermarkSource.textContent=verifiedAt?"Binance Spot · bestätigt "+verifiedTime(verifiedAt):"Keine bestätigten Live-Daten";
         el.footSource.textContent="Binance Spot";
+        if(el.railFlow) {
+          var trade=active.lastTrade, fresh=isFresh(active.tradesAt,15000);
+          if(trade&&fresh) el.railFlow.textContent=(trade.side==="buy"?"BUY ":"SELL ")+compactNumber(Number(trade.quantity))+" "+state.symbol.split("-")[0];
+          else el.railFlow.textContent="Waiting…";
+        }
       }
       function signedPercent(value){return(value>=0?"+":"")+value.toFixed(2).replace(".",",")+"%";}
       function signedPrice(value){return(value>=0?"+":"")+formatPrice(value);}
@@ -1884,6 +2869,14 @@ void main() {
         if(!state.showFlow) state.tradeParticles=[];
         updateFlowUI();
       });
+      el.poolButton.addEventListener("click",function() {
+        state.showPool=!state.showPool;
+        el.poolButton.classList.toggle("active",state.showPool);
+        el.poolButton.setAttribute("aria-pressed",String(state.showPool));
+        if(!state.showPool) state.oracleSelected=false;
+        updateOracleUI(); updateOracleInspect();
+        if(state.showPool&&!oracle.updatedAt) loadOraclePool(true);
+      });
       el.bookButton.addEventListener("click",function() {
         state.showBook=!state.showBook; el.bookButton.classList.toggle("active",state.showBook);
         el.bookButton.setAttribute("aria-pressed",String(state.showBook));
@@ -1915,6 +2908,11 @@ void main() {
       function closestYaw(target) {
         return target+Math.round((camera.yaw-target)/(Math.PI*2))*Math.PI*2;
       }
+      window.addEventListener("pointermove",function(event){state.uiPointerX=event.clientX;state.uiPointerY=event.clientY;},{passive:true});
+      window.addEventListener("pointerleave",function(){state.uiPointerX=-9999;state.uiPointerY=-9999;},{passive:true});
+      function clearRailSpotlights(){[el.oracleHud,el.oracleHistoryCard,el.flowRailCard,el.sourcesRailCard].forEach(function(card){if(card)card.classList.remove("spotlight");});}
+      function setNavActive(key){state.navSection=key;document.querySelectorAll("[data-nav]").forEach(function(btn){var active=btn.dataset.nav===key;btn.classList.toggle("active",active);btn.setAttribute("aria-pressed",String(active));});}
+      function spotlightCard(card){clearRailSpotlights();if(!card)return;card.classList.add("spotlight");try{card.scrollIntoView({behavior:state.reducedMotion?"auto":"smooth",block:"nearest",inline:"nearest"});}catch(error){}setTimeout(function(){card.classList.remove("spotlight");},2600);}
       function updateCameraControls() {
         var facing=Math.abs(Math.atan2(Math.sin(camera.desiredYaw),Math.cos(camera.desiredYaw)))<.025&&Math.abs(camera.desiredPitch)<.025;
         el.perspectiveButton.classList.toggle("active",!facing||camera.autoOrbit);
@@ -1923,12 +2921,12 @@ void main() {
         el.perspectiveButton.title=camera.autoOrbit?"360° Auto-Orbit stoppen":"360° Auto-Orbit starten";
       }
       function setPerspective(startOrbit) {
-        camera.desiredYaw=closestYaw(-.29); camera.desiredPitch=.13; camera.desiredDistance=38;
-        camera.autoOrbit=startOrbit!==false&&!state.reducedMotion; updateCameraControls();
+        camera.desiredYaw=closestYaw(-.29); camera.desiredPitch=.13; camera.desiredDistance=38; camera.desiredTarget=[0,-.75,0];
+        camera.autoOrbit=startOrbit!==false&&!state.reducedMotion; state.oracleCameraBackup=null; el.canvasWrap.classList.remove("pool-focused"); updateCameraControls();
       }
       function setFront() {
-        camera.autoOrbit=false; camera.desiredYaw=closestYaw(0); camera.desiredPitch=0; camera.desiredDistance=36;
-        updateCameraControls();
+        camera.autoOrbit=false; camera.desiredYaw=closestYaw(0); camera.desiredPitch=0; camera.desiredDistance=36; camera.desiredTarget=[0,-.75,0];
+        state.oracleCameraBackup=null; el.canvasWrap.classList.remove("pool-focused"); updateCameraControls();
       }
       el.perspectiveButton.addEventListener("click",function(){
         if(camera.autoOrbit) { camera.autoOrbit=false; updateCameraControls(); }
@@ -1940,25 +2938,47 @@ void main() {
         }
       });
       el.frontButton.addEventListener("click",setFront);
-      el.dualButton.addEventListener("click",async function() {
-        state.dualView=!state.dualView;
-        el.dualButton.classList.toggle("active",state.dualView);
-        el.dualButton.setAttribute("aria-pressed",String(state.dualView));
-        state.selectedIndex=null; state.hoverIndex=null; state.tradeParticles=[];
-        if(state.dualView) camera.desiredDistance=Math.max(camera.desiredDistance,44);
-        subscribeActiveKline(); subscribeActiveTradeStream();
-        updateMarketUI(); updateFlowUI();
-        await Promise.allSettled(renderSymbols().map(function(symbol){
-          var hasData=(markets[symbol].candles[state.timeframe]||[]).length>0;
-          return loadCandles(symbol,state.timeframe,hasData);
-        }).concat(SYMBOLS.map(loadDepth)));
-      });
-      el.resetButton.addEventListener("click",function(){setPerspective(true);state.selectedIndex=null;state.hoverIndex=null;});
+      async function setDualView(force){
+        var next=typeof force==="boolean"?force:!state.dualView;
+        if(next===state.dualView){el.dualButton.classList.toggle("active",state.dualView);el.dualButton.setAttribute("aria-pressed",String(state.dualView));return;}
+        state.dualView=next;el.dualButton.classList.toggle("active",state.dualView);el.dualButton.setAttribute("aria-pressed",String(state.dualView));
+        state.selectedIndex=null;state.hoverIndex=null;state.tradeParticles=[];if(state.dualView)camera.desiredDistance=Math.max(camera.desiredDistance,44);
+        subscribeActiveKline();subscribeActiveTradeStream();updateMarketUI();updateFlowUI();
+        await Promise.allSettled(renderSymbols().map(function(symbol){var hasData=(markets[symbol].candles[state.timeframe]||[]).length>0;return loadCandles(symbol,state.timeframe,hasData);}).concat(SYMBOLS.map(loadDepth)));
+      }
+      el.dualButton.addEventListener("click",function(){setDualView();});
+      el.resetButton.addEventListener("click",function(){setPerspective(true);state.selectedIndex=null;state.hoverIndex=null;state.oracleSelected=false;state.oracleHover=false;setNavActive("market");clearRailSpotlights();updateOracleInspect();hideContextInfo();});
       el.retryButton.addEventListener("click",async function() {
         showLoading("Verbindung zu Binance wird erneut geprüft …");
         await Promise.allSettled([loadStats(state.symbol),loadTicker(state.symbol)].concat(renderSymbols().map(function(symbol){return loadCandles(symbol,state.timeframe,true);} )).concat((state.dualView?SYMBOLS:[state.symbol]).map(loadDepth)));
         connectWebSocket(); subscribeActiveKline(); subscribeActiveTradeStream(); updateMarketUI(); updateFlowUI();
       });
+      if(el.primaryNav) el.primaryNav.addEventListener("click",function(event){
+        var button=event.target.closest("[data-nav]");if(!button)return;var key=button.dataset.nav||"market";setNavActive(key);clearRailSpotlights();
+        if(key==="market"){hideContextInfo();toggleOracleSelection(false);setPerspective(true);}
+        else if(key==="oracle"){hideContextInfo();toggleOracleSelection(true);spotlightCard(el.oracleHud);}
+        else if(key==="analytics"){toggleOracleSelection(false);spotlightCard(el.oracleHistoryCard);showContextInfo("analytics",null);}
+        else if(key==="ecosystem"){toggleOracleSelection(false);setDualView(true);showContextInfo("ecosystem",null);}
+        else if(key==="network"){toggleOracleSelection(false);spotlightCard(el.sourcesRailCard);showContextInfo("network",null);}
+      });
+      document.addEventListener("click",function(event){
+        var infoButton=event.target.closest("[data-info]");
+        if(infoButton){event.stopPropagation();showContextInfo(infoButton.dataset.info,infoButton);return;}
+        if(state.activeInfo&&el.contextInfo&&!el.contextInfo.contains(event.target)) hideContextInfo();
+      });
+      el.contextInfoClose.addEventListener("click",function(event){event.stopPropagation();hideContextInfo();});
+      el.oracleInspectClose.addEventListener("click",function(){toggleOracleSelection(false);});
+      el.oracleHud.addEventListener("click",function(event){
+        if(event.target.closest("[data-info]")) return;
+        if(state.showPool) toggleOracleSelection();
+      });
+      if(el.oracleHistoryRanges) el.oracleHistoryRanges.addEventListener("click",function(event){
+        var button=event.target.closest("[data-oracle-range]"); if(!button) return;
+        state.oracleHistoryRange=button.dataset.oracleRange||"12M"; drawOracleHistoryChart();
+      });
+      if(el.sceneCoreLabel) el.sceneCoreLabel.addEventListener("click",function(){if(state.showPool) toggleOracleSelection();});
+      document.addEventListener("keydown",function(event){if(event.key==="Escape"){hideContextInfo();if(state.oracleSelected) toggleOracleSelection(false);}});
+
       el.chartCanvas.addEventListener("pointerdown",function(event) {
         el.chartCanvas.setPointerCapture(event.pointerId);
         pointers.set(event.pointerId,{x:event.clientX,y:event.clientY,px:event.clientX,py:event.clientY});
@@ -1966,7 +2986,14 @@ void main() {
       });
       el.chartCanvas.addEventListener("pointermove",function(event) {
         var p=pointers.get(event.pointerId);
-        if(!p) { if(event.pointerType==="mouse") pickCandle(event.clientX,event.clientY,false); return; }
+        if(!p) {
+          if(event.pointerType==="mouse") {
+            state.oracleHover=oracleScreenHit(event.clientX,event.clientY);
+            el.canvasWrap.classList.toggle("pool-hover",state.oracleHover);
+            if(state.oracleHover){if(state.selectedIndex===null) state.hoverIndex=null;} else pickCandle(event.clientX,event.clientY,false);
+          }
+          return;
+        }
         p.px=p.x;p.py=p.y;p.x=event.clientX;p.y=event.clientY;
         if(pointers.size===1) {
           var dx=p.x-p.px,dy=p.y-p.py; if(Math.abs(dx)+Math.abs(dy)>1) state.dragMoved=true;
@@ -1976,7 +3003,7 @@ void main() {
         } else if(pointers.size===2) {
           var values=Array.from(pointers.values());
           var distance=Math.hypot(values[0].x-values[1].x,values[0].y-values[1].y);
-          if(pinchDistance) camera.desiredDistance=Math.max(25,Math.min(62,camera.desiredDistance-(distance-pinchDistance)*.09));
+          if(pinchDistance) camera.desiredDistance=Math.max(state.oracleSelected?13:25,Math.min(62,camera.desiredDistance-(distance-pinchDistance)*.09));
           pinchDistance=distance; state.dragMoved=true;
         }
       });
@@ -1984,13 +3011,16 @@ void main() {
         var p=pointers.get(event.pointerId); pointers.delete(event.pointerId);
         if(!pointers.size) {
           el.chartCanvas.classList.remove("dragging"); pinchDistance=0;
-          if(event.type!=="pointercancel"&&!state.dragMoved&&p) pickCandle(event.clientX,event.clientY,true);
+          if(event.type!=="pointercancel"&&!state.dragMoved&&p) {
+            if(oracleScreenHit(event.clientX,event.clientY)) toggleOracleSelection();
+            else { if(state.oracleSelected) toggleOracleSelection(false); pickCandle(event.clientX,event.clientY,true); }
+          }
         }
       }
       el.chartCanvas.addEventListener("pointerup",endPointer); el.chartCanvas.addEventListener("pointercancel",endPointer);
-      el.chartCanvas.addEventListener("pointerleave",function(){if(!pointers.size&&state.selectedIndex===null) state.hoverIndex=null;});
+      el.chartCanvas.addEventListener("pointerleave",function(){if(!pointers.size){state.oracleHover=false;el.canvasWrap.classList.remove("pool-hover");if(state.selectedIndex===null) state.hoverIndex=null;}});
       el.chartCanvas.addEventListener("wheel",function(event){
-        event.preventDefault(); camera.desiredDistance=Math.max(25,Math.min(62,camera.desiredDistance+event.deltaY*.025));
+        event.preventDefault(); camera.desiredDistance=Math.max(state.oracleSelected?13:25,Math.min(62,camera.desiredDistance+event.deltaY*.025));
       },{passive:false});
       el.chartCanvas.addEventListener("keydown",function(event) {
         var key=event.key.toLowerCase(),handled=true; camera.autoOrbit=false;
@@ -1998,19 +3028,20 @@ void main() {
         else if(key==="arrowright"||key==="d") camera.desiredYaw-=.1;
         else if(key==="arrowup"||key==="w") camera.desiredPitch=Math.min(.5,camera.desiredPitch+.06);
         else if(key==="arrowdown"||key==="s") camera.desiredPitch=Math.max(-.32,camera.desiredPitch-.06);
-        else if(key==="+"||key==="=") camera.desiredDistance=Math.max(25,camera.desiredDistance-2);
+        else if(key==="+"||key==="=") camera.desiredDistance=Math.max(state.oracleSelected?13:25,camera.desiredDistance-2);
         else if(key==="-") camera.desiredDistance=Math.min(62,camera.desiredDistance+2);
         else if(key==="r") setPerspective(true);
         else handled=false;
         if(handled){event.preventDefault();updateCameraControls();}
       });
-      window.addEventListener("online",function(){showLoading("Live-Verbindung wird wiederhergestellt …");pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});connectWebSocket(); updateFlowUI();});
+      window.addEventListener("resize",function(){drawOracleHistoryChart();});
+            window.addEventListener("online",function(){showLoading("Live-Verbindung wird wiederhergestellt …");pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});connectWebSocket(); updateFlowUI(); loadOraclePool(false);});
       window.addEventListener("offline",function(){
         SYMBOLS.forEach(function(symbol){markets[symbol].tickerAt=0;});
         setConnection("error","Offline · keine Live-Daten"); showFeedError("Keine Internetverbindung. Es werden keine Ersatzdaten angezeigt."); updateMarketUI();
       });
-      document.addEventListener("visibilitychange",function(){if(!document.hidden){pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});}});
-      setInterval(pollTickers,4500); setInterval(refreshStats,60000); setInterval(refreshDepth,7000);
+      document.addEventListener("visibilitychange",function(){if(!document.hidden){pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});loadOraclePool(false);}});
+      setInterval(pollTickers,4500); setInterval(refreshStats,60000); setInterval(refreshDepth,7000); setInterval(function(){if(!document.hidden) loadOraclePool(false);},ORACLE_REFRESH_MS);
       setInterval(function(){if(!document.hidden&&navigator.onLine) renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});},25000);
       setInterval(function(){
         el.clock.textContent="UTC "+new Date().toLocaleTimeString("de-DE",{timeZone:"UTC",hour:"2-digit",minute:"2-digit",second:"2-digit"});
@@ -2019,11 +3050,11 @@ void main() {
           setConnection("error","Live-Feed unterbrochen");
           showFeedError("Binance-Live-Feed unterbrochen. Es werden keine Ersatzdaten angezeigt.");
         }
-        updateMarketUI();
+        updateMarketUI(); updateOracleUI();
       },1000);
-      updateCameraControls(); updateFlowUI();
+      updateCameraControls(); updateFlowUI(); updateOracleUI(); drawOracleHistoryChart();
       loadLogoContours(LUNC_LOGO_SRC,"lunc"); loadLogoContours(USTC_LOGO_SRC,"ustc");
-      requestAnimationFrame(render); initialLoad();
+      requestAnimationFrame(render); initialLoad(); loadOraclePool(true);
     })();
   </script>
 </body>

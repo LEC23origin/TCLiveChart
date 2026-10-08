@@ -4,8 +4,8 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#050912">
-  <meta name="description" content="Räumlicher WebGL-Live-Chart für LUNC und USTC mit Binance-Spotdaten und integriertem Terra Classic Oracle Pool.">
-  <title>Terra Classic Spatial Market · Oracle Pool</title>
+  <meta name="description" content="Mehrsprachiger räumlicher Live-Chart für LUNC und USTC: Binance Spot, Terra Classic Oracle Pool, Preisalarme und X Share.">
+  <title>Terra Classic · Live Chart Next</title>
   <style>
     :root {
       --bg: #040913;
@@ -999,32 +999,49 @@
     @media (max-width:1180px) { .right-rail { grid-template-columns:repeat(4,minmax(240px,1fr)); grid-template-rows:auto; } }
     @media (max-width:640px) { .right-rail { grid-template-columns:repeat(4,250px); } .oracle-history-card { min-height:176px; } .oracle-history-chart { height:96px; } .history-action { min-height:28px; padding:0 8px; } .history-save-status { width:100%; margin-left:0; } .focus-hint { top:10px; max-width:76%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } }
 </style>
-</head>
-<body>
-  <canvas class="ui-particle-canvas" id="uiParticleCanvas" aria-hidden="true"></canvas>
-  <main class="app">
-    <header class="top">
-      <div class="brand">
+<style>
+/* Live Chart Next — reserved areas, readable controls, and a fluid dashboard. */
+:root{--accent:#39d0ff;--accent-rgb:57,208,255;--scene-brightness:1.12;--muted:#a3b8c8;--glass-shadow:0 12px 40px #0004;color-scheme:dark}
+[hidden]{display:none!important}
+html,body{height:auto;min-height:100%;overflow-x:clip;overflow-y:auto;scrollbar-color:#244453 #06101a}
+body{background:radial-gradient(ellipse at 12% 0,#0d2b4033,transparent 50%),#050a13}
+button,select,input{font:inherit}button,select{touch-action:manipulation}button:focus-visible,select:focus-visible,input:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+.app{height:auto;min-height:100dvh;display:block;width:100%;max-width:2040px;margin:auto}
+.top{position:relative;display:grid;grid-template-columns:minmax(210px,1fr) auto minmax(230px,1fr);padding:14px 24px;gap:18px;box-shadow:none;background:#09131ee8;border-bottom:1px solid #87c8e31a;backdrop-filter:blur(18px)}
+.brand-mark{width:42px;height:42px;border-radius:13px}.brand-mark:before{display:none}.brand-copy strong{font-size:13px;letter-spacing:.10em;background:linear-gradient(100deg,#f1fcff,#a4e7ff)}.brand-copy>span{font-size:10px;letter-spacing:.06em;color:#9cb2c2}.version-badge{font-size:9px;padding:3px 5px;border-radius:5px;background:#173245;color:#91dcff;font-weight:700;letter-spacing:.05em}
+.primary-nav{width:auto;min-width:0;display:flex;align-items:center;gap:3px;padding:4px;border:1px solid #92c8e019;background:#020a1459;border-radius:14px;overflow:visible}
+.primary-nav button{display:flex;align-items:center;justify-content:center;gap:6px;min-width:0;min-height:40px;font-size:12px;padding:0 13px;border:0;border-radius:10px;background:transparent;color:#9eb3c3;white-space:nowrap;cursor:pointer}
+.primary-nav button svg{width:16px;height:16px;flex:none}.primary-nav button.active{color:#b7ecff;border:0;background:#163849b0;box-shadow:inset 0 0 0 1px #55c8f533}.primary-nav button:hover{background:#1833468c;color:#fff}
+.top-tools{display:flex;align-items:center;justify-content:flex-end;gap:8px;grid-template-columns:none}.language-shell{display:flex;align-items:center;gap:4px;padding:0 7px;border:1px solid #96bad628;border-radius:10px;background:#08121d;min-height:40px}.language-shell svg{width:16px;height:16px;color:#a5bccb}.language-shell select{width:58px;max-width:84px;padding:8px 0;border:0;background:transparent;color:#e0eff7;font-size:11px;font-weight:700;cursor:pointer}.language-shell select option{background:#0a1724;font-size:14px}
+.action-button{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:1px solid #87bed52b;border-radius:10px;background:#102332;color:#daedf9;min-height:40px;padding:0 13px;font-weight:600;font-size:12px;cursor:pointer;text-decoration:none}.action-button svg{width:16px;height:16px;flex:none}.action-button:hover{background:#18354a;border-color:#6dc7ea66}.action-button.primary{color:#06141d;background:var(--accent);border-color:transparent}.action-button.x-action{background:#e6f3fa;color:#08121b;border-color:transparent}.icon-button{min-width:40px;min-height:40px;padding:0 10px;display:inline-flex;align-items:center;justify-content:center;background:#122333;border:1px solid #88bed529;border-radius:10px;color:#c4dce9;cursor:pointer}.icon-button svg{width:16px;height:16px}
+.overview{display:grid;grid-template-columns:minmax(340px,.95fr) minmax(450px,1.5fr);gap:20px;padding:15px 24px;background:#09121d66;border-bottom:1px solid #8acae71a;box-shadow:none}.markets{gap:10px}.market-card{min-height:64px;padding:11px 13px;border-radius:13px;box-shadow:none;background:#0c1a29b0}.market-card.active{background:#102c3a88;border-color:rgba(var(--accent-rgb),.5)}.coin{width:32px;height:32px}.market-name b{font-size:12px}.market-name span{font-size:10px}.market-price b{font-size:13px}.market-price span{font-size:11px}.overview-metrics{display:grid;grid-template-columns:1.3fr 1fr 1fr 1.3fr;gap:10px;overflow:visible}.metric-cell{border:0;border-left:1px solid #8dc9e120;box-shadow:none;background:transparent;border-radius:0;padding:5px 12px;min-width:0}.metric-cell span{font-size:10px;text-transform:none;color:#9bb1c1;letter-spacing:.02em}.metric-cell>b{font-size:15px;margin-top:7px;white-space:normal;overflow-wrap:anywhere}.metric-cell .main-price{font-size:22px;margin-top:5px;text-shadow:none;white-space:nowrap}.main-change{font-size:10px;line-height:1.6;display:block}
+.chart-shell{height:auto;min-height:0;display:flex;flex-direction:column}.toolbar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:12px 24px;overflow:visible;background:#070f18;border-bottom:1px solid #8ac7df18}.toolbar-group{display:flex;gap:3px;align-items:center;flex-wrap:wrap;padding:4px;border-radius:12px;border:1px solid #87bdd51a;background:#0a1621;box-shadow:none;overflow:visible}.toolbar-title{font-size:10px;padding:0 8px;color:#9cb4c5}.tool-button{font-size:12px;min-width:39px;min-height:36px;padding:0 10px;border-radius:8px;box-shadow:none;cursor:pointer}.tool-button.active{color:#a4e6ff;background:#16405677;border-color:#49bdea44;box-shadow:none}.view-tools{display:flex;gap:7px;align-items:center;flex-wrap:wrap}.divider{display:none}.settings-trigger[aria-expanded=true]{background:#153547;border-color:var(--accent);color:#bbecff}
+.settings-shelf{margin:0 24px 12px;padding:17px;background:#0c1926;border:1px solid #8ab9d428;border-radius:14px;display:grid;grid-template-columns:1.1fr 1.1fr .9fr;gap:20px;box-shadow:0 15px 30px #0002}.settings-section{min-width:0}.section-caption{display:flex;align-items:center;gap:8px;font-size:10px;text-transform:uppercase;letter-spacing:.10em;color:#acc4d6;font-weight:650;margin-bottom:12px}.section-caption svg{width:14px;height:14px;color:var(--accent)}.layer-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.layer-grid .tool-button{white-space:normal;font-size:11px;min-height:40px;padding:6px;color:#b4c7d3;line-height:1.3;border:1px solid #8ab9d426;background:#07111b}.layer-grid .tool-button.active{background:#17415466;border-color:#5cbbe052;color:#d7f4ff}.settings-label{display:flex;justify-content:space-between;gap:8px;align-items:center;color:#b3c9d9;font-size:11px;margin:12px 0 8px}.settings-label:first-of-type{margin-top:0}input[type=range]{width:100%;accent-color:var(--accent);height:22px;cursor:pointer}.palette-row{display:flex;gap:7px;flex-wrap:wrap}.palette-choice{display:flex;align-items:center;gap:6px;border:1px solid #829db528;border-radius:8px;padding:6px 8px;font-size:10px;background:#08121d;color:#b5c8d5;min-height:34px;cursor:pointer}.palette-choice i{width:11px;height:11px;border-radius:50%;background:var(--swatch)}.palette-choice[aria-pressed=true]{border-color:var(--accent);background:#173247;color:#eefaff}.check-option{display:flex;align-items:center;gap:7px;font-size:11px;color:#b2c6d3;min-height:34px;cursor:pointer}.check-option input{width:16px;height:16px;accent-color:var(--accent)}.camera-actions{display:flex;gap:6px;flex-wrap:wrap}.camera-actions button{min-width:38px}.settings-help{font-size:11px;color:#93adbf;line-height:1.6;margin:10px 0 0}.status-note{font-size:10px;line-height:1.6;color:#91aabd;margin-top:10px}.button-row{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.workspace{display:grid;grid-template-columns:minmax(0,1fr) 330px;grid-template-rows:auto;gap:14px;padding:0 24px 20px;align-items:start;min-height:0;overflow:visible}.scene-column{min-width:0;display:flex;flex-direction:column;border:1px solid #6dafce30;border-radius:16px;overflow:hidden;background:#081320}.scene-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:13px 16px;background:#0b1925;border-bottom:1px solid #88bed524;min-height:64px}.pair-watermark{position:static;pointer-events:auto;max-width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 8px}.pair-watermark b{font-size:13px;color:#c9e8f6;grid-column:1}.pair-watermark>span{font-size:10px;color:#95b3c5;margin:0;grid-column:1}.pair-watermark .mini-info{grid-column:2;grid-row:1/3;position:static;align-self:center}.flow-hud{position:static!important;inset:auto!important;transform:none!important;max-width:100%;display:flex;gap:7px;align-items:center;padding:0;background:none;border:none;box-shadow:none}.flow-chip{font-size:10px;min-height:26px;padding:5px 8px;white-space:nowrap}.flow-meta{display:inline;font-size:10px;line-height:1.4;max-width:180px;color:#91afc2}.canvas-wrap{min-width:0;height:clamp(420px,calc(100dvh - 305px),820px);min-height:420px;border:0;border-radius:0;box-shadow:none;overflow:hidden;background:#03101c}.canvas-wrap>canvas{filter:brightness(var(--scene-brightness));position:absolute;inset:0}.background-art{filter:brightness(var(--scene-brightness));opacity:.10}.canvas-wrap.no-art .background-art{display:none}.scene-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;min-height:52px;padding:9px 14px;background:#091722;border-top:1px solid #80b6d320}.spatial-key{position:static;gap:10px;flex-wrap:wrap;font-size:10px}.depth-note{position:static;font-size:10px;padding:0;background:none;border:0;display:block;color:#92afc1;backdrop-filter:none}.scene-core-label{position:static;left:auto;bottom:auto;transform:none;min-width:0;max-width:100%;display:flex;align-items:center;gap:6px;padding:7px 9px;border:1px solid #e3b95033;border-radius:8px;cursor:pointer;background:#271f122f}.scene-core-label b{font-size:10px}.scene-core-label span{font-size:9px;display:none}.focus-hint{position:static;transform:none;opacity:1;visibility:visible;max-width:100%;background:transparent;border:0;padding:0;font-size:10px;display:none}.scene-column:has(.pool-focused) .focus-hint{display:block}
+.inspection-dock{padding:0 12px;display:flex;flex-direction:column;gap:10px;background:#0a1723}.inspection-dock:has(.visible){padding:12px;border-top:1px solid #81bada21}.oracle-inspect,.context-info,.candle-detail{position:static!important;inset:auto!important;width:100%;max-width:none;transform:none!important;opacity:1;visibility:visible;display:none;pointer-events:auto;border-radius:12px;box-shadow:none;background:#0b1c2b;padding:14px;margin:0}.oracle-inspect.visible,.context-info.visible,.candle-detail.visible{display:block;transform:none}.context-info-head b,.oracle-inspect-title b{font-size:12px}.context-info p{font-size:12px;line-height:1.7;color:#b2c8d8}.context-info-close{width:36px;height:36px;font-size:20px}.oracle-inspect-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.oracle-inspect-cell span{font-size:10px;text-transform:none;letter-spacing:0}.oracle-inspect-cell b{font-size:12px;white-space:normal}.oracle-color-grid{grid-template-columns:repeat(4,minmax(0,1fr))}.oracle-color-legend>b{font-size:10px;letter-spacing:.03em}.oracle-legend-copy span{font-size:11px}.oracle-legend-copy small{font-size:10px;line-height:1.5}.oracle-inspect-note{font-size:11px;line-height:1.6}.candle-detail .detail-top{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}.detail-top b{font-size:12px}.detail-top>span{font-size:11px}.candle-detail .ohlc{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px}.ohlc span{font-size:10px}.ohlc b{font-size:12px}.detail-volume{font-size:11px}.price-pill{min-width:0;font-size:10px;padding:5px 7px;right:0;pointer-events:none}
+.right-rail{min-width:0;display:flex;flex-direction:column;gap:12px;overflow:visible;max-height:none;grid-template-columns:none;grid-template-rows:none}.right-rail>*{min-width:0!important;width:100%;flex:0 0 auto}.rail-card,.oracle-hud{padding:15px;border-radius:14px;background:linear-gradient(140deg,#0d2030,#0a1622);border-color:#6fb8d32b;box-shadow:none;backdrop-filter:none}.rail-card:hover,.oracle-hud:hover{box-shadow:none}.oracle-hud{display:block!important;cursor:pointer}.oracle-balance strong{font-size:25px}.oracle-balance span,.oracle-runway span{font-size:10px}.oracle-runway strong{font-size:16px}.oracle-head{margin-bottom:12px}.oracle-title b,.rail-heading b,.oracle-history-head b{font-size:12px}.oracle-age{font-size:10px;color:#b4c9d6}.oracle-hud.pool-error .oracle-age{color:#ff9ca4}.oracle-meta{font-size:10px;gap:7px}.oracle-meta>span{min-height:32px}.oracle-meta .daily-income{font-size:11px}.oracle-history-card{min-height:0}.oracle-history-head>span{font-size:9px;color:#9fb5c5}.oracle-history-ranges{gap:4px;flex-wrap:wrap;overflow:visible}.history-range{height:34px;min-width:34px;font-size:10px}.oracle-history-chart{height:140px}.oracle-history-empty{font-size:11px;color:#a0b8c8;line-height:1.7}.oracle-history-meta{font-size:10px}.history-action{font-size:10px;min-height:36px;letter-spacing:0}.history-save-status{font-size:9px;white-space:normal;width:100%;margin:0}.flow-card-grid{gap:8px}.flow-stat{padding:10px;min-height:65px}.flow-stat>span{font-size:9px;color:#9bb3c4}.flow-stat>b{font-size:11px;white-space:normal}.momentum-readout{position:static;margin-top:8px;min-height:0;padding:0;border:0;background:transparent;box-shadow:none;gap:5px}.momentum-copy{white-space:normal}.momentum-copy b{font-size:11px}.momentum-copy small{font-size:9px}.momentum-arrow{width:20px;height:20px;font-size:13px;flex:none}.flow-hist{display:none}.feed-list{gap:6px}.feed-row{min-height:35px;padding:8px;gap:7px;grid-template-columns:auto minmax(0,1fr) auto}.feed-row b{font-size:10px}.feed-row span{font-size:9px;color:#a4bac9;white-space:normal;text-align:right}.feed-row i{background:#687887;box-shadow:none}.feed-row.live i{background:#38ddb1;box-shadow:0 0 9px #38ddb144}.feed-row.error i{background:#f47988}.rail-heading{margin-bottom:12px}.rail-heading>span{font-size:9px;color:#95adbe}
+.alert-heading{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}.alert-heading>b{font-size:12px}.alert-form{display:grid;grid-template-columns:75px minmax(0,1fr) auto;gap:6px}.alert-form select,.alert-form input,.share-input{min-width:0;min-height:39px;width:100%;padding:9px;border:1px solid #87b8cf34;border-radius:8px;background:#07121d;color:#daeef8;font-size:11px}.alert-list{display:grid;gap:7px;margin-top:10px}.alert-item{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:9px;border:1px solid #87b8cf25;border-radius:9px;background:#07121d}.alert-item strong{font-size:11px;display:block}.alert-item small{font-size:10px;color:#95adbe}.alert-item.triggered{border-color:#deb55b66;background:#2821135c}.alert-item.triggered small{color:#eed599}.alert-delete{min-width:32px;min-height:32px;padding:0}.alert-empty{font-size:11px;color:#92adbf;line-height:1.6;margin:0}.alert-feedback{font-size:11px;color:#ddbd7d;min-height:15px;margin:8px 0 0}.alert-notice{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;padding:11px 24px;border-bottom:1px solid #e4b8553b;background:#2a2111;color:#f1d58d;font-size:12px}
+.foot{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:10px 24px;min-height:44px;overflow:visible}.market-ticker{flex-wrap:wrap;overflow:visible;gap:8px}.ticker-live{font-size:10px;color:#9bb3c4}.ticker-live i{background:#697d8b;box-shadow:none}.ticker-live.live{color:#5de2bb}.ticker-live.live i{background:#38ddb1;box-shadow:0 0 10px #38ddb144}.ticker-item{display:inline-flex!important;min-height:27px;height:auto;font-size:10px;padding:6px 8px}.foot-clock{font-size:10px;color:#a6bdcc}.foot-byline{font-size:9px;letter-spacing:.08em;color:#758fa2}
+.loading{z-index:7;background:#030c16dc;backdrop-filter:blur(5px);padding:20px}.loading-inner{max-width:420px;text-align:center;line-height:1.7;font-size:12px}.retry-button{min-height:40px;font-size:12px;border-radius:9px}.fallback{z-index:1000}.fallback p{line-height:1.6}
+.share-dialog{position:fixed;inset:0;margin:auto;width:min(520px,calc(100% - 28px));max-height:calc(100dvh - 28px);overflow:auto;border:1px solid #8fcced44;border-radius:18px;padding:22px;color:#e6f4fc;background:#0b1928;box-shadow:0 30px 100px #000b}.share-dialog::backdrop{background:#030810b3;backdrop-filter:blur(9px)}.share-dialog .dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}.dialog-heading h2{font-size:19px;line-height:1.4;margin:0}.dialog-kicker{font-size:10px;letter-spacing:.12em;color:#82bedb;margin:0 0 7px}.dialog-description{font-size:12px;color:#adc4d6;line-height:1.7;margin:10px 0 16px}.share-preview{padding:17px;border:1px solid #76bbdb33;border-radius:12px;background:linear-gradient(145deg,#102d40,#081521);margin:14px 0}.share-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:11px;color:#a7c9dc;margin-bottom:12px}.share-preview>strong{font-size:28px;font-variant-numeric:tabular-nums;font-weight:650}.share-preview>span{display:block;margin-top:7px;font-size:12px}.share-preview>small{display:block;color:#9eb6c7;font-size:10px;margin-top:12px}.share-text{font-size:12px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.7;padding:14px;background:#030e19;border-radius:10px;border:1px solid #8cc3de25;margin:0 0 14px;min-height:85px;color:#bdcedc}.share-dialog label{display:block;font-size:11px;color:#a8c0d1;margin-bottom:7px}.share-input{font-size:12px}.share-dialog .button-row{margin-top:15px}.share-dialog .status-note{font-size:11px}.share-feedback{color:#87e7c4;font-size:11px;min-height:16px;margin:10px 0 0}.share-error{color:#ff9fa7}.wide-button{width:100%;margin-top:12px}.fullscreen-active .top,.fullscreen-active .overview,.fullscreen-active .right-rail,.fullscreen-active .foot{display:none}.fullscreen-active .workspace{grid-template-columns:1fr}.fullscreen-active .canvas-wrap{height:calc(100dvh - 200px);min-height:320px}
+@media(min-width:1700px){.top,.overview,.toolbar{padding-left:32px;padding-right:32px}.workspace{padding-left:32px;padding-right:32px;grid-template-columns:minmax(0,1fr) 370px}.oracle-history-chart{height:160px}}
+@media(max-width:1280px){.top{grid-template-columns:1fr auto;gap:12px}.primary-nav{grid-column:1/-1;grid-row:2;width:100%;justify-content:center}.top-tools{grid-column:2;grid-row:1}.primary-nav button{flex:1}.overview{grid-template-columns:minmax(320px,.9fr) minmax(440px,1.2fr);gap:10px}.workspace{grid-template-columns:minmax(0,1fr) 305px}.metric-cell{padding:5px 10px}.metric-cell .main-price{font-size:19px}.flow-meta{max-width:130px}.canvas-wrap{height:540px}.oracle-color-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:1000px){.overview{grid-template-columns:1fr}.overview-metrics{padding-top:7px}.workspace{grid-template-columns:1fr}.right-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-items:start;gap:12px}.right-rail>*{min-width:0!important}.settings-shelf{grid-template-columns:1fr 1fr}.settings-section:last-child{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:0 18px}.settings-section:last-child .section-caption{grid-column:1/-1}.canvas-wrap{height:520px}.scene-header{min-height:62px}.flow-meta{max-width:none}.oracle-color-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:640px){.top{padding:max(12px,env(safe-area-inset-top)) 12px 10px;gap:12px}.brand{gap:8px}.brand-mark{width:35px;height:35px;border-radius:11px}.brand-copy strong{font-size:11px;letter-spacing:.06em}.brand-copy>span{font-size:9px;letter-spacing:0}.version-badge{display:none}.top-tools{gap:6px}.language-shell{min-height:36px;padding:0 6px}.language-shell svg{display:none}.language-shell select{width:45px;font-size:11px;padding:7px 0}.action-button.x-action{min-height:36px;min-width:36px;padding:0 9px}.x-action .share-top-label{display:none}.primary-nav{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));border:0;border-radius:0;background:none;padding:0;gap:4px;width:100%;overflow:visible;min-width:0}.primary-nav button{flex-direction:column;min-height:51px;padding:6px 2px;gap:5px;font-size:9px;white-space:normal;word-break:normal;overflow-wrap:anywhere;border-radius:10px;line-height:1.3;text-align:center}.primary-nav button svg{width:17px;height:17px}.overview{padding:12px;gap:9px}.markets{gap:8px}.market-card{padding:10px 8px;grid-template-columns:26px minmax(0,1fr);gap:7px;min-height:77px}.coin{width:26px;height:26px}.market-name b{font-size:11px}.market-name span{display:block;font-size:8px}.market-price{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:2px}.market-price b{font-size:13px}.market-price span{font-size:10px}.overview-metrics{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;overflow:visible}.metric-cell{border:1px solid #8fbbd81a;border-radius:10px;padding:10px;background:#0b19246e;min-height:60px}.metric-cell:first-child{grid-column:1/-1;display:grid;grid-template-columns:1fr auto;gap:5px 8px;align-items:center;min-height:0}.metric-cell:first-child>span{grid-column:1}.metric-cell:first-child>.main-price{grid-column:2;grid-row:1/3;margin:0;font-size:24px}.metric-cell:first-child>.main-change{grid-column:1;margin:0;font-size:10px}.metric-cell:last-child{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px}.metric-cell:last-child>b{margin:0}.metric-cell>b{font-size:14px;margin-top:5px}.toolbar{padding:10px 12px;gap:8px;flex-direction:column;align-items:stretch}.toolbar #timeframes{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));width:100%;padding:3px;gap:3px}.toolbar-title{display:none}.tool-button{min-height:35px;min-width:0;padding:0 8px;font-size:11px}.view-tools{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px}.view-tools>.toolbar-group{flex-wrap:nowrap;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:2px}.settings-trigger{font-size:11px;min-height:42px;padding:0 10px}.settings-trigger svg{width:14px}.workspace{padding:0 12px 14px;gap:12px;grid-template-rows:auto}.canvas-wrap{min-height:410px;height:460px;border-radius:0}.scene-column{border-radius:13px}.scene-header{padding:10px 12px;gap:7px;align-items:flex-start;min-height:72px;flex-direction:column}.pair-watermark{width:100%}.pair-watermark b{font-size:12px;letter-spacing:0}.pair-watermark>span{font-size:9px;white-space:normal}.flow-hud{max-width:100%;gap:7px;display:flex;align-items:center}.flow-meta{display:inline!important;font-size:9px;max-width:none;white-space:normal}.flow-chip{font-size:9px;min-height:22px;padding:4px 7px}.scene-footer{padding:9px 11px;min-height:66px;gap:7px}.depth-note{font-size:9px;order:3;width:100%;display:block!important}.scene-core-label{padding:6px 8px}.scene-core-label b{font-size:9px}.spatial-key{font-size:9px;gap:8px}.focus-hint{order:4;font-size:9px}.inspection-dock:has(.visible){padding:10px}.oracle-inspect-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}.oracle-color-grid{grid-template-columns:1fr 1fr}.oracle-inspect-cell{padding:9px 7px}.oracle-inspect-cell span{font-size:9px}.oracle-inspect-cell b{font-size:11px}.candle-detail .ohlc{grid-template-columns:repeat(2,1fr);row-gap:12px}.settings-shelf{margin:0 12px 12px;padding:14px;grid-template-columns:1fr;gap:18px}.settings-section:last-child{grid-column:auto;display:block}.layer-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.settings-section+.settings-section{border-top:1px solid #8ac2e321;padding-top:16px}.palette-choice{font-size:11px;min-height:38px}.settings-label,.settings-help,.check-option{font-size:12px}.camera-actions .icon-button{min-height:42px;min-width:42px}.right-rail{display:flex;flex-direction:column;grid-template-columns:none;overflow:visible}.oracle-history-chart{height:165px}.oracle-history-card{min-height:0}.rail-card,.oracle-hud{padding:15px}.oracle-balance strong{font-size:26px}.oracle-history-meta{font-size:11px}.feed-row{min-height:39px}.feed-row b{font-size:11px}.feed-row span{font-size:10px}.alert-form{grid-template-columns:75px minmax(0,1fr) auto}.alert-form select,.alert-form input{min-height:42px;font-size:12px}.alert-notice{padding:12px;font-size:11px}.foot{padding:12px;gap:12px}.market-ticker{gap:6px}.ticker-item{font-size:9px}.ticker-sep{display:none}.ticker-live{font-size:10px}.foot-clock{font-size:11px}.share-dialog{padding:18px}.share-preview>strong{font-size:26px}.share-dialog .button-row>.action-button{flex:1}.share-dialog .button-row{gap:8px}.share-dialog .action-button{font-size:11px}}
+@media(max-width:360px){.brand-copy strong{font-size:10px}.brand-copy>span{font-size:8px}.brand-mark{width:30px;height:30px}.top{gap:8px}.primary-nav button{font-size:8px}.metric-cell:first-child>.main-price{font-size:21px}.view-tools{grid-template-columns:1fr}.view-tools>.settings-trigger{width:100%}.oracle-color-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;scroll-behavior:auto!important}.ui-particle-canvas{opacity:.3}}
+
+.connection{min-height:28px;max-width:100%;gap:7px;padding:5px 8px;background:#081521;border:1px solid #79bdd326;border-radius:8px}.connection span{display:inline!important;white-space:normal;font-size:10px;letter-spacing:0;text-transform:none}.alert-heading>svg{width:17px;height:17px;color:#bbd9e8}.fallback{position:absolute;inset:0;z-index:20;padding:24px;background:#091623}.fallback h1{font-size:18px}.fallback p{font-size:13px;max-width:420px}.alert-form .icon-button{min-height:39px}.section-caption{line-height:1.4}
+</style></head>
+<body><canvas class="ui-particle-canvas" id="uiParticleCanvas" aria-hidden="true"></canvas><main class="app"><header class="top"><div class="brand">
         <div class="brand-mark" aria-hidden="true"><img class="brand-logo-base" src="https://i.postimg.cc/HnkwHk7w/Screenshot-20260317-182016-Gallery.png" alt=""><canvas class="brand-particle-canvas" id="brandParticleCanvas" width="96" height="96"></canvas></div>
         <div class="brand-copy">
-          <div class="brand-title-row"><strong>TERRA CLASSIC</strong></div>
-          <span>Spatial Market · Oracle Pool</span>
+          <div class="brand-title-row"><strong>TERRA CLASSIC</strong><small class="version-badge">NEXT</small></div>
+          <span data-i18n="subtitle"></span>
         </div>
       </div>
-      <nav class="primary-nav" id="primaryNav" aria-label="Hauptnavigation">
-        <button class="active" type="button" data-nav="market" aria-pressed="true">Market</button><button type="button" data-nav="oracle" aria-pressed="false">Oracle Pool</button><button type="button" data-nav="analytics" aria-pressed="false">Analytics</button><button type="button" data-nav="ecosystem" aria-pressed="false">Ecosystem</button><button type="button" data-nav="network" aria-pressed="false">Network</button>
-      </nav>
-      <div class="top-tools">
-        <div class="search-shell" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.6-3.6"></path></svg>
-          <span>Search markets, address, blocks…</span>
-        </div>
-        <div class="connection" id="connection" role="status" aria-live="polite"><i class="status-dot" aria-hidden="true"></i><span id="connectionText">Marktdaten laden</span></div>
-      </div>
-    </header>
-
-    <section class="overview" aria-label="Marktübersicht">
-      <div class="markets" aria-label="Markt auswählen">
+<nav class="primary-nav" id="primaryNav" data-i18n-label="navigation"><button type="button" data-nav="market" aria-pressed="true" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4v16h16M7 14l4-5 4 3 5-7"/></svg><span data-i18n="market"></span></button><button type="button" data-nav="oracle" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><ellipse cx="12" cy="12" rx="10" ry="5" transform="rotate(-25 12 12)"/></svg><span data-i18n="oracle"></span></button><button type="button" data-nav="analytics" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V9m7 11V4m7 16v-7"/></svg><span data-i18n="analytics"></span></button><button type="button" data-nav="ecosystem" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7h15l-3-3m3 3-3 3M21 17H6l3-3m-3 3 3 3"/></svg><span data-i18n="ecosystem"></span></button><button type="button" data-nav="network" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="6" cy="6" r="3"/><circle cx="18" cy="18" r="3"/><path d="M9 6h9v9M6 9v9h9"/></svg><span data-i18n="network"></span></button></nav><div class="top-tools"><label class="language-shell"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18"/></svg><select id="languageSelect" data-i18n-label="language"><option value="de" label="DE">Deutsch</option><option value="en" label="EN">English</option><option value="fr" label="FR">Français</option><option value="es" label="ES">Español</option><option value="tr" label="TR">Türkçe</option><option value="zh" label="中文">中文</option><option value="id" label="ID">Bahasa Indonesia</option><option value="hi" label="हिं">हिन्दी</option></select></label><button class="action-button x-action" id="shareButton" type="button" data-i18n-label="shareOnX"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l10 16h-4L5 4Zm14 0L5 20"/></svg><span class="share-top-label" data-i18n="share"></span></button></div></header><section class="overview" aria-label="Marktübersicht" data-i18n-label="market">
+      <div class="markets" aria-label="Markt auswählen" data-i18n-label="selectMarket">
         <button class="market-card active" type="button" data-symbol="LUNC-USDT" aria-pressed="true">
           <span class="coin" aria-hidden="true"><img src="https://i.postimg.cc/HnkwHk7w/Screenshot-20260317-182016-Gallery.png" alt=""><canvas id="luncLogoCanvas" width="72" height="72"></canvas></span>
           <span class="market-name"><b>LUNC / USDT</b><span>Terra Luna Classic</span></span>
@@ -1038,16 +1055,14 @@
       </div>
       <div class="overview-metrics">
         <div class="metric-cell"><span id="activePair">LUNC / USDT</span><b class="main-price" id="mainPrice">—</b><em class="main-change" id="mainChange">—</em></div>
-        <div class="metric-cell"><span>24h High</span><b id="highValue">—</b></div>
-        <div class="metric-cell"><span>24h Low</span><b id="lowValue">—</b></div>
-        <div class="metric-cell"><span>24h Volume</span><b id="volumeValue">—</b></div>
+        <div class="metric-cell"><span data-i18n="high24">24h High</span><b id="highValue">—</b></div>
+        <div class="metric-cell"><span data-i18n="low24">24h Low</span><b id="lowValue">—</b></div>
+        <div class="metric-cell"><span data-i18n="volume24">24h Volume</span><b id="volumeValue">—</b></div>
       </div>
     </section>
 
-    <section class="chart-shell">
-      <nav class="toolbar" aria-label="Chart Einstellungen">
-        <div class="toolbar-group" id="timeframes">
-          <span class="toolbar-title">Zeit</span>
+<section class="chart-shell"><nav class="toolbar" data-i18n-label="controls"><div class="toolbar-group" id="timeframes">
+          <span class="toolbar-title" data-i18n="time">Zeit</span>
           <button class="tool-button" type="button" data-timeframe="1m">1m</button>
           <button class="tool-button" type="button" data-timeframe="3m">3m</button>
           <button class="tool-button" type="button" data-timeframe="15m">15m</button>
@@ -1055,140 +1070,103 @@
           <button class="tool-button" type="button" data-timeframe="4h">4h</button>
           <button class="tool-button" type="button" data-timeframe="1d">1d</button>
         </div>
-        <div class="toolbar-group">
-          <button class="tool-button active" id="perspectiveButton" type="button" aria-pressed="true" title="360° Auto-Orbit starten oder stoppen">360°</button>
-          <button class="tool-button" id="frontButton" type="button">Front</button>
-          <button class="tool-button" id="dualButton" type="button" aria-pressed="false">Dual</button>
-          <span class="divider" aria-hidden="true"></span>
-          <button class="tool-button active" id="maButton" type="button" aria-pressed="true">MA</button>
-          <button class="tool-button active gold" id="volumeButton" type="button" aria-pressed="true">Vol</button>
-          <button class="tool-button active flow" id="flowButton" type="button" aria-pressed="true">Flow</button>
-          <button class="tool-button active pool" id="poolButton" type="button" aria-pressed="true">Pool</button>
-          <button class="tool-button active" id="bookButton" type="button" aria-pressed="true">Book</button>
-          <button class="tool-button active" id="pulseButton" type="button" aria-pressed="true">Live</button>
-          <button class="tool-button active" id="linkButton" type="button" aria-pressed="true">Link</button>
-          <button class="tool-button" id="perfButton" type="button" aria-pressed="false">Eco</button>
-          <button class="tool-button" id="resetButton" type="button">Reset</button>
-        </div>
-      </nav>
-
-      <div class="workspace">
-        <div class="canvas-wrap" id="canvasWrap" data-direction="flat" data-level="calm" data-flow="on" style="--energy-rgb:36,201,244;--energy-opacity:.035;--energy-speed:8s;--tick-rgb:36,201,244;--tick-pulse:0">
-          <canvas id="chartCanvas" tabindex="0" aria-label="Interaktiver räumlicher Candlestick-Chart. Frei um 360 Grad drehen und zoomen."></canvas>
+<div class="view-tools"><div class="toolbar-group"><button class="tool-button active" id="perspectiveButton" type="button" aria-pressed="true" title="360° Auto-Orbit starten oder stoppen">360°</button><button class="tool-button" id="frontButton" type="button" data-i18n="front">Front</button><button class="tool-button" id="dualButton" type="button" aria-pressed="false" data-i18n="dual">Dual</button></div><button type="button" class="action-button settings-trigger" id="controlsButton" aria-expanded="false" aria-controls="settingsShelf"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/><circle cx="9" cy="6" r="2" fill="currentColor"/><circle cx="15" cy="12" r="2" fill="currentColor"/><circle cx="9" cy="18" r="2" fill="currentColor"/></svg><span data-i18n="controls"></span></button></div></nav><section class="settings-shelf" id="settingsShelf" hidden data-i18n-label="settings"><div class="settings-section"><div class="section-caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 9 5-9 5-9-5 9-5Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></svg><span data-i18n="layers"></span></div><div class="layer-grid"><button class="tool-button active" id="maButton" type="button" aria-pressed="true" data-i18n="ma">MA</button><button class="tool-button active gold" id="volumeButton" type="button" aria-pressed="true" data-i18n="volume">Vol</button><button class="tool-button active flow" id="flowButton" type="button" aria-pressed="true" data-i18n="flow">Flow</button><button class="tool-button active pool" id="poolButton" type="button" aria-pressed="true" data-i18n="pool">Pool</button><button class="tool-button active" id="bookButton" type="button" aria-pressed="true" data-i18n="book">Book</button><button class="tool-button active" id="pulseButton" type="button" aria-pressed="true" data-i18n="pulse">Live</button><button class="tool-button active" id="linkButton" type="button" aria-pressed="true" data-i18n="link">Link</button><button class="tool-button" id="perfButton" type="button" aria-pressed="false" data-i18n="eco">Eco</button></div><p class="status-note" data-i18n="savedSettings" id="settingsSaveNote"></p></div><div class="settings-section"><div class="section-caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg><span data-i18n="appearance"></span></div><label class="settings-label" for="brightnessInput"><span data-i18n="brightness"></span><output id="brightnessOutput">112%</output></label><input type="range" id="brightnessInput" min="65" max="160" step="1" value="112"><span class="settings-label" data-i18n="palette"></span><div class="palette-row"><button type="button" class="palette-choice" data-palette="neon" aria-pressed="true" style="--swatch:#39d0ff"><i></i><span data-i18n="neon"></span></button><button type="button" class="palette-choice" data-palette="emerald" aria-pressed="false" style="--swatch:#35e6ab"><i></i><span data-i18n="emerald"></span></button><button type="button" class="palette-choice" data-palette="gold" aria-pressed="false" style="--swatch:#f0c369"><i></i><span data-i18n="gold"></span></button><button type="button" class="palette-choice" data-palette="contrast" aria-pressed="false" style="--swatch:#69b3ff"><i></i><span data-i18n="contrast"></span></button></div><p class="status-note" data-i18n="themeHint"></p><label class="check-option"><input id="artworkInput" type="checkbox" checked><span data-i18n="artwork"></span></label></div><div class="settings-section"><div class="section-caption"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h4l2-3h4l2 3h4v13H4Z"/><circle cx="12" cy="13" r="4"/></svg><span data-i18n="camera"></span></div><div><div class="camera-actions"><button class="icon-button" type="button" id="zoomInButton" data-i18n-title="zoomIn" data-i18n-label="zoomIn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button><button class="icon-button" type="button" id="zoomOutButton" data-i18n-title="zoomOut" data-i18n-label="zoomOut"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/></svg></button><button class="icon-button" type="button" id="rotateLeftButton" data-i18n-title="rotateLeft" data-i18n-label="rotateLeft"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" type="button" id="rotateRightButton" data-i18n-title="rotateRight" data-i18n-label="rotateRight"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button><button class="icon-button" type="button" id="fullscreenButton" data-i18n-title="fullscreen" data-i18n-label="fullscreen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9V4h5m6 0h5v5m0 6v5h-5M9 20H4v-5"/></svg></button></div><label class="settings-label" for="densityInput"><span data-i18n="density"></span><output id="densityOutput">72</output></label><input type="range" id="densityInput" min="24" max="120" step="8" value="72"><div class="button-row"><button class="tool-button" id="resetButton" type="button" data-i18n="reset">Reset</button></div></div><p class="settings-help" data-i18n="cameraHelp"></p></div></section><div class="alert-notice" id="alertNotice" hidden role="status"><span id="alertNoticeText"></span><button type="button" class="icon-button" id="dismissAlertNotice" data-i18n-label="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><div class="workspace"><div class="scene-column"><div class="scene-header"><div class="pair-watermark"><b id="watermarkPair">LUNC / USDT · 1h</b><span id="watermarkSource" data-i18n="sourceChart">Binance Spot · öffentlicher Marktfeed</span><button class="mini-info" type="button" data-info="chart" aria-label="Chart Erklärung öffnen" data-i18n-label="showInfo">i</button></div><div class="flow-hud" id="flowHud" ><span class="flow-chip" id="flowState" data-i18n="flowReady">Flow Ready</span><span class="flow-meta" id="flowValue" data-i18n="waiting">Warte auf Live-Trades …</span></div></div><div class="canvas-wrap" id="canvasWrap" data-direction="flat" data-level="calm" data-flow="on" style="--energy-rgb:36,201,244;--energy-opacity:.035;--energy-speed:8s;--tick-rgb:36,201,244;--tick-pulse:0">
+          <canvas id="chartCanvas" data-i18n-label="chartAria" tabindex="0" aria-label="Interaktiver räumlicher Candlestick-Chart. Frei um 360 Grad drehen und zoomen."></canvas>
           <img class="background-art" src="https://i.postimg.cc/9Mt6pSv2/Screenshot-20260905-211950-Chrome.png" alt="" aria-hidden="true" decoding="async" referrerpolicy="no-referrer">
           <div class="market-energy" aria-hidden="true"></div>
           <canvas id="flowCanvas" aria-hidden="true"></canvas>
           <canvas id="labelCanvas" aria-hidden="true"></canvas>
-          <div class="pair-watermark"><b id="watermarkPair">LUNC / USDT · 1h</b><span id="watermarkSource">Binance Spot · öffentlicher Marktfeed</span><button class="mini-info" type="button" data-info="chart" aria-label="Chart Erklärung öffnen">i</button></div>
-          <div class="flow-hud" id="flowHud" aria-live="polite"><span class="flow-chip" id="flowState">Flow Ready</span><span class="flow-meta" id="flowValue">Warte auf Live-Trades …</span></div>
-          <div class="focus-hint" id="focusHint">Oracle Focus · ziehen zum Erkunden · × oder Esc zum Zurückkehren</div>
-          <div class="spatial-key" aria-hidden="true"><span class="key-item"><i class="key-line"></i>MA 7</span><span class="key-item"><i class="key-line gold"></i>MA 25</span></div>
-          <div class="depth-note">Ziehen: 360° drehen · Rad/Pinch: zoomen</div>
-          <div class="scene-core-label" id="sceneCoreLabel"><b>ORACLE POOL</b><span>Terra Classic · On-chain core</span></div>
+          
+          
+          
+          
+          
+          
           <div class="price-pill" id="pricePill">—</div>
-          <section class="oracle-inspect" id="oracleInspect" aria-hidden="true" aria-label="Oracle Pool Details">
-            <div class="oracle-inspect-head"><span class="oracle-inspect-title"><i aria-hidden="true"></i><b>Oracle Pool · ausgewählt</b></span><button class="context-info-close" id="oracleInspectClose" type="button" aria-label="Oracle Pool Details schließen">×</button></div>
-            <div class="oracle-inspect-grid">
-              <div class="oracle-inspect-cell"><span>Balance</span><b id="inspectBalance">—</b></div>
-              <div class="oracle-inspect-cell"><span>Runway</span><b id="inspectRunway">—</b></div>
-              <div class="oracle-inspect-cell"><span>Netto Δ / Tag</span><b id="inspectDelta">—</b></div>
-              <div class="oracle-inspect-cell"><span>USTC im Modul</span><b id="inspectUstc">—</b></div>
-              <div class="oracle-inspect-cell"><span>% Daily Income</span><b id="inspectDailyIncome">—</b></div>
-              <div class="oracle-inspect-cell"><span>Verbrauch / Tag</span><b id="inspectConsumption">—</b></div>
-            </div>
-            <div class="oracle-color-legend" aria-label="Farblegende des Oracle Pools">
-              <b>Farben im Oracle Pool</b>
-              <div class="oracle-color-grid">
-                <div class="oracle-legend-item"><i class="oracle-swatch blue" aria-hidden="true"></i><span class="oracle-legend-copy"><span>LUNC-Energie</span><small>Der cyan-blaue Kern steht für die primäre LUNC-Poolenergie bzw. die sichtbare Hauptbalance.</small></span></div>
-                <div class="oracle-legend-item"><i class="oracle-swatch gold" aria-hidden="true"></i><span class="oracle-legend-copy"><span>USTC-Begleitstrom</span><small>Gold markiert den zweiten Reserve-/Begleitstrom und macht die USTC-Seite im Modul sichtbar.</small></span></div>
-                <div class="oracle-legend-item"><i class="oracle-swatch pulse" aria-hidden="true"></i><span class="oracle-legend-copy"><span>Live-Marktimpuls</span><small>Kurze grün-cyan Pulse kommen vom Live-Chart und zeigen Marktaktivität – sie ändern den On-chain-Pool nicht.</small></span></div>
-                <div class="oracle-legend-item"><i class="oracle-swatch risk" id="inspectRiskSwatch" aria-hidden="true"></i><span class="oracle-legend-copy"><span id="inspectRiskTitle">Runway-Zustand</span><small id="inspectRiskText">Cyan steht für lange Reservezeit; bei sinkender Runway wechselt die Zustandsfarbe zu grün, amber oder rot.</small></span></div>
-              </div>
-            </div>
-            <p class="oracle-inspect-note"><strong>Was du siehst:</strong> Die Kugel visualisiert den echten Terra-Classic-Oracle-Pool. Die innere Energie folgt den On-Chain-Daten; Markt-Ticks erzeugen nur einen visuellen Puls und verändern den Poolstand nicht.</p>
-          </section>
-          <aside class="context-info" id="contextInfo" aria-hidden="true">
-            <div class="context-info-head"><b id="contextInfoTitle">Info</b><button class="context-info-close" id="contextInfoClose" type="button" aria-label="Info schließen">×</button></div>
-            <p id="contextInfoText"></p>
-          </aside>
-          <aside class="candle-detail" id="candleDetail" aria-hidden="true">
-            <div class="detail-top"><b id="detailTime">—</b><span id="detailDirection">—</span></div>
-            <div class="ohlc"><div><span>Open</span><b id="detailOpen">—</b></div><div><span>High</span><b id="detailHigh">—</b></div><div><span>Low</span><b id="detailLow">—</b></div><div><span>Close</span><b id="detailClose">—</b></div></div>
-            <div class="detail-volume"><span>Volumen</span><b id="detailVolume">—</b></div>
-          </aside>
-          <div class="loading visible" id="loading"><div class="loading-inner"><i class="loader" aria-hidden="true"></i><span id="loadingText">Bestätigte Live-Daten werden geladen …</span><button class="retry-button" id="retryButton" type="button">Erneut verbinden</button></div></div>
+          
+          
+          
+<section class="fallback" id="fallback"><div><h1 data-i18n="webglUnavailable"></h1><p data-i18n="webglHelp"></p></div></section><div class="loading visible" id="loading"><div class="loading-inner"><i class="loader" aria-hidden="true"></i><span id="loadingText" data-i18n="confirmedLoading">Bestätigte Live-Daten werden geladen …</span><button class="retry-button" id="retryButton" type="button" data-i18n="retry">Erneut verbinden</button></div></div>
         </div>
 
-        <aside class="right-rail" aria-label="Live Datenkonsole">
-          <div class="oracle-hud" id="oracleHud" role="status" aria-live="polite">
-            <div class="oracle-head"><span class="oracle-title"><i class="oracle-dot" aria-hidden="true"></i><b>Oracle Pool</b><button class="mini-info" type="button" data-info="oracle" aria-label="Oracle Pool Erklärung öffnen">i</button></span><span class="oracle-age" id="oracleAge">lädt …</span></div>
-            <div class="oracle-main"><div class="oracle-balance"><span>Pool Balance</span><strong id="oracleBalance">—</strong></div><div class="oracle-runway"><span>Runway</span><strong id="oracleRunway">—</strong></div></div>
-            <div class="oracle-meta"><span id="oracleDelta">Δ/Tag —</span><span id="oracleUstc">USTC —</span><span class="daily-income" id="oracleDailyIncome" title="Netto Δ/Tag ÷ aktueller LUNC-Pool × 100">% Daily Income —</span></div>
+<div class="scene-footer"><div class="spatial-key" aria-hidden="true"><span class="key-item"><i class="key-line"></i>MA 7</span><span class="key-item"><i class="key-line gold"></i>MA 25</span></div><div class="scene-core-label" id="sceneCoreLabel" role="button" tabindex="0" data-i18n-title="oracleInfo"><b>ORACLE POOL</b><span>Terra Classic · On-chain core</span></div><div class="depth-note" data-i18n="gestureHint">Ziehen: 360° drehen · Rad/Pinch: zoomen</div><div class="focus-hint" id="focusHint" data-i18n="focusHint">Oracle Focus · ziehen zum Erkunden · × oder Esc zum Zurückkehren</div></div><div class="inspection-dock"><aside class="context-info" id="contextInfo" aria-hidden="true">
+            <div class="context-info-head"><b id="contextInfoTitle" data-i18n="showInfo">Info</b><button class="context-info-close" id="contextInfoClose" type="button" aria-label="Info schließen" data-i18n-label="close">×</button></div>
+            <p id="contextInfoText"></p>
+          </aside><aside class="candle-detail" id="candleDetail" aria-hidden="true">
+            <div class="detail-top"><b id="detailTime">—</b><span id="detailDirection">—</span></div>
+            <div class="ohlc"><div><span data-i18n="open">Open</span><b id="detailOpen">—</b></div><div><span data-i18n="high">High</span><b id="detailHigh">—</b></div><div><span data-i18n="low">Low</span><b id="detailLow">—</b></div><div><span data-i18n="closePrice">Close</span><b id="detailClose">—</b></div></div>
+            <div class="detail-volume"><span data-i18n="volume">Volumen</span><b id="detailVolume">—</b></div>
+          <div class="button-row" style="margin-top:12px"><button class="icon-button" type="button" id="previousCandleButton" data-i18n-title="previous" data-i18n-label="previous"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m14 6-6 6 6 6"/></svg></button><button class="icon-button" type="button" id="nextCandleButton" data-i18n-title="next" data-i18n-label="next"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m10 6 6 6-6 6"/></svg></button><button class="action-button" type="button" id="clearCandleButton" data-i18n="clearSelection"></button></div></aside><section class="oracle-inspect" id="oracleInspect" aria-hidden="true" aria-label="Oracle Pool Details" data-i18n-label="oracleInfo">
+            <div class="oracle-inspect-head"><span class="oracle-inspect-title"><i aria-hidden="true"></i><b data-i18n="selectedOracle">Oracle Pool · ausgewählt</b></span><button class="context-info-close" id="oracleInspectClose" type="button" aria-label="Oracle Pool Details schließen" data-i18n-label="close">×</button></div>
+            <div class="oracle-inspect-grid">
+              <div class="oracle-inspect-cell"><span data-i18n="poolBalance">Balance</span><b id="inspectBalance">—</b></div>
+              <div class="oracle-inspect-cell"><span data-i18n="runway">Runway</span><b id="inspectRunway">—</b></div>
+              <div class="oracle-inspect-cell"><span data-i18n="netDay">Netto Δ / Tag</span><b id="inspectDelta">—</b></div>
+              <div class="oracle-inspect-cell"><span data-i18n="ustcReserve">USTC im Modul</span><b id="inspectUstc">—</b></div>
+              <div class="oracle-inspect-cell"><span data-i18n="netPct">% Daily Income</span><b id="inspectDailyIncome">—</b></div>
+              <div class="oracle-inspect-cell"><span data-i18n="consumption">Verbrauch / Tag</span><b id="inspectConsumption">—</b></div>
+            </div>
+            <div class="oracle-color-legend" aria-label="Farblegende des Oracle Pools" data-i18n-label="colorLegend">
+              <b data-i18n="colorLegend">Farben im Oracle Pool</b>
+              <div class="oracle-color-grid">
+                <div class="oracle-legend-item"><i class="oracle-swatch blue" aria-hidden="true"></i><span class="oracle-legend-copy"><span data-i18n="luncEnergy">LUNC-Energie</span><small data-i18n="luncEnergyNote">Der cyan-blaue Kern steht für die primäre LUNC-Poolenergie bzw. die sichtbare Hauptbalance.</small></span></div>
+                <div class="oracle-legend-item"><i class="oracle-swatch gold" aria-hidden="true"></i><span class="oracle-legend-copy"><span data-i18n="ustcReserve">USTC-Begleitstrom</span><small data-i18n="ustcEnergyNote">Gold markiert den zweiten Reserve-/Begleitstrom und macht die USTC-Seite im Modul sichtbar.</small></span></div>
+                <div class="oracle-legend-item"><i class="oracle-swatch pulse" aria-hidden="true"></i><span class="oracle-legend-copy"><span data-i18n="pulse">Live-Marktimpuls</span><small data-i18n="pulseNote">Kurze grün-cyan Pulse kommen vom Live-Chart und zeigen Marktaktivität – sie ändern den On-chain-Pool nicht.</small></span></div>
+                <div class="oracle-legend-item"><i class="oracle-swatch risk" id="inspectRiskSwatch" aria-hidden="true"></i><span class="oracle-legend-copy"><span id="inspectRiskTitle" data-i18n="runway">Runway-Zustand</span><small id="inspectRiskText" data-i18n="runwayNote">Cyan steht für lange Reservezeit; bei sinkender Runway wechselt die Zustandsfarbe zu grün, amber oder rot.</small></span></div>
+              </div>
+            </div>
+            <p class="oracle-inspect-note" data-i18n="oracleNote"></p>
+          </section></div></div><aside class="right-rail" aria-label="Live Datenkonsole" data-i18n-label="sources">
+          <div class="oracle-hud" id="oracleHud" role="group" tabindex="0" data-i18n-title="oracleInfo">
+            <div class="oracle-head"><span class="oracle-title"><i class="oracle-dot" aria-hidden="true"></i><b>Oracle Pool</b><button class="mini-info" type="button" data-info="oracle" aria-label="Oracle Pool Erklärung öffnen" data-i18n-label="showInfo">i</button></span><span class="oracle-age" id="oracleAge" data-i18n="loading">lädt …</span></div>
+            <div class="oracle-main"><div class="oracle-balance"><span data-i18n="poolBalance">Pool Balance</span><strong id="oracleBalance">—</strong></div><div class="oracle-runway"><span data-i18n="runway">Runway</span><strong id="oracleRunway">—</strong></div></div>
+            <div class="oracle-meta"><span id="oracleDelta">Δ/Tag —</span><span id="oracleUstc">USTC —</span><span class="daily-income" id="oracleDailyIncome" data-i18n-title="netHint" title="">% Daily Income —</span></div>
             <div class="oracle-meter" aria-hidden="true"><i id="oracleMeter"></i></div>
           </div>
 
-          <section class="rail-card oracle-history-card" id="oracleHistoryCard" aria-label="Oracle Pool Verlauf">
-            <div class="oracle-history-head"><b>Oracle Verlauf</b><span>Browser-Historie</span></div>
-            <div class="oracle-history-ranges" id="oracleHistoryRanges" aria-label="Oracle Verlauf Zeitraum">
-              <button class="history-range" type="button" data-oracle-range="1D">1T</button>
-              <button class="history-range" type="button" data-oracle-range="30D">30T</button>
-              <button class="history-range" type="button" data-oracle-range="90D">90T</button>
+          <section class="rail-card oracle-history-card" id="oracleHistoryCard" aria-label="Oracle Pool Verlauf" data-i18n-label="history">
+            <div class="oracle-history-head"><b data-i18n="history">Oracle Verlauf</b><span data-i18n="localHistory">Browser-Historie</span></div>
+            <div class="oracle-history-ranges" id="oracleHistoryRanges" aria-label="Oracle Verlauf Zeitraum" data-i18n-label="time">
+              <button class="history-range" type="button" data-oracle-range="1D">1D</button>
+              <button class="history-range" type="button" data-oracle-range="30D">30D</button>
+              <button class="history-range" type="button" data-oracle-range="90D">90D</button>
               <button class="history-range" type="button" data-oracle-range="6M">6M</button>
               <button class="history-range active" type="button" data-oracle-range="12M">12M</button>
-              <button class="history-range" type="button" data-oracle-range="ALL">ALLE</button>
+              <button class="history-range" type="button" data-oracle-range="ALL" data-i18n="all">ALLE</button>
             </div>
             <div class="oracle-history-chart">
-              <canvas id="oracleHistoryCanvas" aria-label="Historischer Verlauf der Oracle Pool Balance"></canvas>
-              <div class="oracle-history-empty" id="oracleHistoryEmpty">Vorhandene Snapshots aus der früheren Oracle-Watcher-Seite erscheinen hier automatisch.</div>
+              <canvas id="oracleHistoryCanvas" data-i18n-label="historyAria" aria-label="Historischer Verlauf der Oracle Pool Balance"></canvas>
+              <div class="oracle-history-empty" id="oracleHistoryEmpty" data-i18n="historyEmpty">Vorhandene Snapshots aus der früheren Oracle-Watcher-Seite erscheinen hier automatisch.</div>
             </div>
             <div class="oracle-history-meta"><span id="oracleHistorySummary">Snapshots —</span><b class="oracle-history-change" id="oracleHistoryChange">—</b><span id="oracleHistoryCoverage">Abdeckung —</span><span></span></div>
-            <div class="oracle-history-actions" aria-label="Oracle Snapshot Historie sichern">
-              <button class="history-action primary" id="saveOracleHistoryButton" type="button">Browser speichern</button>
-              <button class="history-action" id="downloadOracleCsvButton" type="button">CSV Zeitraum</button>
-              <button class="history-action gold" id="downloadOracleJsonButton" type="button">JSON Backup</button>
-              <span class="history-save-status" id="oracleHistorySaveStatus">Auto-Speicherung aktiv</span>
+            <div class="oracle-history-actions" aria-label="Oracle Snapshot Historie sichern" data-i18n-label="history">
+              <button class="history-action primary" id="saveOracleHistoryButton" type="button" data-i18n="saveBrowser">Browser speichern</button>
+              <button class="history-action" id="downloadOracleCsvButton" type="button" data-i18n="csv">CSV Zeitraum</button>
+              <button class="history-action gold" id="downloadOracleJsonButton" type="button" data-i18n="json">JSON Backup</button>
+              <button type="button" class="history-action" id="importOracleButton" data-i18n="import"></button><input type="file" id="importOracleInput" accept=".json,application/json" hidden><span class="history-save-status" id="oracleHistorySaveStatus" data-i18n="autoSave">Auto-Speicherung aktiv</span>
             </div>
           </section>
 
-          <section class="rail-card" id="flowRailCard" aria-label="Flow und Momentum">
-            <div class="rail-heading"><span class="heading-left"><b>Flow & Momentum</b><button class="mini-info" type="button" data-info="flow" aria-label="Flow Erklärung öffnen">i</button></span><span>Live market</span></div>
+          <section class="rail-card" id="flowRailCard" aria-label="Flow und Momentum" data-i18n-label="flowMomentum">
+            <div class="rail-heading"><span class="heading-left"><b data-i18n="flowMomentum">Flow & Momentum</b><button class="mini-info" type="button" data-info="flow" aria-label="Flow Erklärung öffnen" data-i18n-label="showInfo">i</button></span><span data-i18n="verified">Live market</span></div>
             <div class="flow-card-grid">
-              <div class="flow-stat"><span>Market impulse</span><div class="momentum-readout" id="momentumReadout" aria-label="Binance 24-Stunden Marktimpuls"><span class="momentum-arrow" id="momentumArrow" aria-hidden="true">→</span><span class="momentum-copy"><b id="momentumLabel">Marktimpuls</b><small id="momentumValue">Binance 24h · —</small></span></div></div>
-              <div class="flow-stat"><span>Active flow</span><b id="railFlow">Waiting…</b></div>
+              <div class="flow-stat"><span data-i18n="pulse">Market impulse</span><div class="momentum-readout" id="momentumReadout" aria-label="Binance 24-Stunden Marktimpuls"><span class="momentum-arrow" id="momentumArrow" aria-hidden="true">→</span><span class="momentum-copy"><b id="momentumLabel" data-i18n="pulse">Marktimpuls</b><small id="momentumValue">Binance 24h · —</small></span></div></div>
+              <div class="flow-stat"><span data-i18n="activeFlow">Active flow</span><b id="railFlow" data-i18n="waiting">Waiting…</b></div>
             </div>
-            <div class="flow-hist" aria-hidden="true"><i style="height:26%"></i><i style="height:44%"></i><i style="height:74%"></i><i style="height:58%"></i><i style="height:47%"></i><i style="height:35%"></i><i style="height:29%"></i><i style="height:34%"></i><i style="height:46%"></i><i style="height:64%"></i><i style="height:78%"></i><i style="height:55%"></i></div>
+            
           </section>
 
-          <section class="rail-card" id="sourcesRailCard" aria-label="Live Feeds">
-            <div class="rail-heading"><span class="heading-left"><b>Live Data Fabric</b><button class="mini-info" type="button" data-info="sources" aria-label="Datenquellen Erklärung öffnen">i</button></span><span>Sources</span></div>
+          <section class="rail-card" id="sourcesRailCard" aria-label="Live Feeds" data-i18n-label="sources">
+            <div class="rail-heading"><span class="heading-left"><b data-i18n="sources">Live Data Fabric</b><button class="mini-info" type="button" data-info="sources" aria-label="Datenquellen Erklärung öffnen" data-i18n-label="showInfo">i</button></span><span data-i18n="network">Sources</span></div>
             <div class="feed-list">
-              <div class="feed-row"><i></i><b>Binance Spot</b><span>Price · Trades</span></div>
-              <div class="feed-row"><i></i><b>Orderbook</b><span>Depth stream</span></div>
-              <div class="feed-row"><i></i><b>Terra Classic LCD</b><span>Oracle pool</span></div>
-              <div class="feed-row"><i></i><b>WebGL Engine</b><span>Spatial live</span></div>
+              <div class="feed-row" id="marketFeedRow"><i></i><b>Binance Spot</b><span data-feed-status>—</span></div>
+              <div class="feed-row" id="depthFeedRow"><i></i><b data-i18n="book">Orderbook</b><span data-feed-status>—</span></div>
+              <div class="feed-row" id="oracleFeedRow"><i></i><b>Terra Classic LCD</b><span data-feed-status>—</span></div>
+              <div class="feed-row" id="engineFeedRow"><i></i><b>WebGL Engine</b><span data-feed-status>—</span></div>
             </div>
           </section>
-        </aside>
-      </div>
-
-      <footer class="foot">
-        <div class="market-ticker">
-          <span class="ticker-live"><i></i>Live Market Data</span><span class="ticker-sep"></span>
-          <span class="ticker-item">LUNC <b id="tickerLuncPrice">—</b><em id="tickerLuncChange">—</em></span>
-          <span class="ticker-item">USTC <b id="tickerUstcPrice">—</b><em id="tickerUstcChange">—</em></span>
-          <span class="ticker-item"><strong id="footSource">Binance Spot</strong> · Originaldaten</span>
-          <span class="ticker-item">Oracle · On-chain</span>
-        </div>
-        <span class="foot-clock" id="clock">UTC —:—:—</span>
-      </footer>
-    </section>
-  </main>
-
-  <section class="fallback" id="fallback">
-    <div><h1>WebGL ist nicht verfügbar</h1><p>Bitte öffne den Chart in einem aktuellen Browser mit aktivierter Hardwarebeschleunigung.</p></div>
-  </section>
-
-  <script id="vertexShader" type="x-shader/x-vertex">#version 300 es
+        <section class="rail-card" id="alertsCard"><div class="alert-heading"><b data-i18n="alerts"></b><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 17h14l-2-3V9a5 5 0 0 0-10 0v5l-2 3Zm5 3h4"/></svg></div><form class="alert-form" id="alertForm"><select id="alertSymbol" data-i18n-label="selectMarket"><option value="LUNC-USDT">LUNC</option><option value="USTC-USDT">USTC</option></select><input type="text" inputmode="decimal" autocomplete="off" id="alertPrice" data-i18n-placeholder="alertPrice" data-i18n-label="alertPrice" required maxlength="24"><button class="icon-button" type="submit" data-i18n-title="addAlert" data-i18n-label="addAlert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button></form><div class="alert-list" id="alertList"></div><p class="alert-feedback" id="alertFeedback" role="status"></p><p class="status-note" data-i18n="alertHelp"></p></section></aside>
+</div><footer class="foot"><div class="connection" id="connection" role="status"><i class="status-dot" aria-hidden="true"></i><span id="connectionText" data-i18n="loading"></span></div><div class="market-ticker"><span class="ticker-live" id="tickerLive"><i></i><span data-i18n="dataStatus"></span></span><span class="ticker-item">LUNC <b id="tickerLuncPrice">—</b><em id="tickerLuncChange">—</em></span><span class="ticker-item">USTC <b id="tickerUstcPrice">—</b><em id="tickerUstcChange">—</em></span><span class="ticker-item"><strong id="footSource">Binance Spot</strong> · <span data-i18n="originalData"></span></span></div><span class="foot-clock" id="clock">UTC —:—:—</span><span class="foot-byline">LEC23 · TERRA CLASSIC</span></footer></section></main><dialog class="share-dialog" id="shareDialog" aria-labelledby="shareTitle"><p class="dialog-kicker">TERRA CLASSIC / LEC23</p><div class="dialog-heading"><h2 id="shareTitle" data-i18n="shareTitle"></h2><button type="button" class="icon-button" id="closeShareButton" data-i18n-label="close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 6 12 12M6 18 18 6"/></svg></button></div><p class="dialog-description" data-i18n="shareDescription"></p><div class="share-preview"><div class="share-preview-head"><b id="sharePair">LUNC / USDT</b><span id="shareInterval">1h</span></div><strong id="sharePrice">—</strong><span id="shareChange">—</span><small id="shareStamp">—</small></div><pre class="share-text" id="shareText" tabindex="0"></pre><label for="shareLinkInput" data-i18n="publicLink"></label><input class="share-input" id="shareLinkInput" type="url" placeholder="https://" autocomplete="off"><p class="status-note" id="shareLinkNote"></p><div class="button-row"><a class="action-button primary" id="shareXLink" href="https://x.com/intent/tweet" target="_blank" rel="noopener noreferrer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 4h4l10 16h-4L5 4Zm14 0L5 20"/></svg><span data-i18n="shareOnX"></span></a><button class="action-button" type="button" id="copyShareTextButton"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V4H4v12h4"/></svg><span data-i18n="copyText"></span></button></div><button class="action-button wide-button" type="button" id="copyShareLinkButton" data-i18n="copyLink"></button><p class="share-feedback" id="shareFeedback" role="status"></p><p class="status-note" data-i18n="shareFresh"></p><p class="status-note" data-i18n="shareNote"></p></dialog><script id="vertexShader" type="x-shader/x-vertex">#version 300 es
 precision highp float;
 in vec3 aPosition;
 in vec3 aNormal;
@@ -1235,9 +1213,234 @@ void main() {
 }
   </script>
 
-  <script>
+<script>
+(function(){
+  'use strict';
+  const codes=['de','en','fr','es','tr','zh','id','hi'];
+  const locales={de:'de-DE',en:'en-US',fr:'fr-FR',es:'es-ES',tr:'tr-TR',zh:'zh-CN',id:'id-ID',hi:'hi-IN'};
+  const rows=`
+market|Chart|Chart|Graphique|Gráfico|Grafik|图表|Grafik|चार्ट
+oracle|Oracle|Oracle|Oracle|Oracle|Oracle|预言机|Oracle|ओरेकल
+analytics|Analyse|Insights|Analyse|Análisis|Analiz|分析|Analisis|विश्लेषण
+ecosystem|Vergleich|Compare|Comparer|Comparar|Karşılaştır|对比|Bandingkan|तुलना
+network|Daten|Sources|Sources|Fuentes|Kaynaklar|数据源|Sumber|स्रोत
+subtitle|Live Chart · Oracle Pool|Live Chart · Oracle Pool|Graphique live · Oracle Pool|Gráfico en vivo · Oracle Pool|Canlı grafik · Oracle Pool|实时图表 · 预言机池|Grafik live · Oracle Pool|लाइव चार्ट · ओरेकल पूल
+language|Sprache|Language|Langue|Idioma|Dil|语言|Bahasa|भाषा
+share|Teilen|Share|Partager|Compartir|Paylaş|分享|Bagikan|साझा करें
+close|Schließen|Close|Fermer|Cerrar|Kapat|关闭|Tutup|बंद करें
+time|Zeitraum|Interval|Intervalle|Intervalo|Aralık|周期|Interval|अंतराल
+high24|24h Hoch|24h high|Haut 24 h|Máximo 24 h|24s yüksek|24小时最高|Tertinggi 24j|24 घंटे उच्च
+low24|24h Tief|24h low|Bas 24 h|Mínimo 24 h|24s düşük|24小时最低|Terendah 24j|24 घंटे निम्न
+volume24|24h Volumen|24h volume|Volume 24 h|Volumen 24 h|24s hacim|24小时成交量|Volume 24j|24 घंटे मात्रा
+controls|Einstellungen|Controls|Réglages|Ajustes|Ayarlar|设置|Pengaturan|सेटिंग
+layers|Chart-Ebenen|Chart layers|Couches du graphique|Capas del gráfico|Grafik katmanları|图表图层|Lapisan grafik|चार्ट परतें
+appearance|Darstellung|Appearance|Apparence|Apariencia|Görünüm|外观|Tampilan|रूप
+camera|Kamera & Bedienung|Camera & controls|Caméra et commandes|Cámara y controles|Kamera ve kontroller|相机与操作|Kamera & kontrol|कैमरा और नियंत्रण
+front|Front|Front|Face|Frontal|Ön|正面|Depan|सामने
+dual|Dual|Dual|Double|Dual|İkili|双图|Ganda|दोहरा
+ma|Mittelwerte|Averages|Moyennes|Medias|Ortalamalar|均线|Rata-rata|औसत
+volume|Volumen|Volume|Volume|Volumen|Hacim|成交量|Volume|मात्रा
+flow|Handelsfluss|Trade flow|Flux d’échanges|Flujo de trades|İşlem akışı|交易流|Aliran transaksi|ट्रेड प्रवाह
+pool|Oracle-Kugel|Oracle sphere|Sphère Oracle|Esfera Oracle|Oracle küresi|预言机球|Bola Oracle|ओरेकल गोला
+book|Orderbuch|Order book|Carnet d’ordres|Libro de órdenes|Emir defteri|订单簿|Buku order|ऑर्डर बुक
+pulse|Marktimpuls|Market pulse|Impulsion|Pulso de mercado|Piyasa nabzı|市场脉冲|Denyut pasar|बाज़ार स्पंदन
+link|Verbindung|Connection|Connexion|Conexión|Bağlantı|连接|Koneksi|कनेक्शन
+eco|Energiesparen|Energy saver|Économie d’énergie|Ahorro de energía|Enerji tasarrufu|节能|Hemat energi|ऊर्जा बचत
+reset|Ansicht zurücksetzen|Reset view|Réinitialiser la vue|Restablecer vista|Görünümü sıfırla|重置视图|Atur ulang tampilan|दृश्य रीसेट करें
+brightness|Helligkeit|Brightness|Luminosité|Brillo|Parlaklık|亮度|Kecerahan|चमक
+density|Sichtbare Kerzen|Visible candles|Bougies visibles|Velas visibles|Görünür mumlar|显示蜡烛数|Candle terlihat|दिखने वाली कैंडल
+palette|Farbstil|Color style|Palette|Estilo de color|Renk stili|配色|Gaya warna|रंग शैली
+neon|Neon|Neon|Néon|Neón|Neon|霓虹|Neon|निऑन
+emerald|Smaragd|Emerald|Émeraude|Esmeralda|Zümrüt|翡翠|Zamrud|पन्ना
+gold|Gold|Gold|Or|Oro|Altın|金色|Emas|सुनहरा
+contrast|Kontrast|Contrast|Contraste|Contraste|Kontrast|高对比|Kontras|कॉन्ट्रास्ट
+artwork|Hintergrundmotiv|Background artwork|Image de fond|Imagen de fondo|Arka plan görseli|背景图案|Gambar latar|पृष्ठभूमि चित्र
+zoomIn|Vergrößern|Zoom in|Zoom avant|Acercar|Yakınlaştır|放大|Perbesar|ज़ूम इन
+zoomOut|Verkleinern|Zoom out|Zoom arrière|Alejar|Uzaklaştır|缩小|Perkecil|ज़ूम आउट
+rotateLeft|Nach links drehen|Rotate left|Tourner à gauche|Girar a izquierda|Sola döndür|向左旋转|Putar kiri|बाएँ घुमाएँ
+rotateRight|Nach rechts drehen|Rotate right|Tourner à droite|Girar a derecha|Sağa döndür|向右旋转|Putar kanan|दाएँ घुमाएँ
+fullscreen|Vollbild|Full screen|Plein écran|Pantalla completa|Tam ekran|全屏|Layar penuh|पूर्ण स्क्रीन
+exitFullscreen|Vollbild verlassen|Exit full screen|Quitter le plein écran|Salir de pantalla completa|Tam ekrandan çık|退出全屏|Keluar layar penuh|पूर्ण स्क्रीन बंद करें
+inspectCandles|Kerzen untersuchen|Inspect candles|Examiner les bougies|Examinar velas|Mumları incele|查看蜡烛|Periksa candle|कैंडल देखें
+previous|Vorherige Kerze|Previous candle|Bougie précédente|Vela anterior|Önceki mum|上一根蜡烛|Candle sebelumnya|पिछली कैंडल
+next|Nächste Kerze|Next candle|Bougie suivante|Vela siguiente|Sonraki mum|下一根蜡烛|Candle berikutnya|अगली कैंडल
+clearSelection|Auswahl lösen|Clear selection|Effacer la sélection|Quitar selección|Seçimi temizle|清除选择|Hapus pilihan|चयन हटाएँ
+cameraHelp|Ziehen zum Drehen. Scrollen oder mit zwei Fingern zoomen. Eine Kerze antippen, um ihre Werte festzuhalten.|Drag to rotate. Scroll or pinch to zoom. Tap a candle to keep its values visible.|Glissez pour tourner. Molette ou pincement pour zoomer. Touchez une bougie pour conserver ses valeurs.|Arrastra para girar. Rueda o pellizca para acercar. Toca una vela para mantener sus valores visibles.|Döndürmek için sürükleyin. Kaydırın veya iki parmakla yakınlaştırın. Mumun değerlerini sabitlemek için dokunun.|拖动旋转，滚轮或双指缩放。点击蜡烛可固定显示其数据。|Seret untuk memutar. Gulir atau cubit untuk zoom. Ketuk candle untuk menyimpan tampilannya.|घुमाने के लिए खींचें। स्क्रॉल या दो उंगलियों से ज़ूम करें। कैंडल के मान दिखाते रहने के लिए टैप करें।
+savedSettings|Einstellungen werden auf diesem Gerät gespeichert.|Settings are saved on this device.|Réglages enregistrés sur cet appareil.|Los ajustes se guardan en este dispositivo.|Ayarlar bu cihazda saklanır.|设置保存在此设备。|Pengaturan disimpan di perangkat ini.|सेटिंग इस डिवाइस पर सहेजी जाती हैं।
+gestureHint|Ziehen: drehen · Scrollen / Pinch: zoomen · Tippen: auswählen|Drag: rotate · Scroll / pinch: zoom · Tap: inspect|Glisser : tourner · Molette / pincement : zoom · Toucher : examiner|Arrastrar: girar · Rueda / pellizco: zoom · Tocar: examinar|Sürükle: döndür · Kaydır / sıkıştır: yakınlaştır · Dokun: incele|拖动旋转 · 滚轮或双指缩放 · 点击查看|Seret: putar · Gulir / cubit: zoom · Ketuk: periksa|खींचें: घुमाएँ · स्क्रॉल / पिंच: ज़ूम · टैप: देखें
+focusHint|Oracle-Fokus · ziehen zum Erkunden · Schließen oder Esc zum Zurückkehren|Oracle focus · drag to explore · close or Esc to return|Focus Oracle · glissez pour explorer · fermer ou Échap pour revenir|Enfoque Oracle · arrastra para explorar · cerrar o Esc para volver|Oracle odağı · keşfetmek için sürükle · dönmek için kapat veya Esc|预言机聚焦 · 拖动探索 · 关闭或 Esc 返回|Fokus Oracle · seret untuk menjelajah · tutup atau Esc untuk kembali|ओरेकल फ़ोकस · खोजने के लिए खींचें · बंद करें या Esc से लौटें
+poolBalance|Pool-Bestand|Pool balance|Solde du pool|Saldo del pool|Havuz bakiyesi|池余额|Saldo pool|पूल शेष
+runway|Geschätzte Laufzeit|Estimated runway|Autonomie estimée|Duración estimada|Tahmini süre|预计储备时长|Perkiraan durasi|अनुमानित अवधि
+netDay|Netto Δ / Tag|Net Δ / day|Δ net / jour|Δ neto / día|Net Δ / gün|每日净变动|Δ bersih / hari|शुद्ध Δ / दिन
+netPct|Netto Δ / Tag (%)|Net Δ / day (%)|Δ net / jour (%)|Δ neto / día (%)|Net Δ / gün (%)|每日净变动 (%)|Δ bersih / hari (%)|शुद्ध Δ / दिन (%)
+ustcReserve|USTC-Reserve|USTC reserve|Réserve USTC|Reserva USTC|USTC rezervi|USTC 储备|Cadangan USTC|USTC रिज़र्व
+consumption|Geschätzter Abfluss / Tag|Estimated outflow / day|Sortie estimée / jour|Salida estimada / día|Tahmini çıkış / gün|预计每日流出|Perkiraan keluar / hari|अनुमानित दैनिक निकासी
+selectedOracle|Oracle Pool · ausgewählt|Oracle Pool · selected|Oracle Pool · sélectionné|Oracle Pool · seleccionado|Oracle Pool · seçili|预言机池 · 已选择|Oracle Pool · dipilih|ओरेकल पूल · चयनित
+colorLegend|Farblegende|Color legend|Légende des couleurs|Leyenda de colores|Renk açıklamaları|颜色说明|Legenda warna|रंग संकेत
+luncEnergy|LUNC-Reserve|LUNC reserve|Réserve LUNC|Reserva LUNC|LUNC rezervi|LUNC 储备|Cadangan LUNC|LUNC रिज़र्व
+luncEnergyNote|Cyan visualisiert den LUNC-Bestand.|Cyan represents the LUNC balance.|Le cyan représente le solde LUNC.|El cian representa el saldo LUNC.|Camgöbeği LUNC bakiyesini gösterir.|青色表示 LUNC 余额。|Sian mewakili saldo LUNC.|सायन LUNC शेष दिखाता है।
+ustcEnergyNote|Gold visualisiert die USTC-Reserve.|Gold represents the USTC reserve.|L’or représente la réserve USTC.|El dorado representa la reserva USTC.|Altın USTC rezervini gösterir.|金色表示 USTC 储备。|Emas mewakili cadangan USTC.|सुनहरा USTC रिज़र्व दिखाता है।
+pulseNote|Trades erzeugen Lichtimpulse und verändern den Pool nicht.|Trades create light pulses; they do not change the pool.|Les échanges créent des impulsions lumineuses sans modifier le pool.|Los trades crean pulsos de luz sin modificar el pool.|İşlemler ışık darbeleri üretir, havuzu değiştirmez.|交易产生光脉冲，不会改变池余额。|Transaksi membuat pulsa cahaya tanpa mengubah pool.|ट्रेड प्रकाश स्पंदन बनाते हैं; पूल नहीं बदलता।
+runwayNote|Schätzung aus Bestand und aktueller Ausschüttung; kein Staking-APR.|Estimate from balance and current emissions; not a staking APR.|Estimation du solde et des émissions actuelles ; pas un APR de staking.|Estimación del saldo y emisiones actuales; no es un APR de staking.|Bakiye ve mevcut dağıtımdan tahmin; staking APR’si değildir.|基于余额和当前发放量估算，并非质押年利率。|Perkiraan saldo dan emisi saat ini; bukan APR staking.|शेष और वर्तमान वितरण से अनुमान; स्टेकिंग APR नहीं।
+oracleNote|Bestand: Terra Classic LCD. Netto Δ basiert auf deinen lokalen Snapshots. Die Laufzeit ist eine Schätzung bei unveränderter Ausschüttung.|Balance: Terra Classic LCD. Net Δ uses your local snapshots. Runway assumes unchanged emissions.|Solde : Terra Classic LCD. Le Δ net utilise vos snapshots locaux. L’autonomie suppose des émissions constantes.|Saldo: Terra Classic LCD. El Δ neto usa tus snapshots locales. La duración supone emisiones constantes.|Bakiye: Terra Classic LCD. Net Δ yerel kayıtlarınıza dayanır. Süre sabit dağıtımı varsayar.|余额来自 Terra Classic LCD。净变动依据本地快照，时长估算假定发放量不变。|Saldo: Terra Classic LCD. Δ bersih memakai snapshot lokal. Durasi mengasumsikan emisi tetap.|शेष: Terra Classic LCD। शुद्ध Δ स्थानीय स्नैपशॉट पर आधारित है। अवधि स्थिर वितरण मानती है।
+history|Oracle-Verlauf|Oracle history|Historique Oracle|Historial Oracle|Oracle geçmişi|预言机历史|Riwayat Oracle|ओरेकल इतिहास
+localHistory|Lokale Snapshots|Local snapshots|Snapshots locaux|Snapshots locales|Yerel kayıtlar|本地快照|Snapshot lokal|स्थानीय स्नैपशॉट
+all|Alle|All|Tous|Todo|Tümü|全部|Semua|सभी
+day|Tag|day|jour|día|gün|天|hari|दिन
+days|Tage|days|jours|días|gün|天|hari|दिन
+historyEmpty|Während die Seite geöffnet ist, werden bestätigte Pool-Snapshots gesammelt. Frühere JSON-Backups kannst du importieren.|Verified pool snapshots are collected while this page is open. You can import earlier JSON backups.|Les snapshots vérifiés sont collectés lorsque la page est ouverte. Vous pouvez importer des sauvegardes JSON.|Se recopilan snapshots verificados mientras la página está abierta. Puedes importar copias JSON anteriores.|Sayfa açıkken doğrulanmış kayıtlar toplanır. Eski JSON yedeklerini içe aktarabilirsiniz.|页面打开时收集已验证池快照，可导入以前的 JSON 备份。|Snapshot pool terverifikasi dikumpulkan saat halaman terbuka. Anda dapat mengimpor cadangan JSON lama.|पृष्ठ खुला रहने पर सत्यापित स्नैपशॉट एकत्र होते हैं। पुराने JSON बैकअप आयात कर सकते हैं।
+saveBrowser|Speichern|Save|Enregistrer|Guardar|Kaydet|保存|Simpan|सहेजें
+csv|CSV exportieren|Export CSV|Exporter CSV|Exportar CSV|CSV dışa aktar|导出 CSV|Ekspor CSV|CSV निर्यात
+json|JSON Backup|JSON backup|Sauvegarde JSON|Copia JSON|JSON yedek|JSON 备份|Cadangan JSON|JSON बैकअप
+import|Importieren|Import|Importer|Importar|İçe aktar|导入|Impor|आयात
+autoSave|Automatisch gespeichert|Auto saved|Enregistré automatiquement|Guardado automático|Otomatik kaydedildi|自动保存|Disimpan otomatis|स्वतः सहेजा गया
+snapshots|Snapshots|Snapshots|Snapshots|Snapshots|Kayıtlar|快照|Snapshot|स्नैपशॉट
+coverage|Abdeckung|Coverage|Couverture|Cobertura|Kapsam|覆盖时长|Cakupan|अवधि
+twoPoints|Mindestens zwei Snapshots im Zeitraum nötig.|At least two snapshots are needed in this range.|Au moins deux snapshots sont nécessaires.|Se necesitan al menos dos snapshots en el período.|Bu aralıkta en az iki kayıt gerekir.|此时间段内至少需要两个快照。|Minimal dua snapshot diperlukan dalam rentang ini.|इस अवधि में कम से कम दो स्नैपशॉट चाहिए।
+noHistory|Noch keine Historie gespeichert.|No history saved yet.|Aucun historique enregistré.|Aún no hay historial guardado.|Henüz geçmiş kaydedilmedi.|尚无已保存历史。|Belum ada riwayat tersimpan.|अभी कोई इतिहास नहीं सहेजा गया।
+saveFailed|Speichern fehlgeschlagen.|Could not save.|Échec de l’enregistrement.|No se pudo guardar.|Kaydedilemedi.|保存失败。|Gagal menyimpan.|सहेजना विफल।
+downloadFailed|Download fehlgeschlagen.|Download failed.|Échec du téléchargement.|Descarga fallida.|İndirme başarısız.|下载失败。|Unduhan gagal.|डाउनलोड विफल।
+noSnapshots|Keine Snapshots im Zeitraum.|No snapshots in this range.|Aucun snapshot dans cette période.|No hay snapshots en el período.|Bu aralıkta kayıt yok.|此时间段内无快照。|Tidak ada snapshot dalam rentang ini.|इस अवधि में स्नैपशॉट नहीं हैं।
+imported|{n} Snapshots importiert.|Imported {n} snapshots.|{n} snapshots importés.|{n} snapshots importados.|{n} kayıt içe aktarıldı.|已导入 {n} 个快照。|{n} snapshot diimpor.|{n} स्नैपशॉट आयात हुए।
+invalidBackup|Kein gültiges Oracle-JSON-Backup.|Not a valid Oracle JSON backup.|Sauvegarde JSON Oracle non valide.|Copia JSON Oracle no válida.|Geçerli Oracle JSON yedeği değil.|不是有效的预言机 JSON 备份。|Bukan cadangan JSON Oracle yang valid.|मान्य ओरेकल JSON बैकअप नहीं है।
+flowMomentum|Flow & Momentum|Flow & momentum|Flux et momentum|Flujo e impulso|Akış ve momentum|交易流与动量|Aliran & momentum|प्रवाह और गति
+activeFlow|Letzter Trade|Latest trade|Dernier échange|Último trade|Son işlem|最新交易|Transaksi terakhir|नवीनतम ट्रेड
+waiting|Warte auf Trades|Waiting for trades|En attente d’échanges|Esperando trades|İşlem bekleniyor|等待交易|Menunggu transaksi|ट्रेड की प्रतीक्षा
+flowOff|Flow pausiert|Flow paused|Flux en pause|Flujo pausado|Akış duraklatıldı|交易流已暂停|Aliran dijeda|प्रवाह रुका
+flowReady|Flow bereit|Flow ready|Flux prêt|Flujo listo|Akış hazır|交易流就绪|Aliran siap|प्रवाह तैयार
+flowLive|Flow live|Flow live|Flux live|Flujo en vivo|Canlı akış|实时交易流|Aliran live|लाइव प्रवाह
+visualPause|Partikeleffekte pausiert; Daten bleiben aktiv.|Particle effects paused; data stays active.|Effets de particules en pause ; données actives.|Partículas en pausa; los datos siguen activos.|Parçacıklar duraklatıldı; veriler aktif.|粒子效果已暂停，数据仍在更新。|Efek partikel dijeda; data tetap aktif.|कण प्रभाव रुके हैं; डेटा सक्रिय है।
+calm|Ruhiger Markt|Calm market|Marché calme|Mercado tranquilo|Sakin piyasa|市场平稳|Pasar tenang|शांत बाज़ार
+rise|Leichter Anstieg|Slight rise|Légère hausse|Ligera subida|Hafif artış|小幅上涨|Naik tipis|हल्की बढ़त
+fall|Leichter Rückgang|Slight decline|Légère baisse|Ligera bajada|Hafif düşüş|小幅下跌|Turun tipis|हल्की गिरावट
+rise5|Anstieg über 5 %|Rise above 5%|Hausse de plus de 5 %|Subida superior al 5 %|%5 üzerinde artış|上涨超过 5%|Naik di atas 5%|5% से अधिक बढ़त
+fall5|Rückgang über 5 %|Decline above 5%|Baisse de plus de 5 %|Bajada superior al 5 %|%5 üzerinde düşüş|下跌超过 5%|Turun di atas 5%|5% से अधिक गिरावट
+surge|Starker Anstieg|Strong rise|Forte hausse|Fuerte subida|Güçlü artış|大幅上涨|Naik tajam|तेज़ बढ़त
+drop|Starker Rückgang|Strong decline|Forte baisse|Fuerte bajada|Güçlü düşüş|大幅下跌|Turun tajam|तेज़ गिरावट
+up|Steigend|Rising|En hausse|Al alza|Yükseliş|上涨|Naik|बढ़ रहा
+down|Fallend|Falling|En baisse|A la baja|Düşüş|下跌|Turun|गिर रहा
+open|Eröffnung|Open|Ouverture|Apertura|Açılış|开盘|Buka|आरंभ
+high|Hoch|High|Haut|Máximo|Yüksek|最高|Tinggi|उच्च
+low|Tief|Low|Bas|Mínimo|Düşük|最低|Rendah|निम्न
+closePrice|Schluss|Close|Clôture|Cierre|Kapanış|收盘|Tutup|अंत
+loading|Marktdaten laden …|Loading market data…|Chargement des données…|Cargando datos…|Piyasa verileri yükleniyor…|加载市场数据…|Memuat data pasar…|बाज़ार डेटा लोड हो रहा है…
+confirmedLoading|Bestätigte Live-Daten werden geladen …|Loading verified live data…|Chargement des données vérifiées…|Cargando datos verificados…|Doğrulanmış veriler yükleniyor…|加载已验证实时数据…|Memuat data live terverifikasi…|सत्यापित लाइव डेटा लोड हो रहा है…
+retry|Erneut verbinden|Reconnect|Reconnecter|Reconectar|Yeniden bağlan|重新连接|Hubungkan ulang|फिर कनेक्ट करें
+connecting|Verbindung wird geprüft …|Checking connection…|Vérification de la connexion…|Verificando conexión…|Bağlantı kontrol ediliyor…|检查连接…|Memeriksa koneksi…|कनेक्शन जाँच रहे हैं…
+noData|Keine bestätigten Live-Daten.|No verified live data.|Aucune donnée live vérifiée.|Sin datos en vivo verificados.|Doğrulanmış canlı veri yok.|无已验证实时数据。|Tidak ada data live terverifikasi.|कोई सत्यापित लाइव डेटा नहीं।
+feedError|Live-Feed nicht erreichbar. Fehlende Daten werden nicht simuliert.|Live feed unavailable. Missing data is not simulated.|Flux indisponible. Les données manquantes ne sont pas simulées.|Feed no disponible. Los datos ausentes no se simulan.|Canlı akışa ulaşılamıyor. Eksik veriler simüle edilmez.|实时数据源不可用，不会模拟缺失数据。|Feed live tidak tersedia. Data yang hilang tidak disimulasikan.|लाइव फ़ीड अनुपलब्ध। लापता डेटा का अनुकरण नहीं होता।
+offline|Offline · keine Live-Daten|Offline · no live data|Hors ligne · aucune donnée live|Sin conexión · sin datos en vivo|Çevrimdışı · canlı veri yok|离线 · 无实时数据|Offline · tanpa data live|ऑफ़लाइन · लाइव डेटा नहीं
+offlineError|Keine Internetverbindung. Verbinde dich erneut, um Live-Daten zu laden.|No internet connection. Reconnect to load live data.|Pas de connexion Internet. Reconnectez-vous pour charger les données.|Sin Internet. Reconecta para cargar datos en vivo.|İnternet bağlantısı yok. Canlı veriler için yeniden bağlanın.|无网络连接，请重新连接以加载实时数据。|Tidak ada internet. Hubungkan ulang untuk memuat data live.|इंटरनेट नहीं है। लाइव डेटा के लिए फिर कनेक्ट करें।
+liveStream|Live · Binance Stream|Live · Binance stream|Live · Flux Binance|En vivo · Stream Binance|Canlı · Binance akışı|实时 · Binance 数据流|Live · Stream Binance|लाइव · Binance स्ट्रीम
+liveREST|Aktuell · Binance REST|Current · Binance REST|Actuel · Binance REST|Actual · Binance REST|Güncel · Binance REST|最新 · Binance REST|Terkini · Binance REST|वर्तमान · Binance REST
+liveKline|Live · Binance Kerzen|Live · Binance candles|Live · Bougies Binance|En vivo · Velas Binance|Canlı · Binance mumları|实时 · Binance 蜡烛|Live · Candle Binance|लाइव · Binance कैंडल
+verified|Bestätigt|Verified|Vérifié|Verificado|Doğrulandı|已验证|Terverifikasi|सत्यापित
+now|Jetzt|Now|Maintenant|Ahora|Şimdi|刚刚|Sekarang|अभी
+lcdError|LCD nicht erreichbar|LCD unavailable|LCD indisponible|LCD no disponible|LCD’ye ulaşılamıyor|LCD 不可用|LCD tidak tersedia|LCD अनुपलब्ध
+stale|Letzter bestätigter Stand|Last verified snapshot|Dernier snapshot vérifié|Último snapshot verificado|Son doğrulanmış kayıt|最后已验证快照|Snapshot terakhir terverifikasi|अंतिम सत्यापित स्नैपशॉट
+estimated|Geschätzt|Estimated|Estimé|Estimado|Tahmini|估算|Perkiraan|अनुमानित
+sources|Datenquellen|Data sources|Sources de données|Fuentes de datos|Veri kaynakları|数据来源|Sumber data|डेटा स्रोत
+refresh7|Abfrage alle 7 s|Polls every 7 s|Requête toutes les 7 s|Consulta cada 7 s|Her 7 sn sorgu|每 7 秒查询|Polling tiap 7 dtk|हर 7 सेकंड जाँच
+refresh30|Abfrage alle 30 s|Polls every 30 s|Requête toutes les 30 s|Consulta cada 30 s|Her 30 sn sorgu|每 30 秒查询|Polling tiap 30 dtk|हर 30 सेकंड जाँच
+rendering|Räumliche Darstellung|Spatial rendering|Rendu spatial|Renderizado espacial|Uzamsal görüntü|空间渲染|Rendering spasial|स्थानिक दृश्य
+originalData|Originaldaten|Original data|Données originales|Datos originales|Orijinal veriler|原始数据|Data asli|मूल डेटा
+dataStatus|Datenstatus|Data status|État des données|Estado de datos|Veri durumu|数据状态|Status data|डेटा स्थिति
+alerts|Preisalarme|Price alerts|Alertes de prix|Alertas de precio|Fiyat alarmları|价格提醒|Alarm harga|मूल्य अलर्ट
+alertPrice|Zielpreis (USDT)|Target price (USDT)|Prix cible (USDT)|Precio objetivo (USDT)|Hedef fiyat (USDT)|目标价格 (USDT)|Harga target (USDT)|लक्ष्य मूल्य (USDT)
+addAlert|Alarm hinzufügen|Add alert|Ajouter une alerte|Añadir alerta|Alarm ekle|添加提醒|Tambah alarm|अलर्ट जोड़ें
+removeAlert|Alarm entfernen|Remove alert|Supprimer l’alerte|Eliminar alerta|Alarmı kaldır|删除提醒|Hapus alarm|अलर्ट हटाएँ
+alertHelp|Alarme reagieren auf bestätigte Kurse, solange diese Seite geöffnet ist.|Alerts react to verified prices while this page is open.|Les alertes utilisent les prix vérifiés lorsque cette page est ouverte.|Las alertas usan precios verificados mientras esta página está abierta.|Bu sayfa açıkken alarmlar doğrulanmış fiyatları izler.|页面打开时，提醒响应已验证价格。|Alarm bereaksi pada harga terverifikasi saat halaman terbuka.|पृष्ठ खुला रहने पर अलर्ट सत्यापित मूल्यों पर प्रतिक्रिया करते हैं।
+alertEmpty|Behalte deinen Zielkurs im Blick.|Keep an eye on your target price.|Gardez un œil sur votre prix cible.|Sigue tu precio objetivo.|Hedef fiyatınızı takip edin.|关注你的目标价格。|Pantau harga target Anda.|अपने लक्ष्य मूल्य पर नज़र रखें।
+invalidPrice|Bitte einen gültigen positiven Preis eingeben.|Enter a valid positive price.|Saisissez un prix positif valide.|Introduce un precio positivo válido.|Geçerli pozitif fiyat girin.|请输入有效正数价格。|Masukkan harga positif yang valid.|मान्य सकारात्मक मूल्य दर्ज करें।
+alertLimit|Maximal 12 Alarme auf diesem Gerät.|Up to 12 alerts on this device.|12 alertes maximum sur cet appareil.|Máximo 12 alertas en este dispositivo.|Bu cihazda en fazla 12 alarm.|此设备最多 12 个提醒。|Maksimal 12 alarm di perangkat ini.|इस डिवाइस पर अधिकतम 12 अलर्ट।
+alertNeedsData|Für einen neuen Alarm wird ein bestätigter Live-Kurs benötigt.|A verified live price is required to create an alert.|Un prix live vérifié est requis pour créer une alerte.|Se necesita un precio en vivo verificado para crear una alerta.|Alarm için doğrulanmış canlı fiyat gerekir.|创建提醒需要已验证实时价格。|Harga live terverifikasi diperlukan untuk membuat alarm.|अलर्ट बनाने के लिए सत्यापित लाइव मूल्य चाहिए।
+alertAbove|Alarm bei ≥ {price}|Alert at ≥ {price}|Alerte à ≥ {price}|Alerta en ≥ {price}|≥ {price} için alarm|价格 ≥ {price} 时提醒|Alarm saat ≥ {price}|≥ {price} पर अलर्ट
+alertBelow|Alarm bei ≤ {price}|Alert at ≤ {price}|Alerte à ≤ {price}|Alerta en ≤ {price}|≤ {price} için alarm|价格 ≤ {price} 时提醒|Alarm saat ≤ {price}|≤ {price} पर अलर्ट
+targetReached|Zielkurs erreicht|Target reached|Cible atteinte|Objetivo alcanzado|Hedefe ulaşıldı|已达到目标|Target tercapai|लक्ष्य पूरा
+alertSaved|Alarm gespeichert.|Alert saved.|Alerte enregistrée.|Alerta guardada.|Alarm kaydedildi.|提醒已保存。|Alarm disimpan.|अलर्ट सहेजा गया।
+shareTitle|Deine Marktansicht teilen|Share your market view|Partager votre vue du marché|Comparte tu vista de mercado|Piyasa görünümünü paylaş|分享你的市场视图|Bagikan tampilan pasar|अपना बाज़ार दृश्य साझा करें
+shareDescription|Teile einen Kurs-Snapshot oder einen Link zu deiner aktuellen Ansicht.|Share a price snapshot or a link to your current view.|Partagez un snapshot de prix ou un lien vers votre vue.|Comparte un snapshot de precio o un enlace a tu vista.|Fiyat kaydını veya mevcut görünüm bağlantısını paylaş.|分享价格快照或当前视图链接。|Bagikan snapshot harga atau tautan tampilan saat ini.|मूल्य स्नैपशॉट या वर्तमान दृश्य का लिंक साझा करें।
+shareOnX|Auf X teilen|Share on X|Partager sur X|Compartir en X|X’te paylaş|分享到 X|Bagikan ke X|X पर साझा करें
+copyText|Text kopieren|Copy text|Copier le texte|Copiar texto|Metni kopyala|复制文字|Salin teks|टेक्स्ट कॉपी करें
+copyLink|Ansichtslink kopieren|Copy view link|Copier le lien de la vue|Copiar enlace de vista|Görünüm bağlantısını kopyala|复制视图链接|Salin tautan tampilan|दृश्य लिंक कॉपी करें
+publicLink|Öffentlicher Chart-Link (optional)|Public chart link (optional)|Lien public du graphique (facultatif)|Enlace público del gráfico (opcional)|Açık grafik bağlantısı (isteğe bağlı)|公开图表链接（可选）|Tautan grafik publik (opsional)|सार्वजनिक चार्ट लिंक (वैकल्पिक)
+shareNote|X öffnet einen vorbereiteten Beitrag. Du entscheidest dort über die Veröffentlichung.|X opens a prepared post. You choose whether to publish it there.|X ouvre un message préparé. Vous décidez de le publier.|X abre una publicación preparada. Tú decides publicarla.|X hazır bir gönderi açar. Yayınlamaya siz karar verirsiniz.|X 将打开预填帖子，由你决定是否发布。|X membuka posting siap pakai. Anda yang memilih untuk menerbitkannya.|X तैयार पोस्ट खोलता है। वहाँ प्रकाशित करने का निर्णय आपका है।
+localLinkNote|Eine lokale Datei hat keinen öffentlichen Link. Du kannst hier die Adresse deiner veröffentlichten Seite eintragen.|A local file has no public link. Enter your published page address here if you have one.|Un fichier local n’a pas de lien public. Saisissez l’adresse de votre page publiée si disponible.|Un archivo local no tiene enlace público. Introduce la dirección de tu página publicada.|Yerel dosyanın açık bağlantısı yoktur. Yayınlanan sayfa adresinizi buraya girebilirsiniz.|本地文件没有公开链接，可在此输入已发布页面地址。|File lokal tidak memiliki tautan publik. Masukkan alamat halaman terbit jika ada.|स्थानीय फ़ाइल का सार्वजनिक लिंक नहीं होता। प्रकाशित पृष्ठ का पता यहाँ डाल सकते हैं।
+invalidLink|Bitte eine gültige https://-Adresse verwenden.|Use a valid https:// address.|Utilisez une adresse https:// valide.|Usa una dirección https:// válida.|Geçerli https:// adresi kullanın.|请使用有效的 https:// 地址。|Gunakan alamat https:// yang valid.|मान्य https:// पता डालें।
+copied|Kopiert.|Copied.|Copié.|Copiado.|Kopyalandı.|已复制。|Disalin.|कॉपी हुआ।
+copyFailed|Kopieren nicht möglich. Markiere den Text und kopiere ihn manuell.|Could not copy. Select the text and copy it manually.|Copie impossible. Sélectionnez le texte et copiez-le manuellement.|No se pudo copiar. Selecciona el texto y cópialo manualmente.|Kopyalanamadı. Metni seçip elle kopyalayın.|无法复制，请选中文字手动复制。|Gagal menyalin. Pilih teks dan salin manual.|कॉपी नहीं हो सका। टेक्स्ट चुनकर मैन्युअल कॉपी करें।
+noSharePrice|Terra Classic · räumlicher Live-Chart für LUNC & USTC|Terra Classic · spatial live chart for LUNC & USTC|Terra Classic · graphique live spatial LUNC et USTC|Terra Classic · gráfico espacial en vivo LUNC y USTC|Terra Classic · LUNC ve USTC uzamsal canlı grafik|Terra Classic · LUNC 与 USTC 空间实时图表|Terra Classic · grafik live spasial LUNC & USTC|Terra Classic · LUNC और USTC स्थानिक लाइव चार्ट
+snapshot|Kurs-Snapshot|Price snapshot|Snapshot de prix|Snapshot de precio|Fiyat kaydı|价格快照|Snapshot harga|मूल्य स्नैपशॉट
+change24|Änderung 24h|24h change|Variation 24 h|Cambio 24 h|24s değişim|24小时变化|Perubahan 24j|24 घंटे बदलाव
+webglUnavailable|WebGL 2 ist nicht verfügbar|WebGL 2 is unavailable|WebGL 2 n’est pas disponible|WebGL 2 no está disponible|WebGL 2 kullanılamıyor|WebGL 2 不可用|WebGL 2 tidak tersedia|WebGL 2 उपलब्ध नहीं
+webglHelp|Öffne die Seite in einem aktuellen Browser mit aktivierter Hardwarebeschleunigung.|Open this page in a current browser with hardware acceleration enabled.|Ouvrez cette page dans un navigateur récent avec l’accélération matérielle activée.|Abre esta página en un navegador actual con aceleración de hardware.|Sayfayı donanım hızlandırma açık güncel tarayıcıda açın.|请使用开启硬件加速的现代浏览器打开。|Buka halaman di browser terbaru dengan akselerasi perangkat keras aktif.|हार्डवेयर त्वरण चालू आधुनिक ब्राउज़र में पृष्ठ खोलें।
+infoChart|Bestätigte Binance-Spotdaten als räumliche Kerzen. MA 7 und MA 25 zeigen gleitende Mittelwerte. Ziehen dreht die Szene; Antippen hält Kerzenwerte fest.|Verified Binance spot data as spatial candles. MA 7 and MA 25 show moving averages. Drag to rotate; tap to pin candle values.|Données spot Binance vérifiées en bougies spatiales. MA 7 et MA 25 sont des moyennes mobiles. Glissez pour tourner, touchez pour fixer les valeurs.|Datos spot verificados de Binance en velas espaciales. MA 7 y MA 25 muestran medias móviles. Arrastra para girar, toca para fijar valores.|Doğrulanmış Binance spot verileri uzamsal mumlardır. MA 7 ve MA 25 hareketli ortalamalardır. Döndürmek için sürükleyin, değerleri sabitlemek için dokunun.|已验证 Binance 现货数据以空间蜡烛展示。MA 7 和 MA 25 为移动均线。拖动旋转，点击固定数据。|Data spot Binance terverifikasi sebagai candle spasial. MA 7 dan MA 25 adalah rata-rata bergerak. Seret untuk putar; ketuk untuk pin nilai.|सत्यापित Binance स्पॉट डेटा स्थानिक कैंडल में। MA 7 और MA 25 चल औसत हैं। घुमाने को खींचें; मान स्थिर करने को टैप करें।
+infoFlow|Partikel reagieren auf bestätigte Trades. Der Marktimpuls zeigt die 24h-Kursänderung. Diese Effekte verändern keine On-chain-Bestände.|Particles react to verified trades. Momentum shows the 24h price change. These effects do not change on-chain balances.|Les particules réagissent aux échanges vérifiés. Le momentum montre la variation sur 24 h. Ces effets ne changent pas les soldes on-chain.|Las partículas responden a trades verificados. El impulso muestra el cambio de precio de 24 h. No se modifican saldos on-chain.|Parçacıklar doğrulanmış işlemlere tepki verir. Momentum 24 saatlik değişimi gösterir. Zincir bakiyeleri değişmez.|粒子响应已验证交易，动量表示24小时价格变化。这些效果不改变链上余额。|Partikel bereaksi pada transaksi terverifikasi. Momentum menunjukkan perubahan harga 24j. Efek ini tidak mengubah saldo on-chain.|कण सत्यापित ट्रेड पर प्रतिक्रिया करते हैं। गति 24 घंटे का मूल्य बदलाव दिखाती है। प्रभाव ऑन-चेन शेष नहीं बदलते।
+infoSources|Binance liefert Preise, Kerzen, Trades und Orderbuch. Terra Classic LCD liefert den Oracle-Bestand. Jeder Feed zeigt seinen eigenen Status. Fehlende Daten werden nicht ersetzt.|Binance provides prices, candles, trades and order book. Terra Classic LCD provides the Oracle balance. Each feed has its own status. Missing data is not replaced.|Binance fournit prix, bougies, échanges et carnet d’ordres. Terra Classic LCD fournit le solde Oracle. Chaque flux affiche son état. Les données absentes ne sont pas remplacées.|Binance aporta precios, velas, trades y órdenes. Terra Classic LCD aporta el saldo Oracle. Cada fuente tiene su estado. Los datos ausentes no se reemplazan.|Binance fiyat, mum, işlem ve emir defteri sağlar. Terra Classic LCD Oracle bakiyesini verir. Her akışın durumu ayrıdır. Eksik veri yerine veri üretilmez.|Binance 提供价格、蜡烛、交易和订单簿。Terra Classic LCD 提供预言机余额。各数据源显示独立状态，不替代缺失数据。|Binance menyediakan harga, candle, transaksi dan order. Terra Classic LCD menyediakan saldo Oracle. Tiap feed punya status sendiri. Data hilang tidak diganti.|Binance मूल्य, कैंडल, ट्रेड और ऑर्डर देता है। Terra Classic LCD ओरेकल शेष देता है। हर फ़ीड की अलग स्थिति है। लापता डेटा नहीं बदला जाता।
+infoAnalytics|Lokale Oracle-Snapshots zeigen den Verlauf. Netto Δ / Tag (%) ist die Bestandsänderung pro Tag geteilt durch den Poolbestand, keine Staking-Rendite. JSON-Backups lassen sich zwischen Geräten übertragen.|Local Oracle snapshots show history. Net Δ / day (%) is daily balance change divided by pool balance, not staking yield. JSON backups can be transferred between devices.|Les snapshots Oracle locaux montrent l’historique. Δ net / jour (%) est la variation du solde divisée par le solde du pool, pas le rendement de staking. Les sauvegardes JSON sont transférables.|Los snapshots locales muestran el historial. Δ neto / día (%) es el cambio diario dividido por el saldo del pool, no rendimiento de staking. Puedes transferir copias JSON.|Yerel Oracle kayıtları geçmişi gösterir. Net Δ / gün (%) günlük bakiye değişiminin havuza oranıdır, staking getirisi değildir. JSON yedekleri cihazlar arasında taşınabilir.|本地预言机快照展示历史。每日净变动百分比为余额日变化除以池余额，并非质押收益。JSON 备份可跨设备转移。|Snapshot Oracle lokal menunjukkan riwayat. Δ bersih / hari (%) adalah perubahan saldo harian dibagi saldo pool, bukan hasil staking. Cadangan JSON bisa dipindahkan antar perangkat.|स्थानीय ओरेकल स्नैपशॉट इतिहास दिखाते हैं। शुद्ध Δ / दिन (%) दैनिक शेष बदलाव को पूल शेष से भाग देता है, स्टेकिंग आय नहीं। JSON बैकअप डिवाइसों के बीच जा सकते हैं।
+infoCompare|Vergleiche LUNC und USTC in derselben Szene. Jede Seite hat eine eigene Preisskala. Die Form zeigt den Verlauf, nicht den absoluten Preisunterschied.|Compare LUNC and USTC in one scene. Each side has its own price scale. Shape shows the trend, not the absolute price difference.|Comparez LUNC et USTC dans une scène. Chaque côté a sa propre échelle. La forme montre la tendance, pas la différence absolue de prix.|Compara LUNC y USTC en una escena. Cada lado tiene su propia escala. La forma muestra la tendencia, no la diferencia absoluta de precio.|LUNC ve USTC’yi aynı sahnede karşılaştırın. İki tarafın fiyat ölçeği farklıdır. Şekil trendi gösterir, mutlak fiyat farkını değil.|在同一场景对比 LUNC 和 USTC，各自使用独立价格轴。形状表示走势，并非绝对价格差。|Bandingkan LUNC dan USTC dalam satu adegan. Tiap sisi punya skala harga sendiri. Bentuk menunjukkan tren, bukan selisih harga absolut.|एक दृश्य में LUNC और USTC की तुलना करें। दोनों की अलग मूल्य मापनी है। आकार रुझान दिखाता है, वास्तविक मूल्य अंतर नहीं।
+orbitOn|Automatische Rotation stoppen|Stop automatic rotation|Arrêter la rotation automatique|Detener rotación automática|Otomatik dönüşü durdur|停止自动旋转|Hentikan rotasi otomatis|स्वचालित घुमाव रोकें
+orbitOff|Automatische Rotation starten|Start automatic rotation|Lancer la rotation automatique|Iniciar rotación automática|Otomatik dönüşü başlat|开始自动旋转|Mulai rotasi otomatis|स्वचालित घुमाव शुरू करें
+chartAria|Interaktiver räumlicher Chart: ziehen zum Drehen, zoomen, Kerzen antippen.|Interactive spatial chart: drag to rotate, zoom, and tap candles.|Graphique spatial interactif : glisser pour tourner, zoomer, toucher les bougies.|Gráfico espacial interactivo: arrastra para girar, acerca y toca velas.|Etkileşimli uzamsal grafik: sürükleyin, yakınlaştırın ve mumlara dokunun.|交互空间图表：拖动旋转、缩放并点击蜡烛。|Grafik spasial interaktif: seret untuk putar, zoom, dan ketuk candle.|इंटरैक्टिव स्थानिक चार्ट: घुमाने को खींचें, ज़ूम करें और कैंडल टैप करें।
+saved|Gespeichert|Saved|Enregistré|Guardado|Kaydedildi|已保存|Disimpan|सहेजा गया
+exported|Exportiert|Exported|Exporté|Exportado|Dışa aktarıldı|已导出|Diekspor|निर्यात हुआ
+longRunway|Lange Reservezeit|Long reserve|Longue réserve|Reserva larga|Uzun rezerv süresi|长期储备|Cadangan panjang|लंबा रिज़र्व
+solidRunway|Solide Reservezeit|Solid reserve|Réserve solide|Reserva sólida|Sağlam rezerv süresi|储备充足|Cadangan cukup|पर्याप्त रिज़र्व
+tightRunway|Angespannte Reservezeit|Tight reserve|Réserve limitée|Reserva ajustada|Sınırlı rezerv süresi|储备紧张|Cadangan terbatas|सीमित रिज़र्व
+criticalRunway|Kritische Reservezeit|Critical reserve|Réserve critique|Reserva crítica|Kritik rezerv süresi|储备危急|Cadangan kritis|गंभीर रिज़र्व
+estimatedRunway|Cyan: über 365 Tage · Grün: 181–365 · Gold: 91–180 · Rot: bis 90.|Cyan: over 365 days · Green: 181–365 · Gold: 91–180 · Red: up to 90.|Cyan : plus de 365 jours · Vert : 181–365 · Or : 91–180 · Rouge : jusqu’à 90.|Cian: más de 365 días · Verde: 181–365 · Oro: 91–180 · Rojo: hasta 90.|Camgöbeği: 365 gün üstü · Yeşil: 181–365 · Altın: 91–180 · Kırmızı: 90’a kadar.|青色：超过365天 · 绿色：181–365 · 金色：91–180 · 红色：90天以内。|Sian: lebih dari 365 hari · Hijau: 181–365 · Emas: 91–180 · Merah: hingga 90.|सायन: 365 दिन से अधिक · हरा: 181–365 · सुनहरा: 91–180 · लाल: 90 तक।
+error|Nicht verfügbar|Unavailable|Indisponible|No disponible|Kullanılamıyor|不可用|Tidak tersedia|अनुपलब्ध
+priceAlertReached|{symbol}: Zielkurs {price} USDT erreicht.|{symbol}: target {price} USDT reached.|{symbol} : cible {price} USDT atteinte.|{symbol}: objetivo {price} USDT alcanzado.|{symbol}: {price} USDT hedefine ulaşıldı.|{symbol}：已达到目标价格 {price} USDT。|{symbol}: target {price} USDT tercapai.|{symbol}: लक्ष्य {price} USDT पूरा।
+refresh|Aktualisieren|Refresh|Actualiser|Actualizar|Yenile|刷新|Muat ulang|रीफ़्रेश
+liveUnavailable|Live-Feed nicht verfügbar|Live feed unavailable|Flux live indisponible|Feed en vivo no disponible|Canlı akış kullanılamıyor|实时数据流不可用|Feed live tidak tersedia|लाइव फ़ीड अनुपलब्ध
+directLoading|wird von Binance geladen …|loading from Binance…|chargement depuis Binance…|cargando desde Binance…|Binance’den yükleniyor…|正在从 Binance 加载…|memuat dari Binance…|Binance से लोड हो रहा है…
+sourceChart|Binance Spot · öffentlicher Marktfeed|Binance Spot · public market feed|Binance Spot · flux public|Binance Spot · feed público|Binance Spot · açık piyasa akışı|Binance 现货 · 公开市场流|Binance Spot · feed pasar publik|Binance स्पॉट · सार्वजनिक फ़ीड
+showInfo|Information öffnen|Open information|Ouvrir les informations|Abrir información|Bilgileri aç|打开说明|Buka informasi|जानकारी खोलें
+selectMarket|Markt auswählen|Select market|Choisir le marché|Elegir mercado|Piyasa seç|选择市场|Pilih pasar|बाज़ार चुनें
+netHint|Bestandsänderung aus lokalen Snapshots; keine Staking-Rendite.|Balance change from local snapshots; not staking yield.|Variation du solde des snapshots locaux ; pas de rendement de staking.|Cambio de saldo de snapshots locales; no rendimiento de staking.|Yerel kayıtlardaki bakiye değişimi; staking getirisi değildir.|基于本地快照的余额变化，并非质押收益。|Perubahan saldo dari snapshot lokal; bukan hasil staking.|स्थानीय स्नैपशॉट से शेष बदलाव; स्टेकिंग आय नहीं।
+settings|Ansicht anpassen|Customize view|Personnaliser la vue|Personalizar vista|Görünümü özelleştir|自定义视图|Sesuaikan tampilan|दृश्य बदलें
+alertExisting|Dieser Alarm ist bereits gespeichert.|This alert is already saved.|Cette alerte est déjà enregistrée.|Esta alerta ya está guardada.|Bu alarm zaten kayıtlı.|此提醒已保存。|Alarm ini sudah disimpan.|यह अलर्ट पहले से सहेजा है।
+fileTooLarge|Das Backup darf höchstens 5 MB groß sein.|Backup must be no larger than 5 MB.|La sauvegarde ne doit pas dépasser 5 Mo.|La copia no debe superar 5 MB.|Yedek en fazla 5 MB olabilir.|备份不能超过 5 MB。|Cadangan maksimal 5 MB.|बैकअप अधिकतम 5 MB हो सकता है।
+storageUnavailable|Diese Einstellungen bleiben nur bis zum Schließen der Seite erhalten.|These settings last only until this page closes.|Ces réglages durent seulement jusqu’à la fermeture de la page.|Estos ajustes duran hasta cerrar la página.|Bu ayarlar sayfa kapanana kadar geçerlidir.|这些设置仅保留至页面关闭。|Pengaturan hanya bertahan sampai halaman ditutup.|ये सेटिंग पृष्ठ बंद होने तक रहेंगी।
+exportCount|{n} Snapshots exportiert.|Exported {n} snapshots.|{n} snapshots exportés.|{n} snapshots exportados.|{n} kayıt dışa aktarıldı.|已导出 {n} 个快照。|{n} snapshot diekspor.|{n} स्नैपशॉट निर्यात हुए।
+alertWatching|Wartet auf bestätigten Kurs|Watching verified prices|Surveille les prix vérifiés|Sigue precios verificados|Doğrulanmış fiyat izleniyor|监控已验证价格|Memantau harga terverifikasi|सत्यापित मूल्यों की निगरानी
+shareFresh|Snapshot wird beim Öffnen erfasst; geteilte Kurse ändern sich danach nicht.|Snapshot is captured when opened; shared prices do not update afterward.|Snapshot capturé à l’ouverture ; les prix partagés ne se mettent pas à jour.|El snapshot se captura al abrir; los precios compartidos no se actualizan después.|Kayıt açıldığında alınır; paylaşılan fiyat sonra güncellenmez.|打开时捕获快照，分享的价格之后不会更新。|Snapshot diambil saat dibuka; harga yang dibagikan tidak diperbarui.|खोलने पर स्नैपशॉट बनता है; साझा मूल्य बाद में अपडेट नहीं होते।
+noLink|Kein öffentlicher Link eingetragen.|No public link entered.|Aucun lien public saisi.|No hay enlace público.|Açık bağlantı girilmedi.|尚未输入公开链接。|Tidak ada tautan publik.|सार्वजनिक लिंक नहीं डाला गया।
+buy|Kauf|Buy|Achat|Compra|Alış|买入|Beli|खरीद
+sell|Verkauf|Sell|Vente|Venta|Satış|卖出|Jual|बिक्री
+feedPrice|Preise & Trades|Prices & trades|Prix et échanges|Precios y trades|Fiyatlar ve işlemler|价格与交易|Harga & transaksi|मूल्य और ट्रेड
+netUnavailable|Netto Δ benötigt mindestens zwei lokale Snapshots.|Net Δ requires at least two local snapshots.|Le Δ net exige au moins deux snapshots locaux.|El Δ neto requiere al menos dos snapshots locales.|Net Δ için en az iki yerel kayıt gerekir.|净变动至少需要两个本地快照。|Δ bersih butuh minimal dua snapshot lokal.|शुद्ध Δ के लिए कम से कम दो स्थानीय स्नैपशॉट चाहिए।
+on|Aktiv|On|Actif|Activo|Açık|已开启|Aktif|चालू
+off|Aus|Off|Inactif|Inactivo|Kapalı|已关闭|Nonaktif|बंद
+restore|Standardansicht|Default view|Vue par défaut|Vista predeterminada|Varsayılan görünüm|默认视图|Tampilan awal|डिफ़ॉल्ट दृश्य
+noCandles|Noch keine bestätigten Kerzen verfügbar.|No verified candles available yet.|Aucune bougie vérifiée disponible.|Aún no hay velas verificadas.|Henüz doğrulanmış mum yok.|暂无已验证蜡烛数据。|Belum ada candle terverifikasi.|अभी सत्यापित कैंडल नहीं।
+snapshotSaved|Ansicht vorbereitet.|View prepared.|Vue préparée.|Vista preparada.|Görünüm hazır.|视图已准备。|Tampilan disiapkan.|दृश्य तैयार।
+settingsClosed|Einstellungen geschlossen|Controls closed|Réglages fermés|Ajustes cerrados|Ayarlar kapalı|设置已关闭|Pengaturan ditutup|सेटिंग बंद
+navigation|Hauptnavigation|Main navigation|Navigation principale|Navegación principal|Ana gezinme|主导航|Navigasi utama|मुख्य नेविगेशन
+historyAria|Verlauf der Oracle-Pool-Balance|Oracle pool balance history|Historique du solde Oracle|Historial del saldo Oracle|Oracle havuz bakiyesi geçmişi|预言机池余额历史|Riwayat saldo pool Oracle|ओरेकल पूल शेष इतिहास
+themeHint|Farbstile ändern Chart-Ebenen. Oracle-Farben behalten ihre Bedeutung.|Color styles change chart layers. Oracle colors keep their meaning.|Les palettes modifient le graphique. Les couleurs Oracle gardent leur sens.|Los colores cambian el gráfico. Los colores Oracle conservan su significado.|Renkler grafiği değiştirir. Oracle renklerinin anlamı aynı kalır.|配色改变图表图层，预言机颜色含义保持不变。|Gaya warna mengubah grafik. Warna Oracle tetap bermakna sama.|रंग शैली चार्ट बदलती है। ओरेकल रंगों का अर्थ समान रहता है।
+exportView|Ansicht teilen|Share view|Partager la vue|Compartir vista|Görünümü paylaş|分享视图|Bagikan tampilan|दृश्य साझा करें
+noLinkCopied|Der Markttext wurde kopiert.|Market text copied.|Texte du marché copié.|Texto de mercado copiado.|Piyasa metni kopyalandı.|市场文字已复制。|Teks pasar disalin.|बाज़ार टेक्स्ट कॉपी हुआ।
+chartInfo|Chart-Information|Chart information|Informations du graphique|Información del gráfico|Grafik bilgileri|图表信息|Informasi grafik|चार्ट जानकारी
+oracleInfo|Oracle-Information|Oracle information|Informations Oracle|Información Oracle|Oracle bilgileri|预言机信息|Informasi Oracle|ओरेकल जानकारी
+flowInfo|Flow-Information|Flow information|Informations du flux|Información del flujo|Akış bilgileri|交易流信息|Informasi aliran|प्रवाह जानकारी
+sourcesInfo|Quellen-Information|Source information|Informations des sources|Información de fuentes|Kaynak bilgileri|数据源信息|Informasi sumber|स्रोत जानकारी
+`.trim().split('\n');
+  const dict=Object.fromEntries(codes.map(c=>[c,{}]));
+  rows.forEach(row=>{const [key,...values]=row.split('|');if(values.length!==codes.length)throw new Error('Translation columns: '+key);codes.forEach((c,i)=>dict[c][key]=values[i]);});
+  let language='de';
+  try{const saved=JSON.parse(localStorage.getItem('tc-livechart-next-settings-v1')||'{}');if(codes.includes(saved.language))language=saved.language;}catch(e){}
+  const query=new URLSearchParams(location.search);if(codes.includes(query.get('lang')))language=query.get('lang');
+  function t(key,args={}){let value=dict[language][key]??dict.en[key]??key;return value.replace(/\{(\w+)\}/g,(_,k)=>String(args[k]??''));}
+  function apply(root=document){root.querySelectorAll('[data-i18n]').forEach(el=>{el.textContent=t(el.dataset.i18n);});for(const [attr,data]of[['title','i18nTitle'],['aria-label','i18nLabel'],['placeholder','i18nPlaceholder']])root.querySelectorAll('[data-'+data.replace(/[A-Z]/g,m=>'-'+m.toLowerCase())+']').forEach(el=>el.setAttribute(attr,t(el.dataset[data])));document.documentElement.lang=language;}
+  window.TCI18n={t,apply,codes,dict,locale:()=>locales[language],getLanguage:()=>language,setLanguage(code){if(!codes.includes(code))return;language=code;apply();document.dispatchEvent(new CustomEvent('tc:language'));}};
+})();
+
+TCI18n.apply();
+</script><script>
     (function () {
       "use strict";
+      var I=window.TCI18n.t; var locale=window.TCI18n.locale;
       var API = "https://data-api.binance.vision";
       var WS_API = "wss://data-stream.binance.vision/stream";
       var ORACLE_LCD = "https://terra-classic-lcd.publicnode.com";
@@ -1294,7 +1497,7 @@ void main() {
       };
       var state = {
         symbol:"LUNC-USDT", timeframe:"1h", loadingToken:0, mode:"loading",
-        showMA:true, showVolume:true, showFlow:true, showPool:true, showBook:true, showPulse:true, showLink:true, dualView:false, selectedIndex:null, hoverIndex:null,
+        candleLimit:72, showMA:true, showVolume:true, showFlow:true, showPool:true, showBook:true, showPulse:true, showLink:true, dualView:false, selectedIndex:null, hoverIndex:null,
         visibleCandles:[], visibleCandlesBySymbol:{}, sceneCandles:[], sceneCandlesMap:{}, chartMap:null, chartMaps:{}, retiringCandles:[], liveNodes:{}, pricePulse:0, tickPulse:0,
         momentumDirection:"flat", momentumLevel:"calm", momentumStrength:0,
         ws:null, wsRetry:0, wsRequestId:0, wsKlineStream:null, wsTradeStream:null, dragMoved:false,
@@ -1547,9 +1750,9 @@ void main() {
         oracle.history=history;
         try {
           localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(history));
-          if(typeof setHistorySaveStatus==="function") setHistorySaveStatus("Auto gespeichert · "+history.length+" Snapshots","ok");
+          if(typeof setHistorySaveStatus==="function") setHistorySaveStatus(I("autoSave")+" · "+history.length+" "+I("snapshots"),"ok");
         } catch(error) {
-          if(typeof setHistorySaveStatus==="function") setHistorySaveStatus("Auto-Speicherung fehlgeschlagen","error");
+          if(typeof setHistorySaveStatus==="function") setHistorySaveStatus(I("saveFailed"),"error");
         }
       }
       function setHistorySaveStatus(message,tone){
@@ -1561,11 +1764,11 @@ void main() {
       function forceSaveOracleHistory(){
         try {
           localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(oracle.history||[]));
-          var stamp=new Date().toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-          setHistorySaveStatus("Gespeichert · "+stamp,"ok");
+          var stamp=new Date().toLocaleTimeString(locale(),{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+          setHistorySaveStatus(I("saved")+" · "+stamp,"ok");
           return true;
         } catch(error) {
-          setHistorySaveStatus("Speichern fehlgeschlagen","error");
+          setHistorySaveStatus(I("saveFailed"),"error");
           return false;
         }
       }
@@ -1581,13 +1784,13 @@ void main() {
           setTimeout(function(){URL.revokeObjectURL(url);},1000);
           return true;
         } catch(error) {
-          setHistorySaveStatus("Download fehlgeschlagen","error");
+          setHistorySaveStatus(I("downloadFailed"),"error");
           return false;
         }
       }
       function exportOracleHistoryCsv(){
         var points=oracleHistoryPoints(state.oracleHistoryRange);
-        if(!points.length){setHistorySaveStatus("Keine Snapshots im Zeitraum","error");return;}
+        if(!points.length){setHistorySaveStatus(I("noSnapshots"),"error");return;}
         var rows=[["timestamp_iso","timestamp_ms","denom","amount_micro","balance_lunc"]];
         points.forEach(function(p){
           var amount=String(p.amount||"0");
@@ -1596,11 +1799,11 @@ void main() {
         });
         var csv=rows.map(function(row){return row.map(function(cell){return '"'+String(cell).replace(/"/g,'""')+'"';}).join(",");}).join("\r\n");
         var date=new Date().toISOString().slice(0,10);
-        if(downloadTextFile("oracle-pool-history-"+safeDownloadFilenamePart(state.oracleHistoryRange)+"-"+date+".csv",csv,"text/csv;charset=utf-8")) setHistorySaveStatus("CSV heruntergeladen","ok");
+        if(downloadTextFile("oracle-pool-history-"+safeDownloadFilenamePart(state.oracleHistoryRange)+"-"+date+".csv",csv,"text/csv;charset=utf-8")) setHistorySaveStatus(I("exported"),"ok");
       }
       function exportOracleHistoryJson(){
         var history=(oracle.history||[]).slice().sort(function(a,b){return Number(a.t)-Number(b.t);});
-        if(!history.length){setHistorySaveStatus("Keine Snapshots vorhanden","error");return;}
+        if(!history.length){setHistorySaveStatus(I("noSnapshots"),"error");return;}
         var payload={
           format:"terra-classic-oracle-pool-history",
           version:1,
@@ -1610,7 +1813,7 @@ void main() {
           snapshots:history
         };
         var date=new Date().toISOString().slice(0,10);
-        if(downloadTextFile("oracle-pool-history-backup-"+date+".json",JSON.stringify(payload,null,2),"application/json;charset=utf-8")) setHistorySaveStatus("JSON Backup heruntergeladen","ok");
+        if(downloadTextFile("oracle-pool-history-backup-"+date+".json",JSON.stringify(payload,null,2),"application/json;charset=utf-8")) setHistorySaveStatus(I("exported"),"ok");
       }
       var ORACLE_HISTORY_WINDOWS={"1D":86400000,"30D":30*86400000,"90D":90*86400000,"6M":183*86400000,"12M":365*86400000,"ALL":null};
       function oracleHistoryPoints(rangeKey){
@@ -1620,28 +1823,28 @@ void main() {
         if(rangeKey!=="1D") {
           var perDay=new Map();
           source.forEach(function(p){var d=new Date(Number(p.t));var key=Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate(),12);perDay.set(key,p);});
-          source=Array.from(perDay.entries()).sort(function(a,b){return a[0]-b[0];}).map(function(entry){var p=entry[1];return {t:entry[0],amount:p.amount,denom:p.denom};});
+          source=Array.from(perDay.entries()).sort(function(a,b){return a[0]-b[0];}).map(function(entry){var p=entry[1];return {t:Number(p.t),amount:p.amount,denom:p.denom};});
         }
-        return source.map(function(p){return {t:Number(p.t),v:Number(p.amount)/1e6};}).filter(function(p){return Number.isFinite(p.t)&&Number.isFinite(p.v);});
+        return source.map(function(p){return {t:Number(p.t),v:Number(p.amount)/1e6,amount:String(p.amount),denom:p.denom};}).filter(function(p){return Number.isFinite(p.t)&&Number.isFinite(p.v);});
       }
       function formatHistoryAxis(value){
         if(!Number.isFinite(value)) return "—";
         if(Math.abs(value)>=1e12) return (value/1e12).toFixed(2)+"T";
         if(Math.abs(value)>=1e9) return (value/1e9).toFixed(2)+"B";
         if(Math.abs(value)>=1e6) return (value/1e6).toFixed(1)+"M";
-        return Math.round(value).toLocaleString("de-DE");
+        return Math.round(value).toLocaleString(locale());
       }
       function drawOracleHistoryChart(){
         if(!el.oracleHistoryCanvas) return;
         var points=oracleHistoryPoints(state.oracleHistoryRange);
         var rawCount=(oracle.history||[]).filter(function(p){return p&&p.denom==="uluna";}).length;
-        el.oracleHistorySummary.textContent="Snapshots "+rawCount.toLocaleString("de-DE");
+        el.oracleHistorySummary.textContent=I("snapshots")+" "+rawCount.toLocaleString(locale());
         document.querySelectorAll("[data-oracle-range]").forEach(function(btn){btn.classList.toggle("active",btn.dataset.oracleRange===state.oracleHistoryRange);});
         if(points.length<2){
           el.oracleHistoryEmpty.hidden=false;
           el.oracleHistoryCanvas.style.opacity=".18";
           el.oracleHistoryChange.textContent="—"; el.oracleHistoryChange.className="oracle-history-change";
-          el.oracleHistoryCoverage.textContent=rawCount?"Mindestens 2 Punkte im gewählten Zeitraum nötig":"Keine gespeicherte Historie gefunden";
+          el.oracleHistoryCoverage.textContent=rawCount?I("twoPoints"):I("noHistory");
           var emptyCtx=el.oracleHistoryCanvas.getContext("2d"); emptyCtx.clearRect(0,0,el.oracleHistoryCanvas.width,el.oracleHistoryCanvas.height);
           return;
         }
@@ -1651,7 +1854,7 @@ void main() {
         el.oracleHistoryChange.textContent=(change>=0?"+":"")+change.toFixed(2)+"%";
         el.oracleHistoryChange.className="oracle-history-change "+(change>=0?"positive":"negative");
         var coverageMs=Math.max(0,last.t-first.t),coverageDays=coverageMs/86400000;
-        el.oracleHistoryCoverage.textContent="Abdeckung "+(coverageDays<2?Math.max(1,Math.round(coverageMs/3600000))+" h":Math.round(coverageDays)+" Tage")+" · "+formatHistoryAxis(first.v)+" → "+formatHistoryAxis(last.v);
+        el.oracleHistoryCoverage.textContent=I("coverage")+" "+(coverageDays<2?Math.max(1,Math.round(coverageMs/3600000))+" h":Math.round(coverageDays)+" "+I("days"))+" · "+formatHistoryAxis(first.v)+" → "+formatHistoryAxis(last.v);
         var canvas=el.oracleHistoryCanvas,rect=canvas.getBoundingClientRect(),dpr=Math.min(window.devicePixelRatio||1,2);
         var w=Math.max(240,Math.round(rect.width*dpr)),h=Math.max(90,Math.round(rect.height*dpr));
         if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
@@ -1668,7 +1871,7 @@ void main() {
         ctx.beginPath();points.forEach(function(p,i){var x=X(p.t),y=Y(p.v);if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.lineTo(X(last.t),ch-pad.b);ctx.lineTo(X(first.t),ch-pad.b);ctx.closePath();ctx.fillStyle=area;ctx.fill();
         ctx.beginPath();points.forEach(function(p,i){var x=X(p.t),y=Y(p.v);if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);});ctx.lineWidth=1.6;ctx.strokeStyle="rgba(106,232,255,.92)";ctx.shadowColor="rgba(57,208,255,.5)";ctx.shadowBlur=7;ctx.stroke();ctx.shadowBlur=0;
         var lx=X(last.t),ly=Y(last.v);ctx.beginPath();ctx.arc(lx,ly,2.6,0,Math.PI*2);ctx.fillStyle=change>=0?"#19d6a5":"#ff6979";ctx.fill();
-        ctx.fillStyle="rgba(137,168,184,.74)";ctx.font="9px Inter,system-ui,sans-serif";ctx.textBaseline="bottom";ctx.textAlign="left";ctx.fillText(new Date(first.t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"}),pad.l,ch-2);ctx.textAlign="right";ctx.fillText(new Date(last.t).toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit",year:"2-digit"}),cw-pad.r,ch-2);ctx.restore();
+        ctx.fillStyle="rgba(137,168,184,.74)";ctx.font="9px Inter,system-ui,sans-serif";ctx.textBaseline="bottom";ctx.textAlign="left";ctx.fillText(new Date(first.t).toLocaleDateString(locale(),{day:"2-digit",month:"2-digit",year:"2-digit"}),pad.l,ch-2);ctx.textAlign="right";ctx.fillText(new Date(last.t).toLocaleDateString(locale(),{day:"2-digit",month:"2-digit",year:"2-digit"}),cw-pad.r,ch-2);ctx.restore();
       }
       function microToUnit(value) {
         if(value===null||value===undefined) return null;
@@ -1682,7 +1885,7 @@ void main() {
         else if(abs>=1e9){divisor=1e9;suffix=" B";}
         else if(abs>=1e6){divisor=1e6;suffix=" M";}
         else if(abs>=1e3){divisor=1e3;suffix=" K";digits=1;}
-        return (value/divisor).toLocaleString("de-DE",{minimumFractionDigits:digits,maximumFractionDigits:digits})+suffix;
+        return (value/divisor).toLocaleString(locale(),{minimumFractionDigits:digits,maximumFractionDigits:digits})+suffix;
       }
       async function fetchOracleJSON(path) {
         var controller=new AbortController(),timer=setTimeout(function(){controller.abort();},8500);
@@ -1738,26 +1941,26 @@ void main() {
       }
       function updateOracleUI() {
         if(!el.oracleHud) return;
-        el.oracleHud.hidden=!state.showPool;
-        el.oracleHud.classList.toggle("pool-live",Boolean(oracle.updatedAt&&!oracle.error));
-        el.oracleHud.classList.toggle("pool-error",Boolean(oracle.error));
+        el.oracleHud.hidden=false;
+        el.oracleHud.classList.toggle("pool-live",Boolean(isFresh(oracle.updatedAt,90000)&&!oracle.error));
+        el.oracleHud.classList.toggle("pool-error",Boolean(oracle.error||oracle.updatedAt&&!isFresh(oracle.updatedAt,90000)));
         el.oracleHud.classList.toggle("pool-warn",!oracle.error&&Number.isFinite(oracle.daysLeft)&&oracle.daysLeft<=180);
         el.oracleBalance.textContent=Number.isFinite(oracle.balanceLunc)?formatPoolNumber(oracle.balanceLunc)+" LUNC":"—";
-        el.oracleRunway.textContent=Number.isFinite(oracle.daysLeft)?Math.round(oracle.daysLeft).toLocaleString("de-DE")+" d":"—";
-        el.oracleDelta.textContent=Number.isFinite(oracle.netDeltaPerDay)?"Δ/Tag "+(oracle.netDeltaPerDay>=0?"+":"")+formatPoolNumber(oracle.netDeltaPerDay):"Δ/Tag —";
+        el.oracleRunway.textContent=Number.isFinite(oracle.daysLeft)?Math.round(oracle.daysLeft).toLocaleString(locale())+" d":"—";
+        el.oracleDelta.textContent=Number.isFinite(oracle.netDeltaPerDay)?I("netDay")+" "+(oracle.netDeltaPerDay>=0?"+":"")+formatPoolNumber(oracle.netDeltaPerDay):I("netDay")+" —";
         el.oracleUstc.textContent=Number.isFinite(oracle.balanceUstc)?"USTC "+formatPoolNumber(oracle.balanceUstc):"USTC —";
-        if(el.oracleDailyIncome){ var daily=oracle.dailyIncomePct; el.oracleDailyIncome.textContent=Number.isFinite(daily)?"% Daily Income "+(daily>=0?"+":"")+daily.toFixed(4)+"% / Tag":"% Daily Income —"; el.oracleDailyIncome.classList.toggle("positive",Number.isFinite(daily)&&daily>0); el.oracleDailyIncome.classList.toggle("negative",Number.isFinite(daily)&&daily<0); }
+        if(el.oracleDailyIncome){ var daily=oracle.dailyIncomePct; el.oracleDailyIncome.textContent=Number.isFinite(daily)?I("netPct")+" "+(daily>=0?"+":"")+daily.toFixed(4)+"% / "+I("day"):I("netPct")+" —"; el.oracleDailyIncome.classList.toggle("positive",Number.isFinite(daily)&&daily>0); el.oracleDailyIncome.classList.toggle("negative",Number.isFinite(daily)&&daily<0); }
         el.oracleMeter.style.width=(clampValue(oracle.fillRatio||0,0,1)*100).toFixed(1)+"%";
-        if(oracle.loading&&!oracle.updatedAt) el.oracleAge.textContent="lädt …";
-        else if(oracle.error&&!oracle.updatedAt) el.oracleAge.textContent="LCD Fehler";
+        if(oracle.loading&&!oracle.updatedAt) el.oracleAge.textContent=I("loading");
+        else if(oracle.error||oracle.updatedAt&&!isFresh(oracle.updatedAt,90000)) el.oracleAge.textContent=(oracle.updatedAt?I("stale")+" · "+verifiedTime(oracle.updatedAt):I("lcdError"));
         else if(oracle.updatedAt) {
           var seconds=Math.max(0,Math.round((Date.now()-oracle.updatedAt)/1000));
-          el.oracleAge.textContent=seconds<5?"jetzt":seconds<60?seconds+" s":Math.floor(seconds/60)+" min";
+          el.oracleAge.textContent=seconds<5?I("now"):seconds<60?seconds+" s":Math.floor(seconds/60)+" min";
         } else el.oracleAge.textContent="—";
         var label="Oracle Pool";
-        if(oracle.error) label+=" nicht erreichbar";
+        if(oracle.error) label+=" "+I("error");
         else if(Number.isFinite(oracle.balanceLunc)) label+=" "+formatPoolNumber(oracle.balanceLunc)+" LUNC";
-        if(Number.isFinite(oracle.daysLeft)) label+=", Runway "+Math.round(oracle.daysLeft)+" Tage";
+        if(Number.isFinite(oracle.daysLeft)) label+=", "+I("runway")+" "+Math.round(oracle.daysLeft)+" "+I("days");
         el.oracleHud.setAttribute("aria-label",label);
         updateOracleInspect();
         drawOracleHistoryChart();
@@ -1910,18 +2113,18 @@ void main() {
         el.flowButton.classList.toggle("active",state.showFlow);
         el.flowButton.setAttribute("aria-pressed",String(state.showFlow));
         if(!state.showFlow) {
-          el.flowState.textContent="Flow Off";
+          el.flowState.textContent=I("flowOff");
           el.flowState.classList.remove("live");
-          el.flowValue.textContent="Trade-Stream visuell pausiert";
+          el.flowValue.textContent=I("visualPause");
           return;
         }
-        el.flowState.textContent=freshTrade?"Flow Live":"Flow Ready";
+        el.flowState.textContent=freshTrade?I("flowLive"):I("flowReady");
         el.flowState.classList.toggle("live",freshTrade);
         if(trade&&freshTrade) {
-          var sideLabel=trade.side==="buy"?"Buy":"Sell";
+          var sideLabel=trade.side==="buy"?I("buy"):I("sell");
           el.flowValue.textContent=(state.dualView?state.symbol.split("-")[0]+" · ":"")+sideLabel+" · "+compactNumber(Number(trade.quantity))+" "+state.symbol.split("-")[0]+" · "+formatPrice(Number(trade.price));
         } else {
-          el.flowValue.textContent="Warte auf Live-Trades …";
+          el.flowValue.textContent=I("waiting");
         }
       }
       function tradeStream(symbol) { return binanceSymbol(symbol).toLowerCase()+"@aggTrade"; }
@@ -2152,7 +2355,7 @@ void main() {
         var anyPanel=false;
         panelSpecs.forEach(function(spec){
           var source=markets[spec.symbol].candles[state.timeframe]||[];
-          var limit=state.dualView?(window.innerWidth<640?24:(window.innerWidth<980?34:42)):(window.innerWidth<640?52:(window.innerWidth<980?72:96));
+          var limit=state.dualView?Math.max(16,Math.round(state.candleLimit/2)):state.candleLimit;
           var candles=source.slice(-limit);
           state.visibleCandlesBySymbol[spec.symbol]=candles;
           if(spec.symbol===state.symbol) state.visibleCandles=candles;
@@ -2238,7 +2441,7 @@ void main() {
               var volumeDepth=.42+Math.pow(volumeRatio,.65)*(state.dualView?1.65:2.35);
               addBox(triangles,[x,volumeBase+volumeHeight/2,volumeDepth/2-.45],[currentWidth,volumeHeight,volumeDepth],[bodyColor[0],bodyColor[1],bodyColor[2],.46*fade]);
             }
-            var key=spec.symbol+":"+i;
+            var key=spec.symbol+":"+c.time.getTime();
             var item={key:key,index:key,symbol:spec.symbol,candle:c,center:[x,bodyCenter,.6],x:x,closeY:closeY};
             state.sceneCandles.push(item); state.sceneCandlesMap[key]=item;
             if(i<4) state.retiringCandles.push({point:[x,bodyCenter,.9],fade:(4-i)/4*.38,up:up,symbol:spec.symbol});
@@ -2461,13 +2664,9 @@ void main() {
         }
       }
       var INFO_COPY={
-        chart:{title:"Spatial Live Chart",text:"Die Candles, Preise und Marktbewegungen stammen aus dem öffentlichen Binance-Spotfeed. MA 7 und MA 25 liegen räumlich über dem Chart; 360° dreht die gemeinsame WebGL-Szene."},
-        oracle:{title:"Oracle Pool",text:"Die zentrale Kugel steht für den Terra-Classic-Oracle-Pool. Blau zeigt die LUNC-Hauptenergie, Gold den USTC-Begleitstrom. Kurze grün-cyane Pulse kommen nur vom Live-Markt. Die äußere Zustandsfarbe spiegelt die Runway-Lage: cyan sehr lang, grün solide, amber angespannt, rot kritisch."},
-        flow:{title:"Flow & Momentum",text:"Flow-Partikel reagieren auf bestätigte Live-Trades. Momentum beschreibt die aktuelle Marktrichtung. Diese Marktbewegung darf den echten Oracle-Pool nur optisch pulsieren lassen – sie verändert keine On-Chain-Balance."},
-        sources:{title:"Live Data Fabric",text:"Binance Spot liefert Marktpreis, Candles, Trades und Orderbook. Terra Classic LCD liefert den Oracle-Pool. WebGL verbindet beide Quellen ausschließlich visuell; fehlende Live-Daten werden nicht simuliert."},
-        analytics:{title:"Analytics",text:"Die Analytics-Ansicht hebt den gespeicherten Oracle-Verlauf hervor. % Daily Income ist Netto Δ/Tag geteilt durch den aktuellen LUNC-Pool × 100 und kann daher positiv oder negativ sein."},
-        ecosystem:{title:"Ecosystem View",text:"Ecosystem aktiviert die Dual-Ansicht, damit LUNC und USTC gleichzeitig im selben räumlichen Marktmodell sichtbar werden. Der Oracle Pool bleibt als gemeinsamer On-chain-Kern erhalten."},
-        network:{title:"Network",text:"Network hebt die aktiven Datenquellen hervor: Binance Spot für Marktfeeds, Terra Classic LCD für Oracle-Daten und WebGL für die gemeinsame räumliche Darstellung."}
+        chart:{title:"chartInfo",text:"infoChart"},oracle:{title:"oracleInfo",text:"oracleNote"},
+        flow:{title:"flowInfo",text:"infoFlow"},sources:{title:"sourcesInfo",text:"infoSources"},
+        analytics:{title:"analytics",text:"infoAnalytics"},ecosystem:{title:"ecosystem",text:"infoCompare"},network:{title:"sources",text:"infoSources"}
       };
       function hideContextInfo(){
         if(state.infoTimer){clearTimeout(state.infoTimer);state.infoTimer=null;}
@@ -2479,10 +2678,10 @@ void main() {
         if(state.activeInfo===key){hideContextInfo();return;}
         var item=INFO_COPY[key]; if(!item||!el.contextInfo) return;
         hideContextInfo(); state.activeInfo=key;
-        el.contextInfoTitle.textContent=item.title; el.contextInfoText.textContent=item.text;
+        el.contextInfoTitle.textContent=I(item.title); el.contextInfoText.textContent=I(item.text);
         el.contextInfo.classList.add("visible"); el.contextInfo.setAttribute("aria-hidden","false");
         if(sourceButton) sourceButton.classList.add("active");
-        state.infoTimer=setTimeout(hideContextInfo,8500);
+        // Information stays open until explicitly closed.
       }
       function updateOracleInspect(){
         if(!el.oracleInspect) return;
@@ -2490,20 +2689,20 @@ void main() {
         el.oracleInspect.classList.toggle("visible",visible); el.oracleInspect.setAttribute("aria-hidden",String(!visible));
         if(el.sceneCoreLabel) el.sceneCoreLabel.classList.toggle("is-selected",visible);
         el.inspectBalance.textContent=Number.isFinite(oracle.balanceLunc)?formatPoolNumber(oracle.balanceLunc)+" LUNC":"—";
-        el.inspectRunway.textContent=Number.isFinite(oracle.daysLeft)?Math.round(oracle.daysLeft).toLocaleString("de-DE")+" Tage":"—";
+        el.inspectRunway.textContent=Number.isFinite(oracle.daysLeft)?Math.round(oracle.daysLeft).toLocaleString(locale())+" "+I("days"):"—";
         el.inspectDelta.textContent=Number.isFinite(oracle.netDeltaPerDay)?(oracle.netDeltaPerDay>=0?"+":"")+formatPoolNumber(oracle.netDeltaPerDay)+" LUNC":"—";
         el.inspectUstc.textContent=Number.isFinite(oracle.balanceUstc)?formatPoolNumber(oracle.balanceUstc)+" USTC":"—";
-        if(el.inspectDailyIncome){ var dailyIncome=oracle.dailyIncomePct; el.inspectDailyIncome.textContent=Number.isFinite(dailyIncome)?(dailyIncome>=0?"+":"")+dailyIncome.toFixed(4)+"% / Tag":"—"; el.inspectDailyIncome.classList.toggle("positive",Number.isFinite(dailyIncome)&&dailyIncome>0); el.inspectDailyIncome.classList.toggle("negative",Number.isFinite(dailyIncome)&&dailyIncome<0); }
+        if(el.inspectDailyIncome){ var dailyIncome=oracle.dailyIncomePct; el.inspectDailyIncome.textContent=Number.isFinite(dailyIncome)?(dailyIncome>=0?"+":"")+dailyIncome.toFixed(4)+"% / "+I("day"):"—"; el.inspectDailyIncome.classList.toggle("positive",Number.isFinite(dailyIncome)&&dailyIncome>0); el.inspectDailyIncome.classList.toggle("negative",Number.isFinite(dailyIncome)&&dailyIncome<0); }
         if(el.inspectConsumption) el.inspectConsumption.textContent=Number.isFinite(oracle.consumptionPerDay)?formatPoolNumber(oracle.consumptionPerDay)+" LUNC":"—";
         if(el.inspectRiskSwatch&&el.inspectRiskTitle&&el.inspectRiskText){
-          var riskRgb="57,208,255", riskHex="#39d0ff", riskTitle="Runway-Zustand · sehr lang", riskText="Cyan bedeutet: sehr lange Reservezeit und entspannter Poolzustand (mehr als 365 Tage Runway).";
+          var riskRgb="57,208,255", riskHex="#39d0ff", riskTitle=I("longRunway"), riskText=I("estimatedRunway");
           if(Number.isFinite(oracle.daysLeft)){
-            if(oracle.daysLeft<=90){ riskRgb="255,105,121"; riskHex="#ff6979"; riskTitle="Runway-Zustand · kritisch"; riskText="Rot bedeutet: kritische Reservezeit. Die Runway liegt bei 90 Tagen oder darunter."; }
-            else if(oracle.daysLeft<=180){ riskRgb="242,200,112"; riskHex="#f2c870"; riskTitle="Runway-Zustand · angespannt"; riskText="Amber/Gold bedeutet: mittlere Reservezeit. Die Runway liegt zwischen 91 und 180 Tagen."; }
-            else if(oracle.daysLeft<=365){ riskRgb="25,214,165"; riskHex="#19d6a5"; riskTitle="Runway-Zustand · solide"; riskText="Grün bedeutet: solide Reservezeit. Die Runway liegt zwischen 181 und 365 Tagen."; }
+            if(oracle.daysLeft<=90){ riskRgb="255,105,121"; riskHex="#ff6979"; riskTitle=I("criticalRunway"); riskText=I("estimatedRunway"); }
+            else if(oracle.daysLeft<=180){ riskRgb="242,200,112"; riskHex="#f2c870"; riskTitle=I("tightRunway"); riskText=I("estimatedRunway"); }
+            else if(oracle.daysLeft<=365){ riskRgb="25,214,165"; riskHex="#19d6a5"; riskTitle=I("solidRunway"); riskText=I("estimatedRunway"); }
           } else {
-            riskTitle="Runway-Zustand";
-            riskText="Die Zustandsfarbe hängt von der berechneten Runway ab: cyan sehr lang, grün solide, amber angespannt, rot kritisch.";
+            riskTitle=I("runway");
+            riskText=I("estimatedRunway");
           }
           el.inspectRiskSwatch.style.background=riskHex;
           el.inspectRiskSwatch.style.boxShadow="0 0 14px rgba("+riskRgb+",.45)";
@@ -2526,6 +2725,7 @@ void main() {
       }
       function toggleOracleSelection(force){
         var next=typeof force==="boolean"?force:!state.oracleSelected;
+        if(next&&!state.showPool){state.showPool=true;el.poolButton.classList.add("active");el.poolButton.setAttribute("aria-pressed","true");}
         if(next===state.oracleSelected){updateOracleInspect();return;}
         state.oracleSelected=next; state.selectedIndex=null; state.hoverIndex=null;
         if(state.oracleSelected){ setNavActive("oracle");
@@ -2563,7 +2763,7 @@ void main() {
         }
         var c=item.candle,point=project([item.x,Math.max(item.center[1],-1),1.15]); if(!point) return;
         el.detailTime.textContent=item.symbol.split("-")[0]+" · "+formatDetailTime(c.time);
-        el.detailDirection.textContent=c.close>=c.open?"Steigend":"Fallend";
+        el.detailDirection.textContent=c.close>=c.open?I("up"):I("down");
         el.detailDirection.className=c.close>=c.open?"positive":"negative";
         el.detailOpen.textContent=formatPrice(c.open); el.detailHigh.textContent=formatPrice(c.high);
         el.detailLow.textContent=formatPrice(c.low); el.detailClose.textContent=formatPrice(c.close);
@@ -2586,26 +2786,22 @@ void main() {
         if(commit) state.selectedIndex=state.selectedIndex===best?null:best;
         else if(state.selectedIndex===null) state.hoverIndex=best;
       }
-      function formatPrice(value) {
-        if(!Number.isFinite(value)) return "—";
-        if(value<.0001) return value.toFixed(8); if(value<.01) return value.toFixed(6);
-        if(value<1) return value.toFixed(5);
-        return value.toLocaleString("de-DE",{minimumFractionDigits:2,maximumFractionDigits:4});
+      function formatPrice(value){
+        if(!Number.isFinite(value))return "—";
+        var digits=value<.0001?8:value<.01?6:value<1?5:4;
+        return value.toLocaleString(locale(),{minimumFractionDigits:digits,maximumFractionDigits:digits,useGrouping:false});
       }
-      function compactNumber(value) {
-        if(!Number.isFinite(value)) return "—"; var abs=Math.abs(value);
-        if(abs>=1e9) return (value/1e9).toFixed(2).replace(".",",")+" B";
-        if(abs>=1e6) return (value/1e6).toFixed(2).replace(".",",")+" M";
-        if(abs>=1e3) return (value/1e3).toFixed(2).replace(".",",")+" K";
-        return value.toLocaleString("de-DE",{maximumFractionDigits:2});
+      function compactNumber(value){
+        if(!Number.isFinite(value))return "—"; var abs=Math.abs(value),div=abs>=1e9?1e9:abs>=1e6?1e6:abs>=1e3?1e3:1;
+        return (value/div).toLocaleString(locale(),{maximumFractionDigits:2})+(div===1e9?" B":div===1e6?" M":div===1e3?" K":"");
       }
       function formatAxisTime(date) {
-        if(state.timeframe==="1d") return date.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"});
-        if(state.timeframe==="4h") return date.toLocaleDateString("de-DE",{day:"2-digit",month:"2-digit"})+" "+date.toLocaleTimeString("de-DE",{hour:"2-digit"});
-        return date.toLocaleTimeString("de-DE",{hour:"2-digit",minute:"2-digit"});
+        if(state.timeframe==="1d") return date.toLocaleDateString(locale(),{day:"2-digit",month:"2-digit"});
+        if(state.timeframe==="4h") return date.toLocaleDateString(locale(),{day:"2-digit",month:"2-digit"})+" "+date.toLocaleTimeString(locale(),{hour:"2-digit"});
+        return date.toLocaleTimeString(locale(),{hour:"2-digit",minute:"2-digit"});
       }
       function formatDetailTime(date) {
-        return date.toLocaleString("de-DE",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
+        return date.toLocaleString(locale(),{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});
       }
       function isFresh(timestamp,maxAge) { return Boolean(timestamp)&&Date.now()-timestamp<=maxAge; }
       function getCurrentPrice(symbol) {
@@ -2620,38 +2816,38 @@ void main() {
         el.connection.classList.toggle("error",mode==="error");
       }
       function verifiedTime(timestamp) {
-        return timestamp?new Date(timestamp).toLocaleTimeString("de-DE",{timeZone:"UTC",hour:"2-digit",minute:"2-digit",second:"2-digit"})+" UTC":"—";
+        return timestamp?new Date(timestamp).toLocaleTimeString(locale(),{timeZone:"UTC",hour:"2-digit",minute:"2-digit",second:"2-digit"})+" UTC":"—";
       }
       function showLoading(message) {
         el.loading.classList.remove("error"); el.loading.classList.add("visible");
-        el.loadingText.textContent=message||"Bestätigte Live-Daten werden geladen …";
+        el.loadingText.textContent=message||I("confirmedLoading");
       }
       function showFeedError(message) {
         el.loading.classList.add("visible","error");
-        el.loadingText.textContent=message||"Keine bestätigten Live-Daten verfügbar. Es werden keine Ersatzdaten angezeigt.";
+        el.loadingText.textContent=message||I("feedError");
       }
       function hideFeedOverlay() { el.loading.classList.remove("visible","error"); }
       function updateMarketMomentum(changeRate,hasLiveStats) {
-        var direction="flat",level="calm",strength=0,label="Marktimpuls",arrow="→";
+        var direction="flat",level="calm",strength=0,label=I("pulse"),arrow="→";
         if(Number.isFinite(changeRate)&&hasLiveStats) {
           var absolute=Math.abs(changeRate);
           direction=changeRate>0?"up":changeRate<0?"down":"flat";
           if(absolute>=10) {
             level="surge"; strength=1;
-            label=direction==="up"?"Starker Anstieg":"Starker Rückgang";
+            label=direction==="up"?I("surge"):I("drop");
           } else if(absolute>=5) {
             level="move"; strength=.42+(absolute-5)/5*.35;
-            label=direction==="up"?"Anstieg über 5 %":"Rückgang über 5 %";
+            label=direction==="up"?I("rise5"):I("fall5");
           } else {
             level="calm"; strength=absolute/5*.18;
-            label=direction==="up"?"Leichter Anstieg":direction==="down"?"Leichter Rückgang":"Ruhiger Markt";
+            label=direction==="up"?I("rise"):direction==="down"?I("fall"):I("calm");
           }
           arrow=direction==="up"?"↗":direction==="down"?"↘":"→";
           el.momentumValue.textContent="Binance 24h · "+signedPercent(changeRate);
           el.momentumReadout.setAttribute("aria-label",label+", "+signedPercent(changeRate)+", Binance 24 Stunden");
         } else {
           el.momentumValue.textContent="Binance 24h · —";
-          el.momentumReadout.setAttribute("aria-label","Binance 24-Stunden Marktimpuls wird geladen");
+          el.momentumReadout.setAttribute("aria-label",I("loading"));
         }
         strength=Math.max(0,Math.min(1,strength));
         state.momentumDirection=direction; state.momentumLevel=level; state.momentumStrength=strength;
@@ -2690,15 +2886,15 @@ void main() {
         el.lowValue.textContent=statsFresh?formatPrice(Number(active.stats.low)):"—";
         el.volumeValue.textContent=statsFresh?compactNumber(Number(active.stats.vol))+" "+state.symbol.split("-")[0]:"—";
         el.watermarkPair.textContent=(state.dualView?"LUNC / USDT + USTC / USDT":state.symbol.replace("-"," / "))+" · "+state.timeframe;
-        el.watermarkSource.textContent=verifiedAt?"Binance Spot · bestätigt "+verifiedTime(verifiedAt):"Keine bestätigten Live-Daten";
+        el.watermarkSource.textContent=verifiedAt?"Binance Spot · "+I("verified")+" "+verifiedTime(verifiedAt):I("noData");
         el.footSource.textContent="Binance Spot";
         if(el.railFlow) {
           var trade=active.lastTrade, fresh=isFresh(active.tradesAt,15000);
-          if(trade&&fresh) el.railFlow.textContent=(trade.side==="buy"?"BUY ":"SELL ")+compactNumber(Number(trade.quantity))+" "+state.symbol.split("-")[0];
-          else el.railFlow.textContent="Waiting…";
+          if(trade&&fresh) el.railFlow.textContent=(trade.side==="buy"?I("buy")+" ":I("sell")+" ")+compactNumber(Number(trade.quantity))+" "+state.symbol.split("-")[0];
+          else el.railFlow.textContent=I("waiting");
         }
       }
-      function signedPercent(value){return(value>=0?"+":"")+value.toFixed(2).replace(".",",")+"%";}
+      function signedPercent(value){return(value>=0?"+":"")+value.toLocaleString(locale(),{minimumFractionDigits:2,maximumFractionDigits:2})+"%";}
       function signedPrice(value){return(value>=0?"+":"")+formatPrice(value);}
       function binanceSymbol(symbol){return symbol.replace("-","");}
       function displaySymbol(symbol){
@@ -2745,7 +2941,7 @@ void main() {
           return true;
         } catch(error) {
           if(!isFresh(markets[symbol].tickerAt,15000)) { markets[symbol].ticker=null; markets[symbol].tickerAt=0; }
-          if(symbol===state.symbol&&!getCurrentPrice(symbol)) setConnection("error","Live-Feed nicht verfügbar");
+          if(symbol===state.symbol&&!getCurrentPrice(symbol)) setConnection("error",I("liveUnavailable"));
           updateMarketUI(); return false;
         }
       }
@@ -2771,7 +2967,7 @@ void main() {
 
       async function loadCandles(symbol,timeframe,quiet) {
         var token=++state.loadingToken;
-        if(!quiet) showLoading(symbol.replace("-"," / ")+" · "+timeframe+" wird direkt von Binance geladen …");
+        if(!quiet) showLoading(symbol.replace("-"," / ")+" · "+timeframe+" "+I("directLoading"));
         var frame=TIMEFRAMES[timeframe];
         var succeeded=false;
         try {
@@ -2784,17 +2980,17 @@ void main() {
           markets[symbol].candles[timeframe]=candles; markets[symbol].source[timeframe]="rest";
           markets[symbol].candleAt[timeframe]=Date.now(); succeeded=true;
           if(symbol===state.symbol&&timeframe===state.timeframe) {
-            state.selectedIndex=null; state.hoverIndex=null;
-            setConnection(state.mode==="live"?"live":"poll",state.mode==="live"?"Live · Binance Kline":"Live · Binance REST");
+            if(!quiet){state.selectedIndex=null; state.hoverIndex=null;}
+            setConnection(state.mode==="live"?"live":"poll",state.mode==="live"?I("liveKline"):I("liveREST"));
           }
         } catch(error) {
           var freshStream=markets[symbol].source[timeframe]==="stream"&&isFresh(markets[symbol].candleAt[timeframe],15000);
           if(!freshStream) {
             markets[symbol].candles[timeframe]=[]; markets[symbol].source[timeframe]="error"; markets[symbol].candleAt[timeframe]=0;
-            if(symbol===state.symbol&&timeframe===state.timeframe) setConnection("error","Live-Feed nicht verfügbar");
+            if(symbol===state.symbol&&timeframe===state.timeframe) setConnection("error",I("liveUnavailable"));
           } else succeeded=true;
         } finally {
-          if(token===state.loadingToken) {
+          if(symbol===state.symbol&&timeframe===state.timeframe) {
             if(succeeded) hideFeedOverlay();
             else if(symbol===state.symbol&&timeframe===state.timeframe) showFeedError();
             updateMarketUI();
@@ -2818,8 +3014,8 @@ void main() {
           if(symbol===state.symbol) el.canvasWrap.style.setProperty("--tick-rgb",newPrice>oldPrice?"21,201,154":"255,102,112");
         }
         if(symbol===state.symbol) {
-          if(source==="stream") setConnection("live","Live · Binance Stream");
-          else if(state.mode!=="live") setConnection("poll","Live · Binance REST");
+          if(source==="stream") setConnection("live",I("liveStream"));
+          else if(state.mode!=="live") setConnection("poll",I("liveREST"));
           if((market.candles[state.timeframe]||[]).length&&isFresh(market.candleAt[state.timeframe],30000)) hideFeedOverlay();
         }
         updateMarketUI();
@@ -2859,7 +3055,7 @@ void main() {
           state.livePulseBySymbol[symbol]=1;
         }
         if(symbol===state.symbol&&timeframe===state.timeframe) {
-          setConnection("live","Live · Binance Kline"); hideFeedOverlay();
+          setConnection("live",I("liveKline")); hideFeedOverlay();
         }
         updateMarketUI(); return true;
       }
@@ -2887,11 +3083,11 @@ void main() {
           socket.onclose=function(){
             if(state.ws===socket) state.ws=null;
             state.wsKlineStream=null; state.wsTradeStream=null;
-            if(state.mode==="live") setConnection("poll","Live · Binance REST");
+            if(state.mode==="live") setConnection("poll",I("liveREST"));
             var delay=Math.min(30000,2500*Math.pow(1.65,state.wsRetry++)); setTimeout(connectWebSocket,delay);
           };
         } catch(error) {
-          if(state.mode==="loading"&&getCurrentPrice(state.symbol)) setConnection("poll","Live · Binance REST");
+          if(state.mode==="loading"&&getCurrentPrice(state.symbol)) setConnection("poll",I("liveREST"));
           setTimeout(connectWebSocket,Math.min(30000,4000*Math.pow(1.45,state.wsRetry++)));
         }
       }
@@ -2904,7 +3100,7 @@ void main() {
         await Promise.allSettled(SYMBOLS.map(loadStats));
       }
       async function initialLoad() {
-        setConnection("loading","Marktdaten laden");
+        setConnection("loading",I("loading"));
         await Promise.allSettled([
           loadStats("LUNC-USDT"),loadStats("USTC-USDT"),
           loadTicker("LUNC-USDT"),loadTicker("USTC-USDT"),
@@ -2979,8 +3175,8 @@ void main() {
         el.perfButton.setAttribute("aria-pressed",String(state.perfMode==="eco"));
         if(state.perfMode==="eco") {
           state.tradeParticles=state.tradeParticles.slice(-24);
-          el.perfButton.textContent="Eco On";
-        } else el.perfButton.textContent="Eco";
+          el.perfButton.textContent=I("eco");
+        } else el.perfButton.textContent=I("eco");
       });
       async function refreshVisiblePanels(quiet) {
         var symbols=renderSymbols();
@@ -3002,13 +3198,15 @@ void main() {
         el.perspectiveButton.classList.toggle("active",!facing||camera.autoOrbit);
         el.frontButton.classList.toggle("active",facing&&!camera.autoOrbit);
         el.perspectiveButton.setAttribute("aria-pressed",String(camera.autoOrbit));
-        el.perspectiveButton.title=camera.autoOrbit?"360° Auto-Orbit stoppen":"360° Auto-Orbit starten";
+        el.perspectiveButton.title=camera.autoOrbit?I("orbitOn"):I("orbitOff");
       }
       function setPerspective(startOrbit) {
+        if(state.oracleSelected)toggleOracleSelection(false);
         camera.desiredYaw=closestYaw(-.29); camera.desiredPitch=.13; camera.desiredDistance=38; camera.desiredTarget=[0,-.75,0];
         camera.autoOrbit=startOrbit!==false&&!state.reducedMotion; state.oracleCameraBackup=null; el.canvasWrap.classList.remove("pool-focused"); updateCameraControls();
       }
       function setFront() {
+        if(state.oracleSelected)toggleOracleSelection(false);
         camera.autoOrbit=false; camera.desiredYaw=closestYaw(0); camera.desiredPitch=0; camera.desiredDistance=36; camera.desiredTarget=[0,-.75,0];
         state.oracleCameraBackup=null; el.canvasWrap.classList.remove("pool-focused"); updateCameraControls();
       }
@@ -3033,7 +3231,7 @@ void main() {
       el.dualButton.addEventListener("click",function(){setDualView();});
       el.resetButton.addEventListener("click",function(){setPerspective(true);state.selectedIndex=null;state.hoverIndex=null;state.oracleSelected=false;state.oracleHover=false;setNavActive("market");clearRailSpotlights();updateOracleInspect();hideContextInfo();});
       el.retryButton.addEventListener("click",async function() {
-        showLoading("Verbindung zu Binance wird erneut geprüft …");
+        showLoading(I("connecting"));
         await Promise.allSettled([loadStats(state.symbol),loadTicker(state.symbol)].concat(renderSymbols().map(function(symbol){return loadCandles(symbol,state.timeframe,true);} )).concat((state.dualView?SYMBOLS:[state.symbol]).map(loadDepth)));
         connectWebSocket(); subscribeActiveKline(); subscribeActiveTradeStream(); updateMarketUI(); updateFlowUI();
       });
@@ -3048,13 +3246,13 @@ void main() {
       document.addEventListener("click",function(event){
         var infoButton=event.target.closest("[data-info]");
         if(infoButton){event.stopPropagation();showContextInfo(infoButton.dataset.info,infoButton);return;}
-        if(state.activeInfo&&el.contextInfo&&!el.contextInfo.contains(event.target)) hideContextInfo();
+        
       });
       el.contextInfoClose.addEventListener("click",function(event){event.stopPropagation();hideContextInfo();});
       el.oracleInspectClose.addEventListener("click",function(){toggleOracleSelection(false);});
       el.oracleHud.addEventListener("click",function(event){
         if(event.target.closest("[data-info]")) return;
-        if(state.showPool) toggleOracleSelection();
+        toggleOracleSelection();
       });
       if(el.oracleHistoryRanges) el.oracleHistoryRanges.addEventListener("click",function(event){
         var button=event.target.closest("[data-oracle-range]"); if(!button) return;
@@ -3063,7 +3261,7 @@ void main() {
       if(el.saveOracleHistoryButton) el.saveOracleHistoryButton.addEventListener("click",forceSaveOracleHistory);
       if(el.downloadOracleCsvButton) el.downloadOracleCsvButton.addEventListener("click",exportOracleHistoryCsv);
       if(el.downloadOracleJsonButton) el.downloadOracleJsonButton.addEventListener("click",exportOracleHistoryJson);
-      if(el.sceneCoreLabel) el.sceneCoreLabel.addEventListener("click",function(){if(state.showPool) toggleOracleSelection();});
+      if(el.sceneCoreLabel) el.sceneCoreLabel.addEventListener("click",function(){toggleOracleSelection();});
       document.addEventListener("keydown",function(event){if(event.key==="Escape"){hideContextInfo();if(state.oracleSelected) toggleOracleSelection(false);}});
 
       el.chartCanvas.addEventListener("pointerdown",function(event) {
@@ -3122,27 +3320,293 @@ void main() {
         if(handled){event.preventDefault();updateCameraControls();}
       });
       window.addEventListener("resize",function(){drawOracleHistoryChart();});
-            window.addEventListener("online",function(){showLoading("Live-Verbindung wird wiederhergestellt …");pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});connectWebSocket(); updateFlowUI(); loadOraclePool(false);});
+            window.addEventListener("online",function(){showLoading(I("connecting"));pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});connectWebSocket(); updateFlowUI(); loadOraclePool(false);});
       window.addEventListener("offline",function(){
         SYMBOLS.forEach(function(symbol){markets[symbol].tickerAt=0;});
-        setConnection("error","Offline · keine Live-Daten"); showFeedError("Keine Internetverbindung. Es werden keine Ersatzdaten angezeigt."); updateMarketUI();
+        setConnection("error",I("offline")); showFeedError(I("offlineError")); updateMarketUI();
       });
       document.addEventListener("visibilitychange",function(){if(!document.hidden){pollTickers();refreshStats();refreshDepth();renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});loadOraclePool(false);}});
       setInterval(pollTickers,4500); setInterval(refreshStats,60000); setInterval(refreshDepth,7000); setInterval(function(){if(!document.hidden) loadOraclePool(false);},ORACLE_REFRESH_MS);
       setInterval(function(){if(!document.hidden&&navigator.onLine) renderSymbols().forEach(function(symbol){loadCandles(symbol,state.timeframe,true);});},25000);
       setInterval(function(){
-        el.clock.textContent="UTC "+new Date().toLocaleTimeString("de-DE",{timeZone:"UTC",hour:"2-digit",minute:"2-digit",second:"2-digit"});
+        el.clock.textContent="UTC "+new Date().toLocaleTimeString(locale(),{timeZone:"UTC",hour:"2-digit",minute:"2-digit",second:"2-digit"});
         var active=markets[state.symbol];
         if(!document.hidden&&navigator.onLine&&!isFresh(active.tickerAt,15000)&&!isFresh(active.candleAt[state.timeframe],30000)&&state.mode!=="loading") {
-          setConnection("error","Live-Feed unterbrochen");
-          showFeedError("Binance-Live-Feed unterbrochen. Es werden keine Ersatzdaten angezeigt.");
+          setConnection("error",I("liveUnavailable"));
+          showFeedError(I("feedError"));
         }
         updateMarketUI(); updateOracleUI();
       },1000);
+
+      window.TCChart={
+        getState:function(){return {symbol:state.symbol,timeframe:state.timeframe,dual:state.dualView,orbit:camera.autoOrbit,candleLimit:state.candleLimit,showMA:state.showMA,showVolume:state.showVolume,showFlow:state.showFlow,showPool:state.showPool,showBook:state.showBook,showPulse:state.showPulse,showLink:state.showLink,eco:state.perfMode==="eco"};},
+        getSnapshot:function(){
+          return {symbol:state.symbol,timeframe:state.timeframe,dual:state.dualView,mode:state.mode,capturedAt:Date.now(),markets:SYMBOLS.map(function(symbol){var m=markets[symbol],price=getCurrentPrice(symbol),at=isFresh(m.tickerAt,15000)?m.tickerAt:m.candleAt[state.timeframe]||0;return {symbol:symbol,price:price||null,at:price?at:0,change:isFresh(m.statsAt,90000)?Number(m.stats.changeRate)*100:null,depthLive:isFresh(m.depthAt,15000),tradesLive:isFresh(m.tradesAt,15000),candlesLive:isFresh(m.candleAt[state.timeframe],30000)};}),oracle:{balance:oracle.balanceLunc,updatedAt:oracle.updatedAt,live:isFresh(oracle.updatedAt,90000)&&!oracle.error,error:oracle.error}};
+        },
+        formatPrice:formatPrice,
+        setSymbol:switchSymbol,setTimeframe:switchTimeframe,setDual:setDualView,
+        setOrbit:function(value){camera.autoOrbit=Boolean(value)&&!state.reducedMotion;updateCameraControls();},
+        setOption:function(key,value){var map={showMA:"maButton",showVolume:"volumeButton",showFlow:"flowButton",showPool:"poolButton",showBook:"bookButton",showPulse:"pulseButton",showLink:"linkButton",eco:"perfButton"};var current=key==="eco"?state.perfMode==="eco":state[key];if(map[key]&&Boolean(value)!==current)el[map[key]].click();},
+        setDensity:function(value){state.candleLimit=Math.round(clampValue(Number(value)||72,24,120));},
+        zoom:function(step){camera.desiredDistance=clampValue(camera.desiredDistance+step,state.oracleSelected?13:25,62);},
+        rotate:function(step){camera.autoOrbit=false;camera.desiredYaw+=step;updateCameraControls();},
+        inspect:function(step){var items=state.sceneCandles.filter(function(c){return c.symbol===state.symbol;});if(!items.length)return false;var index=items.findIndex(function(c){return c.key===state.selectedIndex;});if(index<0)index=items.length-1;else index=clampValue(index+step,0,items.length-1);state.selectedIndex=items[index].key;state.hoverIndex=null;updateFloatingUI();return true;},
+        clearSelection:function(){state.selectedIndex=null;state.hoverIndex=null;updateFloatingUI();},
+        focusOracle:toggleOracleSelection,
+        setPalette:function(key){var p={neon:{up:[.07,.79,.60,.96],down:[1,.34,.39,.96],line:[.14,.79,.96,.9],gold:[.95,.72,.29,.9]},emerald:{up:[.16,.91,.69,.96],down:[1,.43,.50,.96],line:[.2,.95,.72,.9],gold:[.55,.69,1,.9]},gold:{up:[1,.80,.34,.96],down:[.73,.48,.91,.96],line:[1,.77,.30,.9],gold:[.44,.77,1,.9]},contrast:{up:[.26,.62,1,.96],down:[1,.61,.15,.96],line:[.44,.76,1,.9],gold:[1,.73,.3,.9]}}[key];if(!p)return;COLORS.up=p.up;COLORS.down=p.down;COLORS.wickUp=p.up.slice();COLORS.wickDown=p.down.slice();COLORS.cyan=p.line;COLORS.gold=p.gold;},
+        refresh:function(){return Promise.allSettled([pollTickers(),refreshStats(),refreshDepth(),refreshVisiblePanels(true),loadOraclePool(true)]);},
+        refreshText:function(){updateMarketUI();updateFlowUI();updateOracleUI();updateCameraControls();if(state.activeInfo&&INFO_COPY[state.activeInfo]){var item=INFO_COPY[state.activeInfo];el.contextInfoTitle.textContent=I(item.title);el.contextInfoText.textContent=I(item.text);}el.perfButton.textContent=I("eco");},
+        importHistory:function(snapshots){if(!Array.isArray(snapshots)||!snapshots.length||snapshots.length>50000)throw new Error("invalid");var checked=snapshots.map(function(p){if(!p||p.denom!=="uluna"||!Number.isFinite(Number(p.t))||Number(p.t)<1262304000000||Number(p.t)>Date.now()+60000||!/^\d{1,30}$/.test(String(p.amount)))throw new Error("invalid");return {t:Number(p.t),denom:"uluna",amount:String(p.amount)};});var merged=new Map();(oracle.history||[]).concat(checked).forEach(function(p){merged.set(String(p.t),p);});var history=Array.from(merged.values()).sort(function(a,b){return a.t-b.t;}).slice(-6000);localStorage.setItem(ORACLE_HISTORY_KEY,JSON.stringify(history));oracle.history=history;if(Number.isFinite(oracle.balanceLunc))recomputeOracleMetrics(String(Math.round(oracle.balanceLunc*1e6)));updateOracleUI();return checked.length;}
+      };
+      document.addEventListener("tc:language",function(){window.TCChart.refreshText();});
       updateCameraControls(); updateFlowUI(); updateOracleUI(); drawOracleHistoryChart();
       loadLogoContours(LUNC_LOGO_SRC,"lunc"); loadLogoContours(USTC_LOGO_SRC,"ustc");
       requestAnimationFrame(render); initialLoad(); loadOraclePool(true);
     })();
-  </script>
-</body>
-</html>
+
+</script><script>
+(function(){
+  'use strict';
+  const $=id=>document.getElementById(id), t=window.TCI18n.t;
+  const SETTINGS_KEY='tc-livechart-next-settings-v1', ALERTS_KEY='tc-livechart-next-alerts-v1';
+  const OPTIONS=['showMA','showVolume','showFlow','showPool','showBook','showPulse','showLink'];
+  const PALETTES={neon:['#39d0ff','57,208,255','#f2c870'],emerald:['#35e6ab','53,230,171','#93b9ff'],gold:['#f0c369','240,195,105','#75c4ff'],contrast:['#69b3ff','105,179,255','#ffba4d']};
+  const validPalette=key=>Object.prototype.hasOwnProperty.call(PALETTES,key);
+  const api=()=>window.TCChart;
+  const fallbackSnapshot=()=>({symbol:'LUNC-USDT',timeframe:'1h',dual:false,capturedAt:Date.now(),markets:[],oracle:{live:false}});
+  const snapshot=()=>api()?api().getSnapshot():fallbackSnapshot();
+  const number=value=>Number(value).toLocaleString(TCI18n.locale(),{maximumFractionDigits:8,useGrouping:false});
+  const price=value=>api()?api().formatPrice(value):number(value);
+  const utc=value=>new Date(value).toISOString().replace('T',' ').slice(0,19)+' UTC';
+  const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.min(max,Math.max(min,Number(value))):fallback;
+  let settings={language:TCI18n.getLanguage(),brightness:112,palette:'neon',artwork:true,candleLimit:72};
+  let storageOK=true,saveTimer,shareCapture=null,shareOpener=null;
+  let alerts=[];
+  try{const parsed=JSON.parse(localStorage.getItem(SETTINGS_KEY)||'{}');if(parsed&&typeof parsed==='object'&&!Array.isArray(parsed))settings={...settings,...parsed};}catch(e){}
+  try{const parsed=JSON.parse(localStorage.getItem(ALERTS_KEY)||'[]');if(Array.isArray(parsed))alerts=parsed.filter(a=>a&&['LUNC-USDT','USTC-USDT'].includes(a.symbol)&&Number.isFinite(a.target)&&a.target>0&&['above','below'].includes(a.side)&&typeof a.id==='string').slice(0,12);}catch(e){}
+  settings.language=TCI18n.getLanguage();
+  settings.brightness=clamp(settings.brightness,65,160,112);
+  settings.candleLimit=clamp(settings.candleLimit,24,120,72);
+  if(!validPalette(settings.palette))settings.palette='neon';
+  const query=new URLSearchParams(location.search);
+  if(validPalette(query.get('palette')))settings.palette=query.get('palette');
+  if(query.has('brightness'))settings.brightness=clamp(query.get('brightness'),65,160,112);
+  if(query.has('candles'))settings.candleLimit=clamp(query.get('candles'),24,120,72);
+  if(query.has('pair')&&['LUNC','USTC'].includes(query.get('pair')))settings.symbol=query.get('pair')+'-USDT';
+  if(query.has('tf')&&['1m','3m','15m','1h','4h','1d'].includes(query.get('tf')))settings.timeframe=query.get('tf');
+  if(query.has('view')&&['dual','single'].includes(query.get('view')))settings.dual=query.get('view')==='dual';
+  if(query.has('orbit')&&['0','1'].includes(query.get('orbit')))settings.orbit=query.get('orbit')==='1';
+  if(query.has('layers')&&/^[01]{7}$/.test(query.get('layers')))OPTIONS.forEach((key,i)=>settings[key]=query.get('layers')[i]==='1');
+
+  function saveSettings(){
+    if(api())settings={...settings,...api().getState()};
+    settings.language=TCI18n.getLanguage();
+    try{localStorage.setItem(SETTINGS_KEY,JSON.stringify(settings));storageOK=true;}catch(e){storageOK=false;}
+    $('settingsSaveNote').textContent=t(storageOK?'savedSettings':'storageUnavailable');
+  }
+  function scheduleSave(){clearTimeout(saveTimer);saveTimer=setTimeout(saveSettings,180);}
+  function saveAlerts(){try{localStorage.setItem(ALERTS_KEY,JSON.stringify(alerts));return true;}catch(e){$('alertFeedback').textContent=t('storageUnavailable');return false;}}
+  function applyPalette(key){
+    if(!validPalette(key))return;
+    settings.palette=key;
+    const [accent,rgb,gold]=PALETTES[key];
+    const style=document.documentElement.style;
+    style.setProperty('--accent',accent);style.setProperty('--accent-rgb',rgb);style.setProperty('--cyan',accent);style.setProperty('--gold',gold);
+    document.querySelectorAll('[data-palette]').forEach(btn=>btn.setAttribute('aria-pressed',String(btn.dataset.palette===key)));
+    if(api())api().setPalette(key);
+  }
+  function applyBrightness(value){
+    settings.brightness=Math.round(clamp(value,65,160,112));
+    $('brightnessInput').value=String(settings.brightness);
+    $('brightnessOutput').textContent=settings.brightness+'%';
+    document.documentElement.style.setProperty('--scene-brightness',String(settings.brightness/100));
+  }
+  function applyDensity(value){
+    settings.candleLimit=Math.round(clamp(value,24,120,72));
+    $('densityInput').value=String(settings.candleLimit);$('densityOutput').textContent=String(settings.candleLimit);
+    if(api())api().setDensity(settings.candleLimit);
+  }
+  function restoreSettings(){
+    $('languageSelect').value=TCI18n.getLanguage();
+    applyPalette(settings.palette);applyBrightness(settings.brightness);applyDensity(settings.candleLimit);
+    $('artworkInput').checked=settings.artwork!==false;
+    $('canvasWrap').classList.toggle('no-art',settings.artwork===false);
+    if(api()){
+      if(['LUNC-USDT','USTC-USDT'].includes(settings.symbol)&&settings.symbol!==api().getState().symbol)api().setSymbol(settings.symbol);
+      if(['1m','3m','15m','1h','4h','1d'].includes(settings.timeframe)&&settings.timeframe!==api().getState().timeframe)api().setTimeframe(settings.timeframe);
+      OPTIONS.concat(['eco']).forEach(key=>{if(typeof settings[key]==='boolean')api().setOption(key,settings[key]);});
+      if(typeof settings.dual==='boolean'&&settings.dual!==api().getState().dual)api().setDual(settings.dual);
+      if(typeof settings.orbit==='boolean')api().setOrbit(settings.orbit);
+      api().refreshText();
+    }
+    renderAlerts();updateFeeds();
+  }
+
+  $('languageSelect').addEventListener('change',e=>{TCI18n.setLanguage(e.target.value);saveSettings();});
+  $('controlsButton').addEventListener('click',()=>{
+    const open=$('settingsShelf').hidden;
+    $('settingsShelf').hidden=!open;$('controlsButton').setAttribute('aria-expanded',String(open));
+  });
+  $('brightnessInput').addEventListener('input',e=>{applyBrightness(e.target.value);scheduleSave();});
+  $('densityInput').addEventListener('input',e=>{applyDensity(e.target.value);scheduleSave();});
+  $('artworkInput').addEventListener('change',e=>{settings.artwork=e.target.checked;$('canvasWrap').classList.toggle('no-art',!e.target.checked);saveSettings();});
+  document.querySelectorAll('[data-palette]').forEach(btn=>btn.addEventListener('click',()=>{applyPalette(btn.dataset.palette);saveSettings();}));
+  $('zoomInButton').addEventListener('click',()=>{if(api())api().zoom(-3);});
+  $('zoomOutButton').addEventListener('click',()=>{if(api())api().zoom(3);});
+  $('rotateLeftButton').addEventListener('click',()=>{if(api())api().rotate(.3);scheduleSave();});
+  $('rotateRightButton').addEventListener('click',()=>{if(api())api().rotate(-.3);scheduleSave();});
+  $('previousCandleButton').addEventListener('click',()=>{if(api())api().inspect(-1);});
+  $('nextCandleButton').addEventListener('click',()=>{if(api())api().inspect(1);});
+  $('clearCandleButton').addEventListener('click',()=>{if(api())api().clearSelection();});
+  function updateFullscreenButton(){
+    const active=Boolean(document.fullscreenElement)||document.body.classList.contains('fullscreen-active');
+    $('fullscreenButton').setAttribute('aria-label',t(active?'exitFullscreen':'fullscreen'));
+    $('fullscreenButton').setAttribute('title',t(active?'exitFullscreen':'fullscreen'));
+    $('fullscreenButton').setAttribute('aria-pressed',String(active));
+  }
+  $('fullscreenButton').addEventListener('click',async()=>{
+    if(document.fullscreenElement){try{await document.exitFullscreen();}catch(e){}return;}
+    if(document.body.classList.contains('fullscreen-active')){document.body.classList.remove('fullscreen-active');updateFullscreenButton();return;}
+    try{if(document.documentElement.requestFullscreen)await document.documentElement.requestFullscreen();else throw new Error('fallback');}catch(e){document.body.classList.add('fullscreen-active');updateFullscreenButton();}
+  });
+  document.addEventListener('fullscreenchange',()=>{document.body.classList.toggle('fullscreen-active',Boolean(document.fullscreenElement));updateFullscreenButton();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.fullscreenElement){document.body.classList.remove('fullscreen-active');updateFullscreenButton();}});
+  document.addEventListener('click',e=>{if(e.target.closest('[data-symbol],[data-timeframe],.layer-grid,.view-tools,#resetButton,[data-nav]'))scheduleSave();});
+  $('chartCanvas').addEventListener('pointerup',scheduleSave);
+  for(const id of ['oracleHud','sceneCoreLabel'])$(id).addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&!e.target.closest('button')){e.preventDefault();if(api())api().focusOracle();}});
+  $('resetButton').addEventListener('click',()=>{applyBrightness(112);applyPalette('neon');applyDensity(72);settings.artwork=true;$('artworkInput').checked=true;$('canvasWrap').classList.remove('no-art');scheduleSave();});
+
+  function renderAlerts(){
+    const list=$('alertList');list.replaceChildren();
+    if(!alerts.length){const p=document.createElement('p');p.className='alert-empty';p.textContent=t('alertEmpty');list.append(p);return;}
+    alerts.forEach(alert=>{
+      const item=document.createElement('div');item.className='alert-item'+(alert.firedAt?' triggered':'');
+      const text=document.createElement('div'),strong=document.createElement('strong'),small=document.createElement('small');
+      strong.textContent=alert.symbol.split('-')[0]+' · '+t(alert.side==='above'?'alertAbove':'alertBelow',{price:price(alert.target)})+' USDT';
+      small.textContent=alert.firedAt?t('targetReached')+' · '+utc(alert.firedAt):t('alertWatching');
+      text.append(strong,small);
+      const remove=document.createElement('button');remove.type='button';remove.className='icon-button alert-delete';remove.textContent='×';remove.setAttribute('aria-label',t('removeAlert'));
+      remove.addEventListener('click',()=>{alerts=alerts.filter(a=>a.id!==alert.id);saveAlerts();renderAlerts();});
+      item.append(text,remove);list.append(item);
+    });
+  }
+  $('alertForm').addEventListener('submit',e=>{
+    e.preventDefault();const feedback=$('alertFeedback');feedback.textContent='';
+    const raw=$('alertPrice').value.trim(),symbol=$('alertSymbol').value;
+    const target=/^(?:\d+(?:[.,]\d+)?|[.,]\d+)$/.test(raw)?Number(raw.replace(',','.')):NaN;
+    if(!(target>0&&Number.isFinite(target))){feedback.textContent=t('invalidPrice');return;}
+    if(alerts.length>=12){feedback.textContent=t('alertLimit');return;}
+    const current=snapshot().markets.find(m=>m.symbol===symbol);
+    if(!current||!(current.price>0)||Date.now()-current.at>15000){feedback.textContent=t('alertNeedsData');return;}
+    if(alerts.some(a=>!a.firedAt&&a.symbol===symbol&&a.target===target)){feedback.textContent=t('alertExisting');return;}
+    const id=globalThis.crypto&&crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2);
+    alerts.push({id,symbol,target,side:target>=current.price?'above':'below',createdAt:Date.now(),firedAt:0});
+    if(saveAlerts())feedback.textContent=t('alertSaved');
+    $('alertPrice').value='';renderAlerts();
+  });
+  function evaluateAlerts(){
+    if(document.hidden||!alerts.length)return;
+    const data=snapshot();let changed=false;
+    alerts.forEach(alert=>{
+      if(alert.firedAt)return;
+      const market=data.markets.find(m=>m.symbol===alert.symbol);
+      if(!market||!(market.price>0)||Date.now()-market.at>15000)return;
+      if(alert.side==='above'?market.price>=alert.target:market.price<=alert.target){
+        alert.firedAt=Date.now();alert.observedPrice=market.price;changed=true;
+        $('alertNoticeText').textContent=t('priceAlertReached',{symbol:alert.symbol.split('-')[0],price:price(alert.target)});
+        $('alertNotice').hidden=false;
+      }
+    });
+    if(changed){saveAlerts();renderAlerts();}
+  }
+  $('dismissAlertNotice').addEventListener('click',()=>{$('alertNotice').hidden=true;});
+  $('importOracleButton').addEventListener('click',()=>{$('importOracleInput').click();});
+  $('importOracleInput').addEventListener('change',async e=>{
+    const file=e.target.files&&e.target.files[0];if(!file)return;
+    const status=$('oracleHistorySaveStatus');
+    try{
+      if(file.size>5*1024*1024)throw new Error('size');
+      const payload=JSON.parse(await file.text());
+      const entries=Array.isArray(payload)?payload:payload&&payload.format==='terra-classic-oracle-pool-history'&&payload.snapshots;
+      if(!api())throw new Error('invalid');
+      const count=api().importHistory(entries);status.textContent=t('imported',{n:count});status.classList.remove('error');status.classList.add('ok');
+    }catch(error){status.textContent=t(error.message==='size'?'fileTooLarge':'invalidBackup');status.classList.remove('ok');status.classList.add('error');}
+    e.target.value='';
+  });
+  function updateFeeds(){
+    const data=snapshot(),active=data.markets.find(m=>m.symbol===data.symbol);
+    const states=[['marketFeedRow',Boolean(active&&active.price),active&&active.price?t('verified')+' · '+utc(active.at).slice(11):t('liveUnavailable')],['depthFeedRow',Boolean(active&&active.depthLive),active&&active.depthLive?t('refresh7'):t('liveUnavailable')],['oracleFeedRow',Boolean(data.oracle&&data.oracle.live),data.oracle&&data.oracle.live?t('refresh30'):data.oracle&&data.oracle.updatedAt?t('stale'):t('lcdError')],['engineFeedRow',Boolean(api()),api()?t('rendering'):t('webglUnavailable')]];
+    states.forEach(([id,live,label])=>{const row=$(id);row.classList.toggle('live',live);row.classList.toggle('error',!live);row.querySelector('[data-feed-status]').textContent=label;});
+    $('tickerLive').classList.toggle('live',Boolean(active&&active.price));
+  }
+
+  function publicLocation(){return location.protocol==='https:'&&!['localhost','127.0.0.1'].includes(location.hostname)?location.origin+location.pathname:'';}
+  function getViewURL(base){
+    if(!base)return '';
+    const url=new URL(base);if(url.protocol!=='https:'||url.username||url.password)throw new Error('invalid-link');
+    const state=api()?api().getState():{symbol:'LUNC-USDT',timeframe:'1h',dual:false,orbit:false,...Object.fromEntries(OPTIONS.map(k=>[k,true]))};
+    const values={pair:state.symbol.split('-')[0],tf:state.timeframe,view:state.dual?'dual':'single',lang:TCI18n.getLanguage(),palette:settings.palette,brightness:String(settings.brightness),candles:String(settings.candleLimit),layers:OPTIONS.map(key=>state[key]?'1':'0').join(''),orbit:state.orbit?'1':'0'};
+    Object.entries(values).forEach(([key,value])=>url.searchParams.set(key,value));url.hash='';return url.href;
+  }
+  function buildShareText(data){
+    const relevant=data.dual?data.markets:data.markets.filter(m=>m.symbol===data.symbol);
+    const fresh=relevant.filter(m=>m.price>0&&data.capturedAt-m.at<=15000);
+    if(!fresh.length)return t('noSharePrice')+'\n#TerraClassic #LUNC #USTC';
+    const lines=fresh.map(m=>m.symbol.replace('-',' / ')+' · '+price(m.price)+(Number.isFinite(m.change)?' · '+(m.change>=0?'+':'')+m.change.toLocaleString(TCI18n.locale(),{maximumFractionDigits:2})+'% (24h)':''));
+    return t('snapshot')+' · Terra Classic\n'+lines.join('\n')+'\n'+data.timeframe+' · '+utc(Math.max(...fresh.map(m=>m.at)))+'\n#TerraClassic #LUNC #USTC';
+  }
+  function renderShare(){
+    if(!shareCapture)return;
+    const data=shareCapture,active=data.markets.find(m=>m.symbol===data.symbol);
+    const valid=active&&active.price>0&&data.capturedAt-active.at<=15000;
+    $('sharePair').textContent=data.dual?'LUNC + USTC / USDT':data.symbol.replace('-',' / ');
+    $('shareInterval').textContent=data.timeframe;
+    $('sharePrice').textContent=valid?price(active.price)+' USDT':'—';
+    $('shareChange').textContent=valid&&Number.isFinite(active.change)?t('change24')+' · '+(active.change>=0?'+':'')+active.change.toLocaleString(TCI18n.locale(),{maximumFractionDigits:2})+'%':t('noData');
+    $('shareChange').className=valid&&Number.isFinite(active.change)?active.change>=0?'positive':'negative':'';
+    $('shareStamp').textContent=valid?'Binance Spot · '+t('verified')+' · '+utc(active.at):t('noData');
+    const base=$('shareLinkInput').value.trim();let viewURL='';
+    try{viewURL=getViewURL(base);$('shareFeedback').classList.remove('share-error');$('shareLinkInput').setAttribute('aria-invalid','false');}catch(e){$('shareLinkInput').setAttribute('aria-invalid','true');$('shareFeedback').textContent=t('invalidLink');$('shareFeedback').classList.add('share-error');}
+    const text=buildShareText(data);
+    $('shareText').textContent=text+(viewURL?'\n'+viewURL:'');
+    const intent=new URL('https://x.com/intent/tweet');intent.searchParams.set('text',text);if(viewURL)intent.searchParams.set('url',viewURL);
+    $('shareXLink').href=intent.href;
+    $('shareLinkNote').textContent=publicLocation()?t('shareDescription'):t('localLinkNote');
+    $('copyShareLinkButton').disabled=!viewURL;
+  }
+  function openShare(){
+    shareOpener=document.activeElement;shareCapture=snapshot();$('shareFeedback').textContent='';
+    $('shareLinkInput').value=publicLocation();renderShare();
+    const dialog=$('shareDialog');if(typeof dialog.showModal==='function')dialog.showModal();else{dialog.setAttribute('open','');dialog.setAttribute('role','dialog');dialog.setAttribute('aria-modal','true');}
+    $('closeShareButton').focus();
+  }
+  function closeShare(){const dialog=$('shareDialog');if(typeof dialog.close==='function')dialog.close();else dialog.removeAttribute('open');if(shareOpener)shareOpener.focus();}
+  $('shareButton').addEventListener('click',openShare);
+  $('closeShareButton').addEventListener('click',closeShare);
+  $('shareDialog').addEventListener('cancel',()=>{if(shareOpener)shareOpener.focus();});
+  $('shareDialog').addEventListener('click',e=>{if(e.target===$('shareDialog')){const rect=e.target.getBoundingClientRect();if(e.clientX<rect.left||e.clientX>rect.right||e.clientY<rect.top||e.clientY>rect.bottom)closeShare();}});
+  $('shareLinkInput').addEventListener('input',()=>{$('shareFeedback').textContent='';renderShare();});
+  $('shareXLink').addEventListener('click',e=>{if($('shareLinkInput').getAttribute('aria-invalid')==='true'){e.preventDefault();$('shareLinkInput').focus();}});
+  async function copy(value){
+    try{
+      if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(value);return true;}
+      const textarea=document.createElement('textarea');textarea.value=value;textarea.style.cssText='position:fixed;top:0;left:0;width:1px;height:1px;opacity:0';document.body.append(textarea);textarea.select();const success=document.execCommand('copy');textarea.remove();return success;
+    }catch(e){return false;}
+  }
+  $('copyShareTextButton').addEventListener('click',async()=>{$('shareFeedback').textContent=t(await copy($('shareText').textContent)?'copied':'copyFailed');});
+  $('copyShareLinkButton').addEventListener('click',async()=>{
+    try{const url=getViewURL($('shareLinkInput').value.trim());$('shareFeedback').textContent=t(url&&await copy(url)?'copied':'noLink');}catch(e){$('shareFeedback').textContent=t('invalidLink');}
+  });
+  document.addEventListener('tc:language',()=>{
+    $('languageSelect').value=TCI18n.getLanguage();renderAlerts();updateFeeds();updateFullscreenButton();
+    $('settingsSaveNote').textContent=t(storageOK?'savedSettings':'storageUnavailable');
+    if($('shareDialog').open)renderShare();
+  });
+  restoreSettings();updateFullscreenButton();
+  setInterval(()=>{updateFeeds();evaluateAlerts();},1500);
+  window.addEventListener('beforeunload',saveSettings);
+  // A narrow, read-only surface for integration checks and future extensions.
+  window.TCNext={getViewURL,buildShareText,evaluateAlerts,renderAlerts,getSettings:()=>({...settings}),getAlerts:()=>alerts.map(a=>({...a}))};
+})();
+
+</script></body></html>

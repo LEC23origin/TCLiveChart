@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#050912">
   <meta name="description" content="Mehrsprachiger räumlicher Live-Chart für LUNC und USTC: Binance Spot, Terra Classic Oracle Pool, Preisalarme und X Share.">
-  <title>Terra Classic · Live Chart Next</title>
+  <title>Terra Classic · Resonance Market V6 · Evolution Flight</title>
   <style>
     :root {
       --bg: #040913;
@@ -1036,7 +1036,7 @@ button,select,input{font:inherit}button,select{touch-action:manipulation}button:
 <body><canvas class="ui-particle-canvas" id="uiParticleCanvas" aria-hidden="true"></canvas><main class="app"><header class="top"><div class="brand">
         <div class="brand-mark" aria-hidden="true"><img class="brand-logo-base" src="https://i.postimg.cc/HnkwHk7w/Screenshot-20260317-182016-Gallery.png" alt=""><canvas class="brand-particle-canvas" id="brandParticleCanvas" width="96" height="96"></canvas></div>
         <div class="brand-copy">
-          <div class="brand-title-row"><strong>TERRA CLASSIC</strong><small class="version-badge">NEXT</small></div>
+          <div class="brand-title-row"><strong>TERRA CLASSIC</strong><small class="version-badge">RESONANCE V5</small></div>
           <span data-i18n="subtitle"></span>
         </div>
       </div>
@@ -1425,6 +1425,7 @@ chartInfo|Chart-Information|Chart information|Informations du graphique|Informac
 oracleInfo|Oracle-Information|Oracle information|Informations Oracle|Información Oracle|Oracle bilgileri|预言机信息|Informasi Oracle|ओरेकल जानकारी
 flowInfo|Flow-Information|Flow information|Informations du flux|Información del flujo|Akış bilgileri|交易流信息|Informasi aliran|प्रवाह जानकारी
 sourcesInfo|Quellen-Information|Source information|Informations des sources|Información de fuentes|Kaynak bilgileri|数据源信息|Informasi sumber|स्रोत जानकारी
+
 `.trim().split('\n');
   const dict=Object.fromEntries(codes.map(c=>[c,{}]));
   rows.forEach(row=>{const [key,...values]=row.split('|');if(values.length!==codes.length)throw new Error('Translation columns: '+key);codes.forEach((c,i)=>dict[c][key]=values[i]);});
@@ -2137,54 +2138,48 @@ TCI18n.apply();
         socket.send(JSON.stringify({method:"SUBSCRIBE",params:streams,id:++state.wsRequestId}));
         state.wsTradeStream=nextKey;
       }
+      // Flow Engine V4: fixed work budget, micro particles, burst aggregation.
+      var flowBudget={tokens:0,last:0,frameAt:0,slowFrames:0,quality:1,dropped:0};
       function createTradeParticles(symbol,side,price,quantity) {
         var map=state.chartMaps&&state.chartMaps[symbol]?state.chartMaps[symbol]:activeChartMap();
         if(!map||!Number.isFinite(price)||price<=0) return;
+        var now=performance.now(), elapsed=flowBudget.last?Math.min(250,now-flowBudget.last):33;
+        flowBudget.last=now;
+        var eco=state.perfMode==="eco", mobile=window.innerWidth<700;
+        var capacity=eco?90:mobile?145:240;
+        var refillPerSecond=eco?35:mobile?75:125;
+        flowBudget.tokens=Math.min(capacity,flowBudget.tokens+refillPerSecond*elapsed/1000);
         var amount=Math.max(0,Number(quantity)||0);
-        var normalized=Math.max(0,Math.min(1,Math.log(amount+1)/Math.log(10)/3.15));
-        var baseCount=state.perfMode==="eco"?3:5;
-        var count=baseCount+Math.min(state.perfMode==="eco"?5:10,Math.round(normalized*(state.perfMode==="eco"?4:8)));
-        var buy=side==="buy";
-        var targetY=map.yFor(price);
+        var normalized=Math.min(1,Math.log1p(amount)/Math.log(10)/3.15);
+        // Trade counts are deliberately decoupled from volume; high volume changes brightness, not unbounded geometry.
+        var desired=1+Math.round(normalized*3);
+        var remaining=Math.max(0,capacity-state.tradeParticles.length);
+        var count=Math.min(desired,remaining,Math.floor(flowBudget.tokens));
+        if(count<1){flowBudget.dropped++;state.flowActivity=Math.min(1,state.flowActivity+.012);return;}
+        flowBudget.tokens-=count;
+        var buy=side==="buy", targetY=map.yFor(price);
         var targetX=map.xMax-(state.dualView?.58:.36);
         var startX=buy?map.xMin-1.9:map.xMax+1.9;
-        var startZ=buy?2.6:2.2;
-        var targetZ=.92+Math.random()*.42;
         var rgb=buy?"76,233,196":"255,126,152";
         for(var i=0;i<count;i++) {
-          var yJitter=(Math.random()-.5)*(1.1+normalized*2.0);
-          var zJitter=(Math.random()-.5)*.9;
-          var startY=targetY+(buy?.95:-.95)+yJitter;
-          var roll=Math.random();
-          var kind=roll<.54?"dust":roll<.86?"spark":"core";
-          var sizeBase=kind==="dust"?.035:kind==="spark"?.06:.095;
-          var sizeGain=kind==="dust"?.055:kind==="spark"?.09:.14;
-          var lifeBase=kind==="dust"?1050:kind==="spark"?820:660;
-          var lifeRand=kind==="dust"?720:kind==="spark"?520:360;
+          var jitter=(Math.random()-.5)*(1.0+normalized*1.6);
+          var life=640+Math.random()*460+normalized*140;
           state.tradeParticles.push({
-            symbol:symbol, side:side, rgb:rgb, kind:kind,
-            x:startX+(Math.random()-.5)*.34,
-            y:startY,
-            z:startZ+zJitter,
-            targetX:targetX,
-            targetY:targetY+(Math.random()-.5)*.22,
-            targetZ:targetZ+(Math.random()-.5)*.12,
-            size:sizeBase+normalized*sizeGain+Math.random()*sizeBase*.7,
-            life:lifeBase+Math.random()*lifeRand+normalized*220,
-            maxLife:lifeBase+Math.random()*lifeRand+normalized*220,
-            sway:(Math.random()-.5)*(.20+normalized*.15),
-            driftY:(Math.random()-.5)*(.018+normalized*.018),
-            driftZ:(Math.random()-.5)*(.025+normalized*.022),
+            symbol:symbol,side:side,rgb:rgb,
+            x:startX+(Math.random()-.5)*.3,
+            y:targetY+(buy?.9:-.9)+jitter,
+            z:2.3+(Math.random()-.5)*.7,
+            targetX:targetX,targetY:targetY+(Math.random()-.5)*.24,
+            targetZ:1.0+(Math.random()-.5)*.28,
+            size:.26+Math.random()*.42+normalized*.17,
+            life:life,maxLife:life,
             phase:Math.random()*Math.PI*2,
-            spin:.0015+Math.random()*.004,
-            trail:.10+Math.random()*.16,
-            pulse:.65+Math.random()*.75
+            sway:(Math.random()-.5)*.24,
+            spin:.0012+Math.random()*.0022
           });
         }
-        var limit=state.perfMode==="eco"?58:118;
-        if(state.tradeParticles.length>limit) state.tradeParticles.splice(0,state.tradeParticles.length-limit);
-        state.flowActivity=Math.min(1,state.flowActivity+.12+normalized*.19);
-        state.flowLastQuantity=amount; state.flowLastSide=side;
+        state.flowActivity=Math.min(1,state.flowActivity+.035+normalized*.06);
+        state.flowLastQuantity=amount;state.flowLastSide=side;
       }
       function applyAggTrade(data) {
         var symbol=displaySymbol(data&&data.s),market=symbol&&markets[symbol];
@@ -2197,14 +2192,20 @@ TCI18n.apply();
       }
       function drawFlowField(now,delta) {
         if(!flowContext) return;
-        state.flowFrame=(state.flowFrame+1)%(state.perfMode==="eco"?3:2);
-        if(state.flowFrame) return;
+        // Time-based draw budget: no work backlog after a slow frame.
+        var eco=state.perfMode==="eco", targetInterval=eco?66:flowBudget.quality<.7?50:33;
+        if(now-flowBudget.frameAt<targetInterval) return;
+        var elapsed=Math.min(.08,(now-flowBudget.frameAt)/1000||delta);
+        flowBudget.frameAt=now;
         var rect=el.canvasWrap.getBoundingClientRect(),ctx=flowContext;
-        var ratio=el.flowCanvas.width/Math.max(1,rect.width);
-        ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,el.flowCanvas.width,el.flowCanvas.height); ctx.scale(ratio,ratio);
-        if(!state.showFlow&&!state.showPulse) return;
-        state.flowActivity=Math.max(0,state.flowActivity-delta*.12);
-        ctx.save(); ctx.globalCompositeOperation="lighter";
+        if(!rect.width||!rect.height) return;
+        var ratio=el.flowCanvas.width/rect.width;
+        ctx.setTransform(1,0,0,1,0,0);
+        ctx.clearRect(0,0,el.flowCanvas.width,el.flowCanvas.height);
+        ctx.setTransform(ratio,0,0,ratio,0,0);
+        if(!state.showFlow&&!state.showPulse) {state.tradeParticles.length=0;return;}
+        state.flowActivity=Math.max(0,state.flowActivity-elapsed*.12);
+        ctx.save();ctx.globalCompositeOperation="lighter";
         var symbols=renderSymbols();
         if(state.showFlow) {
           for(var s=0;s<symbols.length;s++) {
@@ -2212,61 +2213,26 @@ TCI18n.apply();
             if(!map||!candles.length) continue;
             var leftLane=[[map.xMin-1.8,map.yMin+1.2,2.5],[map.xMin+1.8,map.yMin+1.5,2.1],[map.xMax-1.8,map.yMin+2.2,1.45],[map.xMax-.45,map.yFor(candles[candles.length-1].close),1.05]];
             var rightLane=[[map.xMax+1.8,map.yMax-1.1,2.5],[map.xMax-1.9,map.yMax-1.0,2.1],[map.xMax-1.1,map.yMax-1.8,1.55],[map.xMax-.45,map.yFor(candles[candles.length-1].close),1.05]];
-            strokeProjectedPath(ctx,rect,leftLane,"76,233,196",.9,6,.11+state.flowActivity*.045);
-            strokeProjectedPath(ctx,rect,rightLane,"255,126,152",.9,6,.10+state.flowActivity*.045);
+            strokeProjectedPath(ctx,rect,leftLane,"76,233,196",.55,3,.065+state.flowActivity*.025);
+            strokeProjectedPath(ctx,rect,rightLane,"255,126,152",.55,3,.065+state.flowActivity*.025);
           }
         }
+        // Constant-cost tiny points. No per-particle gradient, shadowBlur, or multi-pass bloom.
+        // Swap-removal avoids repeatedly shifting the particle array under load.
         for(var i=state.tradeParticles.length-1;i>=0;i--) {
-          var p=state.tradeParticles[i],lifeRatio=p.life/p.maxLife;
-          p.life-=delta*1000;
-          if(p.life<=0) { state.tradeParticles.splice(i,1); continue; }
-          var age=1-lifeRatio;
-          var ease=.021+(.065*age);
+          var p=state.tradeParticles[i];p.life-=elapsed*1000;
+          if(p.life<=0) {state.tradeParticles[i]=state.tradeParticles[state.tradeParticles.length-1];state.tradeParticles.pop();continue;}
+          if(!state.showFlow) continue;
+          var age=1-p.life/p.maxLife, ease=.045+age*.075;
           var orbit=Math.sin(now*p.spin+p.phase);
-          var orbit2=Math.cos(now*p.spin*.82+p.phase*1.7);
-          p.x+=(p.targetX-p.x)*ease + orbit*p.sway*.010;
-          p.y+=(p.targetY-p.y)*ease + p.driftY + orbit2*p.sway*.006;
-          p.z+=(p.targetZ-p.z)*ease + p.driftZ + orbit*p.sway*.0035;
-          var screen=project([p.x,p.y,p.z]);
-          if(!screen) continue;
-          var depthScale=Math.max(.58,Math.min(1.28,34/Math.max(18,screen[2])));
-          var fadeIn=Math.min(1,age*5.5),fadeOut=Math.min(1,lifeRatio*3.4);
-          var alpha=Math.max(.025,Math.min(.86,fadeIn*fadeOut*(p.kind==="dust"?.42:p.kind==="spark"?.72:.88)));
-          var pulse=1+Math.sin(now*.007*p.pulse+p.phase)*.12;
-          var radius=Math.max(.55,p.size*(el.canvasWrap.clientWidth/17)*depthScale*pulse);
-          var tailPoint=project([p.x-(p.targetX-p.x)*p.trail,p.y-(p.targetY-p.y)*p.trail*.55,p.z+.055]);
-          if(tailPoint) {
-            var grad=ctx.createLinearGradient(tailPoint[0],tailPoint[1],screen[0],screen[1]);
-            grad.addColorStop(0,"rgba("+p.rgb+",0)");
-            grad.addColorStop(.72,"rgba("+p.rgb+","+(alpha*.11)+")");
-            grad.addColorStop(1,"rgba("+p.rgb+","+(alpha*.34)+")");
-            ctx.beginPath(); ctx.lineCap="round";
-            ctx.lineWidth=Math.max(.34,radius*(p.kind==="dust"?.18:.26));
-            ctx.strokeStyle=grad;
-            ctx.moveTo(tailPoint[0],tailPoint[1]); ctx.lineTo(screen[0],screen[1]); ctx.stroke();
-          }
-          if(p.kind!=="dust") {
-            ctx.beginPath();
-            ctx.fillStyle="rgba("+p.rgb+","+(alpha*.10)+")";
-            ctx.shadowColor="rgba("+p.rgb+","+(alpha*.34)+")";
-            ctx.shadowBlur=p.kind==="core"?9+radius*2.4:5+radius*1.7;
-            ctx.arc(screen[0],screen[1],radius*(p.kind==="core"?2.25:1.75),0,Math.PI*2); ctx.fill();
-          }
-          ctx.shadowBlur=0;
-          ctx.beginPath();
-          ctx.fillStyle="rgba("+p.rgb+","+alpha+")";
-          ctx.arc(screen[0],screen[1],radius,0,Math.PI*2); ctx.fill();
-          if(p.kind==="core") {
-            ctx.beginPath();
-            ctx.fillStyle="rgba(238,252,255,"+Math.min(.92,alpha*.8)+")";
-            ctx.arc(screen[0],screen[1],Math.max(.35,radius*.32),0,Math.PI*2); ctx.fill();
-          } else if(p.kind==="spark"&&radius>1.05) {
-            ctx.beginPath();
-            ctx.strokeStyle="rgba(230,252,255,"+Math.min(.55,alpha*.58)+")";
-            ctx.lineWidth=.45;
-            ctx.moveTo(screen[0]-radius*.7,screen[1]); ctx.lineTo(screen[0]+radius*.7,screen[1]);
-            ctx.moveTo(screen[0],screen[1]-radius*.7); ctx.lineTo(screen[0],screen[1]+radius*.7); ctx.stroke();
-          }
+          p.x+=(p.targetX-p.x)*ease+orbit*p.sway*.007;
+          p.y+=(p.targetY-p.y)*ease+orbit*p.sway*.004;
+          p.z+=(p.targetZ-p.z)*ease;
+          var screen=project([p.x,p.y,p.z]);if(!screen) continue;
+          var alpha=Math.min(.74,Math.max(0,Math.min(age*7,p.life/p.maxLife*4))*(.48+state.flowActivity*.22));
+          var radius=Math.max(.35,Math.min(1.16,p.size*(rect.width/850)));
+          ctx.fillStyle="rgba("+p.rgb+","+alpha.toFixed(2)+")";
+          ctx.fillRect(screen[0]-radius*.5,screen[1]-radius*.5,radius,radius);
         }
         if(state.showPulse) {
           Object.keys(state.liveNodes).forEach(function(symbol,idx){
@@ -2475,7 +2441,9 @@ TCI18n.apply();
         return {triangles:triangles,lines:lines};
       }
       function render(now) {
-        var delta=Math.min(.05,(now-previousFrame)/1000); previousFrame=now; resizeCanvases();
+        var rawFrame=(now-previousFrame)||16.7;
+        var delta=Math.min(.05,rawFrame/1000); previousFrame=now; resizeCanvases();
+        flowBudget.quality=Math.max(.4,Math.min(1,flowBudget.quality+(rawFrame>35?-.035:.006)));
         if(camera.autoOrbit&&!state.reducedMotion) camera.desiredYaw+=delta*.075;
         if(Math.abs(camera.desiredYaw)>Math.PI*80) {
           var yawTurns=Math.trunc(camera.desiredYaw/(Math.PI*2))*Math.PI*2;
@@ -3609,4 +3577,982 @@ TCI18n.apply();
   window.TCNext={getViewURL,buildShareText,evaluateAlerts,renderAlerts,getSettings:()=>({...settings}),getAlerts:()=>alerts.map(a=>({...a}))};
 })();
 
-</script></body></html>
+</script>
+<script>window.TCUX=key=>key;</script>
+
+<style>
+#galleryLaunch{position:fixed;right:18px;bottom:54px;z-index:90;border:1px solid #6bdbf5;background:linear-gradient(120deg,#063249,#132444);color:#eaffff;border-radius:15px;padding:12px 16px;font:700 12px system-ui;letter-spacing:.08em;cursor:pointer;box-shadow:0 0 30px #14b9ef35}
+#galleryShell{position:fixed;inset:0;z-index:100;background:#020711;color:#e9f8ff;display:none;font-family:Inter,system-ui,sans-serif;overflow:hidden}
+#galleryShell.active{display:block}
+#galleryShell::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at 50% 45%,rgba(58,185,255,.18),transparent 28%),radial-gradient(circle at 82% 22%,rgba(242,200,112,.08),transparent 22%),radial-gradient(circle at 18% 12%,rgba(93,139,255,.10),transparent 24%);pointer-events:none;opacity:.95}
+#galleryScene{position:absolute;inset:0;width:100%;height:100%;touch-action:none;cursor:grab}#galleryScene:active{cursor:grabbing}
+.galleryTop{position:absolute;left:14px;right:14px;top:12px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;pointer-events:none}.galleryTop>*{pointer-events:auto}
+.galleryLogo{background:linear-gradient(180deg,#071626ef,#091e31dd);border:1px solid #25516c;border-radius:14px;padding:11px 15px;font-size:12px;letter-spacing:.13em;font-weight:800;box-shadow:0 12px 32px #0008, inset 0 1px rgba(255,255,255,.04)}.galleryLogo small{display:block;font-size:10px;color:#7bacc6;letter-spacing:.1em;margin-top:4px;font-weight:500}
+.galleryControls{display:flex;gap:7px;flex-wrap:wrap;justify-content:end}.gBtn{background:linear-gradient(180deg,#0c2237f0,#0a1d31dd);color:#d6f3ff;border:1px solid #28546b;border-radius:11px;padding:10px 12px;cursor:pointer;font-weight:700;font-size:12px;min-height:39px;box-shadow:inset 0 1px rgba(255,255,255,.03)}.gBtn:hover,.gBtn:focus-visible{border-color:#7be7ff;background:#123854;outline:none}.gBtn.hot{border-color:#36bfe9;color:#fff;background:linear-gradient(180deg,#17658bdd,#104761dd);box-shadow:0 0 18px rgba(54,191,233,.12)}
+.gBtn[hidden]{display:none!important}
+.galleryModePill{position:absolute;left:50%;top:15px;transform:translateX(-50%);z-index:2;padding:9px 14px;border-radius:999px;background:rgba(7,23,37,.82);border:1px solid rgba(72,197,238,.34);font-size:11px;font-weight:800;letter-spacing:.12em;color:#dff7ff;box-shadow:0 10px 30px rgba(0,0,0,.22),0 0 20px rgba(57,208,255,.08);pointer-events:none}
+.galleryModePill small{display:block;font-size:9px;letter-spacing:.08em;color:#8bb7ca;font-weight:600;margin-top:2px;text-align:center}
+.galleryBottom{position:absolute;bottom:16px;left:16px;right:16px;z-index:2;display:flex;align-items:end;justify-content:space-between;gap:12px;pointer-events:none}.galleryBottom>*{pointer-events:auto}.gStatus{padding:11px 14px;border:1px solid #25536b;background:linear-gradient(180deg,#061625e8,#071a2ade);border-radius:14px;color:#aacde0;font-size:11px;max-width:600px;line-height:1.65;box-shadow:0 18px 36px rgba(0,0,0,.18)}.gStatus strong{color:#e7faff}.gLegend{padding:11px 14px;border:1px solid #25536b;background:linear-gradient(180deg,#061625e8,#071a2ade);border-radius:14px;font-size:11px;color:#9ebfd0;box-shadow:0 18px 36px rgba(0,0,0,.18)}.gLegend b{color:#59f1b2}.gLegend em{font-style:normal;color:#ff8b98}
+#gallerySide{position:absolute;z-index:3;right:16px;top:83px;width:min(365px,calc(100vw - 32px));max-height:calc(100vh - 165px);overflow:auto;display:none;background:linear-gradient(180deg,#071726fa,#081b2df3);border:1px solid #31627a;border-radius:17px;padding:17px;box-shadow:0 20px 60px #000b}#gallerySide.open{display:block}#gallerySide h3{margin:0 0 10px;font-size:16px}#gallerySide p{color:#a1c0ce;font-size:12px;line-height:1.6}#gallerySide label{font-size:11px;color:#8ec2dc;display:block;margin:11px 0 5px}#gallerySide input,#gallerySide select{background:#0c263b;color:#fff;border:1px solid #31586c;border-radius:9px;padding:11px;width:100%;font:inherit;font-size:13px}#gallerySide .actions{display:flex;gap:8px;margin-top:12px}#gallerySide .actions button{flex:1}#galleryList{max-height:220px;overflow:auto;margin-top:15px}#galleryList .gRow{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid #234052;font-size:12px}#galleryList .gRow span{flex:1}#galleryList .gRow button{padding:5px 9px}.gHint{font-size:11px;color:#edc979!important}#galleryToast{position:absolute;left:50%;bottom:92px;transform:translateX(-50%);z-index:5;padding:9px 14px;border-radius:9px;background:#123044ea;border:1px solid #397b9d;font-size:12px;display:none;max-width:80vw;text-align:center;box-shadow:0 18px 36px rgba(0,0,0,.18)}
+@media(max-width:670px){#galleryLaunch{bottom:35px;right:10px;padding:10px}.galleryTop{left:8px;right:8px;top:8px;align-items:start}.galleryLogo{font-size:10px;padding:10px}.galleryControls{max-width:64%;gap:4px}.gBtn{font-size:10px;padding:8px;min-height:35px}.galleryModePill{top:78px;font-size:10px}.galleryBottom{left:9px;right:9px;bottom:9px;flex-direction:column;align-items:stretch}.gStatus,.gLegend{padding:7px 10px;font-size:10px}#gallerySide{top:132px;right:8px;max-height:calc(100vh - 230px)} }
+</style>
+<button id="galleryLaunch" type="button" data-ux="galleryLaunch">◈ 3D MARKTGALERIE</button>
+<section id="galleryShell" aria-label="Räumliche Marktgalerie">
+<canvas id="galleryScene" aria-label="Interaktive räumliche Chart Galerie"></canvas>
+<div class="galleryTop"><div class="galleryLogo">◈ TERRA CLASSIC <small>SPATIAL CHART WORLDS · TIMELINE PORTALS</small></div><div class="galleryControls"><button class="gBtn hot" id="gAdd" data-ux="addCoin">＋ Coin</button><button class="gBtn" id="gPrev" hidden data-ux="prev">← Vorherige</button><button class="gBtn" id="gBack" hidden data-ux="back">↺ Galerie</button><button class="gBtn" id="gNext" hidden data-ux="next">Nächste →</button><button class="gBtn" id="gHome" data-ux="home">⌖ Zentrum</button><button class="gBtn" id="gTour" data-ux="tour">▶ Rundflug</button><button class="gBtn" id="gQuality">Auto</button><button class="gBtn" id="gExit" data-ux="exit">✕ Chart</button></div></div>
+<div id="galleryChartDock" class="galleryChartDock" role="group" aria-label="Chart styles">
+  <div class="gChartMeta">
+    <span class="gChartEyebrow" data-ux="chartWorlds">◈ CHARTWELTEN</span>
+    <label class="gChartChoice"><span data-ux="chartCoin">Markt</span><select id="gCoinPicker" aria-label="Markt in der Galerie auswählen"></select></label>
+    <label class="gChartChoice"><span data-ux="chartTime">Intervall</span><select id="gInterval" aria-label="Kerzenintervall"><option value="1m">1m</option><option value="5m">5m</option><option value="15m">15m</option><option value="1h">1h</option><option value="4h">4h</option><option value="1d">1d</option></select></label>
+    <button id="gApplyAll" type="button" class="gChartAll" data-ux="chartAll" title="Gewählte Darstellung auf alle Stationen übertragen">↗ Alle Coins</button>
+  </div>
+  <div id="gChartModes" class="gChartModes" aria-label="Chart-Darstellung auswählen">
+    <button type="button" data-gchart="candles" data-ux="chartCandles" aria-pressed="false">▥ Kerzen</button>
+    <button type="button" data-gchart="line" data-ux="chartLine" aria-pressed="false">⌁ Linie</button>
+    <button type="button" data-gchart="area" data-ux="chartArea" aria-pressed="false">◢ Fläche</button>
+    <button type="button" data-gchart="volume" data-ux="chartVolume" aria-pressed="false">▤ Volumen</button>
+    <button type="button" data-gchart="heikin" data-ux="chartHeikin" aria-pressed="false">◇ Heikin-Ashi</button>
+    <button type="button" data-gchart="rsi" data-ux="chartRSI" aria-pressed="false">∿ RSI 14</button>
+    <button type="button" data-gchart="ribbon" data-ux="chartRibbon" aria-pressed="false">≋ 3D-Preisband</button>
+  </div>
+</div>
+<div class="galleryModePill" id="galleryModePill">HUB · MARKTHALLE<small>Räumliche Übersicht mit Marktstationen</small></div>
+<aside id="gallerySide"><h3 data-ux="galleryTitle">Marktstationen verwalten</h3><p data-ux="galleryNote">Füge ein verfügbares Binance-Spot-Paar hinzu. Die Galerie zeigt ausschließlich bestätigte Marktdaten; unbekannte Paare werden nicht simuliert.</p><label for="gSymbol" data-ux="gallerySymbol">Coin oder Handelspaar</label><input id="gSymbol" placeholder="z. B. BTC, ETH, SOL, LUNCUSDT" maxlength="25" autocomplete="off" spellcheck="false"><label for="gQuote" data-ux="galleryQuote">Kurswährung</label><select id="gQuote"><option>USDT</option><option>USDC</option><option>BTC</option><option>FDUSD</option></select><div class="actions"><button class="gBtn hot" id="gSubmit" data-ux="galleryAdd">Station hinzufügen</button><button class="gBtn" id="gDismiss" data-ux="close">Schließen</button></div><p id="gFormMessage" role="status"></p><div id="galleryList"></div><p class="gHint" data-ux="galleryFoot">Maximal 12 Stationen · Echtzeit-Preisindikationen über Binance Spot · wählbare Zeitfenster und sieben Chartwelten</p></aside>
+<div id="galleryToast" role="status"></div>
+<div class="galleryBottom"><div class="gStatus"><strong id="gSelected">Zentraler Marktplatz</strong><span id="gLive"> · Verbinde Kursdaten…</span><div id="gHintText">Mit Maus/Finger umsehen · Scrollen/Pinch zoomen · Station antippen für Zeitreise in den Raum · WASD/Pfeiltasten bewegen · Esc zurück</div></div><div class="gLegend"><b>●</b> Kaufdruck &nbsp; <em>●</em> Verkaufsdruck &nbsp; | &nbsp; <span id="gPerformance">Qualität: Auto</span></div></div>
+</section>
+<style id="galleryChartWorldStyles">
+#galleryShell .galleryChartDock{position:absolute;z-index:4;top:82px;left:14px;right:14px;max-width:940px;padding:8px 10px 9px;background:linear-gradient(140deg,#071e30f5,#071523ee);border:1px solid #39728a8f;border-radius:15px;box-shadow:0 15px 32px #0008,inset 0 1px #b9f3ff14;backdrop-filter:blur(10px);pointer-events:auto}
+#galleryShell .gChartMeta{display:flex;align-items:center;gap:9px;min-width:0;flex-wrap:wrap;margin-bottom:7px}
+#galleryShell .gChartEyebrow{color:#84ddeb;font-weight:850;letter-spacing:.13em;font-size:10px;margin-right:4px}
+#galleryShell .gChartChoice{display:flex;align-items:center;gap:6px;color:#90bad0;font-size:10px;font-weight:700}
+#galleryShell .gChartChoice select{max-width:125px;height:30px;border:1px solid #315e76;border-radius:8px;background:#102b3c;color:#f0faff;font-size:11px;padding:3px 8px;cursor:pointer}
+#galleryShell .gChartChoice select:focus-visible,#galleryShell .gChartAll:focus-visible,#galleryShell .gChartModes button:focus-visible{outline:2px solid #62eaff;outline-offset:2px}
+#galleryShell .gChartAll{border:1px solid #316781;border-radius:8px;background:#11344b;color:#dbf7ff;padding:7px 10px;min-height:30px;font-size:10px;font-weight:800;cursor:pointer;margin-left:auto}
+#galleryShell .gChartAll:hover{border-color:#6deaff;background:#1a4b62}
+#galleryShell .gChartModes{display:flex;gap:6px;overflow-x:auto;padding:1px 1px 4px;scrollbar-width:thin;scrollbar-color:#4f8ba1 transparent;overscroll-behavior-x:contain}
+#galleryShell .gChartModes button{flex:0 0 auto;min-height:32px;white-space:nowrap;padding:7px 11px;border:1px solid #234e66;border-radius:9px;background:#0a2335;color:#9dbed0;font-size:10.5px;font-weight:750;cursor:pointer;transition:background .15s,border .15s,color .15s}
+#galleryShell .gChartModes button:hover{border-color:#54cbe6;color:#e7faff}
+#galleryShell .gChartModes button[aria-pressed="true"]{color:#f3ffff;border-color:#50d7f0;background:linear-gradient(125deg,#145577,#12415c);box-shadow:inset 0 1px #dbffff25,0 0 13px #45cce92a}
+#galleryShell .galleryModePill{left:auto;right:16px;top:165px;transform:none;max-width:min(330px,calc(100vw - 32px));font-size:10px;letter-spacing:.05em;text-align:center}
+#galleryShell .gStatus{max-width:min(560px,calc(100vw - 26px))}
+#galleryShell .gStatus #gHintText{font-size:10px;color:#9dbed0}
+@media(max-width:780px){#galleryShell .galleryChartDock{left:9px;right:9px;max-width:none;padding:8px;backdrop-filter:none}#galleryShell .gChartMeta{gap:7px}#galleryShell .gChartEyebrow{flex:0 0 100%}#galleryShell .gChartChoice{flex:0 1 auto}#galleryShell .gChartChoice select{max-width:112px}#galleryShell .gChartAll{margin-left:auto;padding:6px 8px}#galleryShell .gChartModes button{min-height:36px;font-size:11px}#galleryShell .galleryModePill{left:9px;right:auto;max-width:calc(100% - 18px)}#galleryShell .gStatus #gHintText{font-size:9px}}
+@media(max-width:365px){#galleryShell .gChartEyebrow{display:none}#galleryShell .gChartChoice{gap:4px}#galleryShell .gChartChoice select{max-width:102px}#galleryShell .gChartAll{font-size:9px}#galleryShell .gChartModes{gap:4px}}
+</style>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),shell=$('galleryShell'),canvas=$('galleryScene'),ctx=canvas.getContext('2d',{alpha:false});
+const API='https://data-api.binance.vision/api/v3/',WSS='wss://data-stream.binance.vision/stream?streams=';const MAX=12;
+let symbols=['LUNCUSDT','USTCUSDT','BTCUSDT','ETHUSDT','SOLUSDT','XRPUSDT','BNBUSDT'];
+try{const s=JSON.parse(localStorage.getItem('tc-spatial-gallery-v1'));if(Array.isArray(s)&&s.length&&s.length<=MAX)symbols=s.filter(x=>/^[A-Z0-9]{5,22}$/.test(x));}catch(e){}
+const CHARTS=['candles','line','area','volume','heikin','rsi','ribbon'];
+const DEFAULT_CHARTS={LUNCUSDT:'candles',USTCUSDT:'area',BTCUSDT:'line',ETHUSDT:'heikin',SOLUSDT:'ribbon',XRPUSDT:'volume',BNBUSDT:'rsi'};
+const CHART_KEY='tc-spatial-chart-worlds-v3';
+let chartPreferences={},candleInterval='1m',candleRevision=0;
+try{const saved=JSON.parse(localStorage.getItem(CHART_KEY)||'{}');if(saved&&typeof saved==='object'){if(saved.views&&typeof saved.views==='object')for(const [sym,type] of Object.entries(saved.views)){if(/^[A-Z0-9]{5,22}$/.test(sym)&&CHARTS.includes(type))chartPreferences[sym]=type}if(['1m','5m','15m','1h','4h','1d'].includes(saved.interval))candleInterval=saved.interval}}catch(e){}
+function modeFor(symbol){return chartPreferences[symbol]||DEFAULT_CHARTS[symbol]||'candles'}
+function saveChartSettings(){try{localStorage.setItem(CHART_KEY,JSON.stringify({interval:candleInterval,views:chartPreferences}))}catch(e){}}
+const entries=new Map();for(const s of symbols)entries.set(s,{symbol:s,price:null,change:null,candles:[],buy:0,sell:0,stamp:0,valid:false});
+let active=false,raf=0,socket=null,fetchTimer=null,wsTimer=null,last=0,acc=0,fps=60,quality='auto',factor=1,selected=null,roomSymbol=null,mode='hub',tour=false,drag=false,downX=0,downY=0,moved=false,ang=0,pitch=.13,dist=16,offsetX=0,offsetZ=0,targets=[],specks=[],particles=[],lastData=0,transition=null,roomYaw=0,roomDrift=0;let CW=0,CH=0,DPR=1;let mobileIndex=0;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v)); const short=s=>s.replace(/(USDT|USDC|FDUSD|BTC)$/,'');const money=(p)=>p==null?'—':Number(p).toLocaleString('en-US',{maximumSignificantDigits:7});
+const ease=t=>t<.5?4*t*t*t:1-Math.pow(-2*t+2,3)/2;
+function save(){try{localStorage.setItem('tc-spatial-gallery-v1',JSON.stringify(symbols))}catch(e){}}
+function toast(message){$('galleryToast').textContent=message;$('galleryToast').style.display='block';clearTimeout(toast.t);toast.t=setTimeout(()=>$('galleryToast').style.display='none',2900)}
+function resize(){const r=canvas.getBoundingClientRect();DPR=Math.min(devicePixelRatio||1,1.6);CW=r.width;CH=r.height;canvas.width=Math.floor(CW*DPR);canvas.height=Math.floor(CH*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);requestAnimationFrame(placeGalleryControls)}
+function projection(x,y,z){const dx=x-offsetX,dz=z-offsetZ;const c=Math.cos(ang),s=Math.sin(ang);const xx=dx*c-dz*s,zz=dx*s+dz*c+dist;const cy=Math.cos(pitch),sy=Math.sin(pitch);const yy=y*cy-zz*sy,depth=y*sy+zz*cy;if(depth<.3)return null;const f=Math.min(CW*1.25,CH*1.7)*.84;return {x:CW*.5+xx*f/depth,y:CH*.52-yy*f/depth,z:depth,scale:f/depth}}
+function line3(a,b,color,width=1){let p=projection(...a),q=projection(...b);if(!p||!q)return;ctx.strokeStyle=color;ctx.lineWidth=width;ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(q.x,q.y);ctx.stroke()}
+function ring3(y,r,color){ctx.beginPath();let begun=false;for(let i=0;i<=96;i++){const t=i/96*Math.PI*2,p=projection(Math.sin(t)*r,y,Math.cos(t)*r);if(!p){begun=false;continue}if(!begun){ctx.moveTo(p.x,p.y);begun=true}else ctx.lineTo(p.x,p.y)}ctx.strokeStyle=color;ctx.lineWidth=1;ctx.stroke()}
+function rounded(x,y,w,h,r){ctx.beginPath();ctx.roundRect(x,y,w,h,Math.min(r,w/7,h/7))}
+function drawText(text,x,y,size,weight,color,align='left'){ctx.textAlign=align;ctx.font=`${weight} ${size}px system-ui`;ctx.fillStyle=color;ctx.fillText(text,x,y)}
+function drawGridBackground(){for(let i=-10;i<=10;i++){line3([i,-.95,-10],[i,-.95,10],'#2a89ad15');line3([-10,-.95,i],[10,-.95,i],'#2a89ad15')}for(let r=2;r<=9;r+=1.7)ring3(-.93,r,'#4bcdea23');ring3(-.92,4.8,'#61dcfa58');ring3(-.91,1.6,'#e9c87859');const p=projection(0,-.85,0);if(p){let v=clamp(p.scale*.75,13,65);ctx.beginPath();ctx.arc(p.x,p.y,v,0,Math.PI*2);ctx.fillStyle='#0e45657b';ctx.fill();ctx.strokeStyle='#4de5ff89';ctx.stroke();drawText('MARKET CORE',p.x,p.y+3,clamp(v*.25,9,14),700,'#bcecff','center')}}
+function background(time){const g=ctx.createRadialGradient(CW*.5,CH*.47,5,CW*.5,CH*.47,Math.max(CW,CH)*.83);g.addColorStop(0,'#10314a');g.addColorStop(.48,'#061323');g.addColorStop(1,'#01040b');ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);for(const s of specks){ctx.fillStyle='rgba(133,211,255,'+s.a+')';ctx.fillRect(s.x*CW,s.y*CH,s.r,s.r)}ctx.fillStyle='rgba(2,13,24,.75)';ctx.fillRect(0,CH*.94,CW,CH*.06);
+const aura=ctx.createRadialGradient(CW*.5,CH*.58,20,CW*.5,CH*.58,Math.max(CW,CH)*.52);aura.addColorStop(0,'rgba(42,185,255,.14)');aura.addColorStop(.45,'rgba(22,62,98,.08)');aura.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=aura;ctx.fillRect(0,0,CW,CH);
+if(mode==='hub' || (mode==='transition' && transition?.type==='exit' && transition.progress>.42) || (mode==='transition' && transition?.type==='enter' && transition.progress<.58)) drawGridBackground();
+}
+function panel(entry,i,n){let th=i/n*Math.PI*2,rad=5.05,x=Math.sin(th)*rad,z=Math.cos(th)*rad,point=projection(x,.6,z);if(!point)return null;const scale=point.scale, w=Math.min(3.35*scale,Math.min(CW*.42,375)),h=w*2.15/3.35;if(w<16||w>CW*5)return null;const xx=point.x-w*.5,yy=point.y-h*.5,visible=xx<CW+100&&xx+w>-100&&yy<CH+130&&yy+h>-130;if(!visible)return null;return {entry,i,depth:point.z,x:xx,y:yy,w,h,s:scale,px:x,pz:z};}
+function drawChartArea(x,y,w,h,entry,scale,large=false){
+ const raw=entry.candles||[],chartMode=modeFor(entry.symbol);
+ const count=Math.min(large?94:54,raw.length),c=raw.slice(-count).filter(a=>Number.isFinite(a.o)&&Number.isFinite(a.h)&&Number.isFinite(a.l)&&Number.isFinite(a.c)&&a.c>0);
+ ctx.save();ctx.beginPath();ctx.rect(x,y,w,h);ctx.clip();
+ for(let j=0;j<5;j++){const gy=y+j*h/4;ctx.beginPath();ctx.moveTo(x,gy);ctx.lineTo(x+w,gy);ctx.strokeStyle='rgba(100,184,208,.16)';ctx.lineWidth=1;ctx.stroke()}
+ if(c.length<2){ctx.restore();drawText(window.TCUX('chartLoading'),x+w/2,y+h*.58,large?12:9,600,'#81acc0','center');return null}
+ let values=c;
+ if(chartMode==='heikin'){let pO=(c[0].o+c[0].c)/2,pC=(c[0].o+c[0].h+c[0].l+c[0].c)/4;values=c.map((a,i)=>{let O=i?(pO+pC)/2:(a.o+a.c)/2,C=(a.o+a.h+a.l+a.c)/4;let h=Math.max(a.h,O,C),l=Math.min(a.l,O,C);pO=O;pC=C;return {o:O,h,l,c:C,v:a.v}})}
+ const lo=Math.min(...values.map(a=>a.l)),hi=Math.max(...values.map(a=>a.h));
+ const span=Math.max(hi-lo,Math.abs(hi)*.00002,1e-10);const py=q=>y+h-(q-lo)/span*h*.91-h*.045;
+ const dx=w/values.length,px=j=>x+(j+.5)*dx;
+ const up='#47e7bc',down='#ff788e';
+ if(chartMode==='candles'||chartMode==='heikin'){
+  values.forEach((a,j)=>{const X=px(j),tint=a.c>=a.o?up:down;ctx.strokeStyle=tint;ctx.fillStyle=tint;ctx.lineWidth=Math.max(1,dx*(large?.12:.1));ctx.beginPath();ctx.moveTo(X,py(a.h));ctx.lineTo(X,py(a.l));ctx.stroke();ctx.fillRect(X-dx*.29,Math.min(py(a.o),py(a.c)),Math.max(1.1,dx*.58),Math.max(1,Math.abs(py(a.o)-py(a.c))))})
+ }else if(chartMode==='rsi'){
+  const rsi=[];for(let i=0;i<values.length;i++){if(i<14){rsi.push(null);continue}let g=0,l=0;for(let j=i-13;j<=i;j++){let d=values[j].c-values[j-1].c;if(d>0)g+=d;else l-=d}rsi.push(l===0?g===0?50:100:100-100/(1+g/l))}
+  const R=q=>y+h-q/100*h;
+  ctx.fillStyle='rgba(254,134,142,.06)';ctx.fillRect(x,y,w,h*.3);ctx.fillStyle='rgba(69,231,188,.055)';ctx.fillRect(x,y+h*.7,w,h*.3);
+  for(let v of [30,50,70]){ctx.setLineDash([4,4]);ctx.beginPath();ctx.moveTo(x,R(v));ctx.lineTo(x+w,R(v));ctx.strokeStyle=v===50?'#5c9eba5a':'#f9bd6a88';ctx.stroke();ctx.setLineDash([]);if(large)drawText(String(v),x+5,R(v)-4,10,600,'#bcac91')}
+  ctx.strokeStyle='#f1c984';ctx.lineWidth=large?2.3:1.5;ctx.beginPath();let begun=false;rsi.forEach((v,i)=>{if(v==null)return;const X=px(i),Y=R(v);if(!begun){ctx.moveTo(X,Y);begun=true}else ctx.lineTo(X,Y)});ctx.stroke();
+  if(large){const current=rsi.at(-1);if(current!=null)drawText('RSI(14) '+current.toFixed(1),x+w-6,y+16,12,800,'#f1c984','right')}
+ }else if(chartMode==='volume'){
+  const vmax=Math.max(1,...values.map(a=>a.v||0));
+  values.forEach((a,i)=>{ctx.fillStyle=a.c>=a.o?'rgba(72,230,188,.78)':'rgba(254,115,137,.75)';ctx.fillRect(px(i)-dx*.36,y+h-(a.v||0)/vmax*h*.83,Math.max(1,dx*.72),(a.v||0)/vmax*h*.83)})
+  if(large)drawText(window.TCUX('chartBaseVolume'),x+w-5,y+15,11,700,'#a3d7e6','right');
+ }else if(chartMode==='ribbon'){
+  // 2.5D price surface: multiple z-shifted traces from the SAME confirmed closing prices. NOT an order book.
+  const close=values.map(a=>py(a.c));
+  for(let layer=7;layer>=0;layer--){const shift=layer*3*(large?1.55:.55);ctx.beginPath();for(let i=0;i<values.length;i++){let X=px(i)-shift*.75,Y=close[i]+shift*.65;if(!i)ctx.moveTo(X,Y);else ctx.lineTo(X,Y)}
+   ctx.strokeStyle=layer===0?'#93f5ff':`rgba(60,192,252,${.11+(7-layer)*.055})`;ctx.lineWidth=layer===0?(large?2.8:1.8):1.25;ctx.stroke()}
+  ctx.strokeStyle='#e4cb84';ctx.lineWidth=large?2:1;ctx.beginPath();values.forEach((a,i)=>i?ctx.lineTo(px(i),py(a.c)):ctx.moveTo(px(i),py(a.c)));ctx.stroke();
+  if(large)drawText(window.TCUX('chartRibbonNote'),x+6,y+16,11,600,'#9ad3e8');
+ }else{
+  // Price line and filled area: use the real close values, never interpolate invented candles.
+  ctx.beginPath();values.forEach((a,i)=>i?ctx.lineTo(px(i),py(a.c)):ctx.moveTo(px(i),py(a.c)));
+  if(chartMode==='area'){ctx.lineTo(px(values.length-1),y+h);ctx.lineTo(px(0),y+h);ctx.closePath();const grad=ctx.createLinearGradient(0,y,0,y+h);grad.addColorStop(0,'rgba(48,224,200,.34)');grad.addColorStop(1,'rgba(48,143,216,.018)');ctx.fillStyle=grad;ctx.fill()}
+  ctx.beginPath();values.forEach((a,i)=>i?ctx.lineTo(px(i),py(a.c)):ctx.moveTo(px(i),py(a.c)));ctx.lineJoin='round';ctx.strokeStyle='#5ce9d8';ctx.lineWidth=large?2.6:1.8;ctx.stroke();
+  if(large){const a=values.at(-1);ctx.beginPath();ctx.arc(px(values.length-1),py(a.c),3.5,0,Math.PI*2);ctx.fillStyle='#c5fff4';ctx.fill()}
+ }
+ ctx.restore();return chartMode==='rsi'||chartMode==='volume'?null:{lo,hi};
+}
+
+function renderPanel(p){let {entry:e,x,y,w,h,s}=p;if(w<23)return;const focus=selected===e.symbol,alpha=clamp(10/p.depth,.34,1);ctx.globalAlpha=alpha;ctx.shadowColor=focus?'#45e5ff':'#24abd477';ctx.shadowBlur=focus?Math.min(28,12*s):Math.min(10,5*s);rounded(x,y,w,h,11*s);ctx.fillStyle='rgba(5,19,32,.985)';ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle=focus?'#80eeff':'rgba(87,173,204,.72)';ctx.lineWidth=focus?2:1;ctx.stroke();ctx.save();rounded(x,y,w,h,11*s);ctx.clip();const header=h*.38;const hg=ctx.createLinearGradient(x,y,x,y+header);hg.addColorStop(0,'rgba(19,63,84,.99)');hg.addColorStop(1,'rgba(8,31,49,.99)');ctx.fillStyle=hg;ctx.fillRect(x,y,w,header);ctx.fillStyle='rgba(153,234,255,.19)';ctx.fillRect(x,y,w,Math.max(1,1.2*s));let fs=clamp(13*s,9,22);drawText(short(e.symbol),x+w*.055,y+h*.16,fs,800,'#ecfaff');drawText(e.price==null?'—':money(e.price),x+w*.95,y+h*.16,clamp(9.2*s,8,16),600,'#b5dfef','right');drawText(e.change==null?'— · LIVE FEED':(e.change>=0?'+':'')+e.change.toFixed(2)+'% / 24h',x+w*.95,y+h*.29,clamp(8*s,8,14),700,e.change==null?'#8297a9':e.change>=0?'#57eeb2':'#ff8592','right');drawText(e.symbol+' · '+window.TCUX('chartSource')+' · '+candleInterval+' · '+chartTitle(modeFor(e.symbol)),x+w*.055,y+h*.3,clamp(7*s,7,11),500,'#78acc5');const chart=drawChartArea(x+w*.06,y+h*.47,w*.88,h*.43,e,s,false);ctx.fillStyle='rgba(9,33,51,.96)';ctx.fillRect(x,y+h*.922,w,h*.078);let buy=e.buy,sell=e.sell,total=buy+sell,ratio=total?buy/total:.5;ctx.fillStyle=total?'#26bf9e':'#274052';ctx.fillRect(x,y+h*.922,w*ratio,h*.078);ctx.fillStyle=total?'#ef6477':'#274052';ctx.fillRect(x+w*ratio,y+h*.922,w*(1-ratio),h*.078);if(total){ctx.fillStyle='rgba(255,255,255,.10)';ctx.fillRect(x+w*ratio-1,y+h*.922,2,h*.078)}if(focus){ctx.strokeStyle='rgba(90,228,255,.45)';ctx.strokeRect(x+6,y+6,w-12,h-12)}ctx.restore();ctx.globalAlpha=1;}
+function addParticle(e,dir){if(particles.length>420)particles.shift();const i=Math.max(0,symbols.indexOf(e.symbol));const a=i/Math.max(1,symbols.length)*Math.PI*2,rad=mode==='room'?2.1:5;particles.push({x:Math.sin(a)*rad+(Math.random()-.5)*(mode==='room'?1.2:1.6),z:Math.cos(a)*rad+(Math.random()-.5)*(mode==='room'?1.2:1.6),y:(Math.random()-.5)*(mode==='room'?1.4:2.6),side:dir,life:0,speed:.48+Math.random()*.6})}
+function drawParticles(dt){for(let i=particles.length-1;i>=0;i--){const p=particles[i];p.life+=dt;if(p.life>1.9){particles.splice(i,1);continue}const v=projection(p.x,p.y+(p.side?1:-1)*p.life*p.speed,p.z);if(!v)continue;ctx.globalAlpha=(1-p.life/1.9)*.7;ctx.fillStyle=p.side?'#4af4be':'#ff7189';ctx.beginPath();ctx.arc(v.x,v.y,clamp(v.scale*(mode==='room'?.032:.025),.45,mode==='room'?2.4:1.7),0,6.283);ctx.fill()}ctx.globalAlpha=1}
+function drawPortalRing(cx,cy,r,t,alpha=1){ctx.save();ctx.globalAlpha=alpha;ctx.strokeStyle='rgba(98,228,255,.48)';ctx.lineWidth=Math.max(2,r*.03);ctx.beginPath();ctx.arc(cx,cy,r,0,Math.PI*2);ctx.stroke();ctx.strokeStyle='rgba(242,200,112,.26)';ctx.lineWidth=Math.max(1.5,r*.015);ctx.beginPath();ctx.arc(cx,cy,r*.86,0,Math.PI*2);ctx.stroke();for(let i=0;i<10;i++){const a=t*.0012+i*Math.PI*2/10,x=cx+Math.cos(a)*r,y=cy+Math.sin(a)*r;ctx.fillStyle=i%2?'rgba(82,236,191,.68)':'rgba(255,130,147,.58)';ctx.beginPath();ctx.arc(x,y,Math.max(1.4,r*.028),0,Math.PI*2);ctx.fill()}ctx.restore()}
+function drawWarp(progress,time,type){const p=ease(progress),cx=CW*.5,cy=CH*.5;ctx.save();ctx.globalCompositeOperation='screen';const burst=type==='enter'?p:(1-p);for(let i=0;i<90;i++){const a=i/90*Math.PI*2+time*.00025*(i%2?1:-1),inner=10+burst*28,outer=Math.max(CW,CH)*(0.18+burst*0.9)*(0.4+((i%9)/9));ctx.strokeStyle=(i%3===0)?`rgba(255,134,151,${0.03+burst*0.11})`:`rgba(92,224,255,${0.02+burst*0.12})`;ctx.lineWidth=1+burst*1.8;ctx.beginPath();ctx.moveTo(cx+Math.cos(a)*inner,cy+Math.sin(a)*inner);ctx.lineTo(cx+Math.cos(a)*outer,cy+Math.sin(a)*outer);ctx.stroke()}
+for(let i=0;i<6;i++){const rp=(i+1)/6,rr=(0.16+Math.abs(p-rp))*Math.min(CW,CH)*0.85;ctx.strokeStyle=`rgba(${i%2?242:90},${i%2?200:225},${i%2?112:255},${0.02+burst*0.08})`;ctx.lineWidth=2+burst*2.4;ctx.beginPath();ctx.arc(cx,cy,rr,0,Math.PI*2);ctx.stroke()}
+const flash=ctx.createRadialGradient(cx,cy,5,cx,cy,Math.min(CW,CH)*0.62);flash.addColorStop(0,`rgba(234,252,255,${0.08+burst*0.32})`);flash.addColorStop(.18,`rgba(97,225,255,${0.05+burst*0.18})`);flash.addColorStop(.52,`rgba(19,74,112,${0.05+burst*0.13})`);flash.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=flash;ctx.fillRect(0,0,CW,CH);ctx.restore();drawPortalRing(cx,cy,Math.min(CW,CH)*(0.16+0.12*burst),time,0.42+burst*0.48)}
+function drawRoomBackground(entry,time){const cx=CW*.5,cy=CH*.5,top=CH*.13,bottom=CH*.88;ctx.save();const g=ctx.createRadialGradient(cx,cy,5,cx,cy,Math.max(CW,CH)*.82);g.addColorStop(0,'#153654');g.addColorStop(.42,'#091423');g.addColorStop(1,'#02050c');ctx.fillStyle=g;ctx.fillRect(0,0,CW,CH);for(const s of specks){ctx.fillStyle='rgba(133,211,255,'+(s.a*.75)+')';ctx.fillRect(s.x*CW,s.y*CH,s.r,s.r)}
+ctx.strokeStyle='rgba(86,214,255,.12)';for(let i=0;i<9;i++){const p=i/8,y=top+(bottom-top)*p*p,w=CW*(.12+.88*(1-p));ctx.beginPath();ctx.moveTo(cx-w*.5,y);ctx.lineTo(cx+w*.5,y);ctx.stroke()}
+for(let i=-7;i<=7;i++){const x1=cx+i*CW*.055;ctx.beginPath();ctx.moveTo(x1,top);ctx.lineTo(cx+i*CW*.22,bottom);ctx.stroke()}
+const floor=ctx.createLinearGradient(0,cy,0,CH);floor.addColorStop(0,'rgba(19,55,87,.04)');floor.addColorStop(1,'rgba(11,34,53,.45)');ctx.fillStyle=floor;ctx.beginPath();ctx.moveTo(CW*.09,bottom);ctx.lineTo(CW*.91,bottom);ctx.lineTo(CW*.73,cy+.02*CH);ctx.lineTo(CW*.27,cy+.02*CH);ctx.closePath();ctx.fill();
+ctx.restore();drawPortalRing(cx,cy,Math.min(CW,CH)*0.19+Math.sin(time*.0014)*7,time,.62);ctx.save();ctx.globalAlpha=.28;ctx.strokeStyle='rgba(255,255,255,.08)';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,cy,Math.min(CW,CH)*0.27,0,Math.PI*2);ctx.stroke();ctx.restore()}
+function renderMetricCard(x,y,w,h,label,value,tint){rounded(x,y,w,h,16);ctx.fillStyle='rgba(7,22,37,.88)';ctx.fill();ctx.strokeStyle='rgba(83,191,227,.18)';ctx.stroke();drawText(label,x+w*.08,y+h*.3,11,700,'#7fabc0');drawText(value,x+w*.08,y+h*.69,18,800,tint)}
+function renderRoom(entry,time){drawRoomBackground(entry,time);const cx=CW*.5,cy=CH*.52;const wobble=Math.sin(time*.0012)*8;const compact=CW<=880;const safeTop=compact?Math.max(214,$('galleryModePill').getBoundingClientRect().bottom+14):150;const available=CH-safeTop-(compact?115:95);const panelW=compact?CW-24:Math.min(CW*.66,980),panelH=compact?Math.max(165,Math.min(available,CH*.46,405)):Math.min(CH*.56,480);const x=cx-panelW*.5+Math.sin(roomYaw)*4,y=compact?safeTop:cy-panelH*.47+wobble*.08;ctx.save();ctx.shadowColor='rgba(69,229,255,.25)';ctx.shadowBlur=26;rounded(x,y,panelW,panelH,28);ctx.fillStyle='rgba(5,18,31,.92)';ctx.fill();ctx.shadowBlur=0;ctx.strokeStyle='rgba(98,229,255,.42)';ctx.lineWidth=2;ctx.stroke();ctx.save();rounded(x,y,panelW,panelH,28);ctx.clip();const hg=ctx.createLinearGradient(x,y,x,y+panelH*.22);hg.addColorStop(0,'rgba(16,64,94,.97)');hg.addColorStop(1,'rgba(8,28,46,.95)');ctx.fillStyle=hg;ctx.fillRect(x,y,panelW,panelH*.24);ctx.fillStyle='rgba(255,255,255,.035)';ctx.fillRect(x,y,panelW,1.5);drawText(short(entry.symbol),x+panelW*.05,y+panelH*.115,Math.min(34,panelW*.038),800,'#f1fbff');drawText(entry.price==null?'LIVE-DATEN LADEN…':money(entry.price),x+panelW*.95,y+panelH*.105,Math.min(28,panelW*.032),700,'#d5f0ff','right');drawText(entry.change==null?'VERBINDE…':(entry.change>=0?'+':'')+entry.change.toFixed(2)+'% / 24h',x+panelW*.95,y+panelH*.172,Math.min(16,panelW*.018),700,entry.change==null?'#90a6b4':entry.change>=0?'#57eeb2':'#ff8592','right');drawText(entry.symbol+' · '+chartTitle(modeFor(entry.symbol))+' · '+candleInterval+' · BINANCE SPOT',x+panelW*.05,y+panelH*.175,Math.min(14,panelW*.016),600,'#8bbbd1');const chartX=x+panelW*.055,chartY=y+panelH*.29,chartW=panelW*.89,chartH=panelH*.49;const range=drawChartArea(chartX,chartY,chartW,chartH,entry,1.1,true);if(range){drawText(money(range.hi),chartX+chartW+8,chartY+7,11,700,'#84b7cb');drawText(money(range.lo),chartX+chartW+8,chartY+chartH,11,700,'#84b7cb')}ctx.fillStyle='rgba(8,32,49,.98)';ctx.fillRect(x,y+panelH*.89,panelW,panelH*.11);let buy=entry.buy,sell=entry.sell,total=buy+sell,ratio=total?buy/total:.5;ctx.fillStyle=total?'#26bf9e':'#18364a';ctx.fillRect(x,y+panelH*.89,panelW*ratio,panelH*.11);ctx.fillStyle=total?'#ef6477':'#18364a';ctx.fillRect(x+panelW*ratio,y+panelH*.89,panelW*(1-ratio),panelH*.11);if(total){drawText('BUY PRESSURE',x+14,y+panelH*.962,Math.min(11,Math.max(8,panelW*.025)),700,'#d5f9ec');drawText('SELL PRESSURE',x+panelW-14,y+panelH*.962,Math.min(11,Math.max(8,panelW*.025)),700,'#ffe3e7','right')}else{drawText(window.TCUX('chartAwaitTrades'),x+panelW*.5,y+panelH*.962,Math.min(11,Math.max(8,panelW*.026)),700,'#8daebf','center')};ctx.restore();ctx.restore();
+if(compact)return;const sideW=Math.min(170,CW*.19),cardH=Math.min(82,CH*.11),gap=14;const leftX=Math.max(16,x-sideW-18),rightX=Math.min(CW-sideW-16,x+panelW+18),topY=y+14;renderMetricCard(leftX,topY,sideW,cardH,'MARKTPAAR',entry.symbol,'#e9f8ff');renderMetricCard(leftX,topY+cardH+gap,sideW,cardH,'24H TENDENZ',entry.change==null?'—':(entry.change>=0?'+':'')+entry.change.toFixed(2)+'% ',entry.change==null?'#d6eaf3':entry.change>=0?'#67f3c0':'#ff8e9d');renderMetricCard(rightX,topY,sideW,cardH,'TRADE FLOW',Math.round((entry.buy+entry.sell)||0).toLocaleString('en-US'),'#8ee5ff');renderMetricCard(rightX,topY+cardH+gap,sideW,cardH,'STATUS',entry.valid?'LIVE':'LOADING',entry.valid?'#55e7bc':'#f0cb73');
+ctx.save();ctx.globalAlpha=.24;ctx.strokeStyle='rgba(80,215,255,.22)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-12,cy);ctx.lineTo(leftX+sideW,topY+cardH);ctx.moveTo(x+panelW+12,cy);ctx.lineTo(rightX,topY+cardH);ctx.stroke();ctx.restore();}
+function updateTransition(now){if(!transition)return;const t=clamp((now-transition.start)/transition.duration,0,1);transition.progress=t;const v=ease(t);ang=transition.from.ang+(transition.to.ang-transition.from.ang)*v;pitch=transition.from.pitch+(transition.to.pitch-transition.from.pitch)*v;dist=transition.from.dist+(transition.to.dist-transition.from.dist)*v;offsetX=transition.from.offsetX+(transition.to.offsetX-transition.from.offsetX)*v;offsetZ=transition.from.offsetZ+(transition.to.offsetZ-transition.from.offsetZ)*v;if(t>=1){if(transition.type==='enter'){mode='room';roomSymbol=transition.symbol;selected=roomSymbol;roomYaw=0;roomDrift=0}else{mode='hub';roomSymbol=null;selected=transition.symbol||selected}transition=null;updateUI()}}
+function startEnter(symbol){if(!entries.has(symbol)||mode==='transition')return;tour=false;$('gTour').textContent=window.TCUX('tour');selected=symbol;const i=Math.max(0,symbols.indexOf(symbol));const targetAng=-i/Math.max(1,symbols.length)*Math.PI*2;transition={type:'enter',symbol,start:performance.now(),duration:1650,from:{ang,pitch,dist,offsetX,offsetZ},to:{ang:targetAng,pitch:0.02,dist:2.45,offsetX:0,offsetZ:-.7},progress:0};mode='transition';updateUI();toast('Zeitreise in den Raum: '+symbol)}
+function startExit(){if(mode==='hub'||mode==='transition')return;transition={type:'exit',symbol:roomSymbol,start:performance.now(),duration:1450,from:{ang,pitch,dist,offsetX,offsetZ},to:{ang,pitch:.13,dist:15.2,offsetX:0,offsetZ:0},progress:0};mode='transition';updateUI();toast('Zurück in die Markthalle')}
+function stepRoom(delta){if(!roomSymbol)return;const i=symbols.indexOf(roomSymbol);if(i<0)return;const next=(i+delta+symbols.length)%symbols.length;startEnter(symbols[next])}
+function draw(time){if(!active)return;raf=requestAnimationFrame(draw);if(document.hidden)return;const dt=Math.min((time-last)/1000||.016,.1);last=time;acc+=dt;const fpsLimit=(quality==='eco'||(quality==='auto'&&fps<35))?28:50;if(acc<1/fpsLimit)return;const step=acc;acc=0;fps=fps*.94+(1/Math.max(step,.001))*.06;if(quality==='auto')factor=fps<33?.64:fps<43?.8:1;else factor=quality==='eco'?.65:1;if(tour&&mode==='hub')ang+=step*.10;roomYaw+=(mode==='room'?step*.15:0);roomDrift+=step;updateTransition(time);ctx.setTransform(DPR,0,0,DPR,0,0);ctx.clearRect(0,0,CW,CH);background(time);
+const hubVisible = mode==='hub' || (mode==='transition' && transition && ((transition.type==='enter'&&transition.progress<.58)||(transition.type==='exit'&&transition.progress>.42)));
+const roomVisible = mode==='room' || (mode==='transition' && transition && ((transition.type==='enter'&&transition.progress>=.32)||(transition.type==='exit'&&transition.progress<.78)));
+if(hubVisible){const n=symbols.length;let panels;if(CW<=780&&mode==='hub'){const s=symbols[mobileIndex%symbols.length],width=Math.min(CW-34,360),height=Math.min(235,Math.max(170,CH*.27));selected=s;panels=[{entry:entries.get(s),x:(CW-width)/2,y:Math.max(($('galleryModePill').getBoundingClientRect().bottom+15),Math.min((CH-height)/2+12,CH-height-115)),w:width,h:height,s:1.1,depth:9,px:0,pz:0}]}else{panels=symbols.map((s,i)=>panel(entries.get(s),i,n)).filter(Boolean);panels.sort((a,b)=>b.depth-a.depth)}targets=[];for(const p of panels){renderPanel(p);targets.push(p)}} else targets=[];
+if(roomVisible && roomSymbol && entries.has(roomSymbol)){renderRoom(entries.get(roomSymbol),time)}
+drawParticles(step);if(mode==='transition'&&transition)drawWarp(transition.progress,time,transition.type);$('gPerformance').textContent=`${quality.toUpperCase()} · ${Math.round(fps)} FPS · ${particles.length} Partikel`;
+if(mode==='room'&&roomSymbol){const e=entries.get(roomSymbol);$('gSelected').textContent=window.TCUX('portal')+' · '+roomSymbol+' · '+money(e?.price);$('gLive').textContent=e?.change==null?' · '+window.TCUX('notAvailable'):' · '+(e.change>=0?'+':'')+e.change.toFixed(2)+'% (24h)'}else if(mode==='transition'&&transition){$('gSelected').textContent=(transition.type==='enter'?window.TCUX('enterRoom')+' ':window.TCUX('leaveRoom')+' ')+(transition.symbol||window.TCUX('room'));$('gLive').textContent=' · '+window.TCUX('warpHint')}else if(selected){const e=entries.get(selected);$('gSelected').textContent=selected+' · '+money(e?.price);$('gLive').textContent=e?.change==null?' · '+window.TCUX('notAvailable'):' · '+(e.change>=0?'+':'')+e.change.toFixed(2)+'% (24h)'}else{$('gSelected').textContent=window.TCUX('central')+' · '+symbols.length+' '+window.TCUX('stations');$('gLive').textContent=' · '+[...entries.values()].filter(e=>e.price!=null).length+' '+window.TCUX('livePrices')}}
+async function json(path){const c=new AbortController(),timer=setTimeout(()=>c.abort(),8500);try{const r=await fetch(API+path,{signal:c.signal});if(!r.ok)throw Error('Binance HTTP '+r.status);return await r.json()}finally{clearTimeout(timer)}}
+async function fetchOne(symbol){const e=entries.get(symbol);if(!e)return;const rev=candleRevision,interval=candleInterval;try{const [k,t]=await Promise.all([json('klines?symbol='+symbol+'&interval='+interval+'&limit=96'),json('ticker/24hr?symbol='+symbol)]);if(!entries.has(symbol)||rev!==candleRevision)return;e.candles=k.map(a=>({o:+a[1],h:+a[2],l:+a[3],c:+a[4],v:+a[5],qv:+a[7],time:+a[0]})).filter(a=>a.c>0&&a.h>=a.l&&Number.isFinite(a.v));e.price=+t.lastPrice;e.change=+t.priceChangePercent;e.stamp=Date.now();e.valid=true;lastData=Date.now()}catch(err){if(!e.valid)e.error=err.message}}
+async function refresh(){await Promise.all(symbols.map(fetchOne));renderList()}
+function connect(){if(socket){socket.onclose=null;socket.close()}if(wsTimer){clearTimeout(wsTimer);wsTimer=null}if(!active||!symbols.length)return;const streams=symbols.flatMap(s=>[s.toLowerCase()+'@miniTicker',s.toLowerCase()+'@aggTrade']).join('/');try{socket=new WebSocket(WSS+streams);socket.onmessage=ev=>{let d;try{d=JSON.parse(ev.data).data}catch(e){return}if(!d)return;const e=entries.get(d.s);if(!e)return;if(d.e==='24hrMiniTicker'){if(Number.isFinite(+d.c)&&+d.c>0){e.price=+d.c;e.stamp=Date.now();lastData=Date.now();if(+d.o>0)e.change=(+d.c/+d.o-1)*100}}else if(d.e==='aggTrade'){const sell=!!d.m,qty=+d.q;if(sell)e.sell=e.sell*.975+Math.min(qty,1e9)*.025;else e.buy=e.buy*.975+Math.min(qty,1e9)*.025;if(Math.random()<.62*factor)addParticle(e,!sell)}};socket.onclose=()=>{if(active)wsTimer=setTimeout(connect,3500)};socket.onerror=()=>{if(socket&&socket.readyState<2)socket.close()}}catch(err){toast('Live-Stream derzeit nicht verfügbar');}}
+function chartTitle(type){return window.TCUX({candles:'chartCandles',line:'chartLine',area:'chartArea',volume:'chartVolume',heikin:'chartHeikin',rsi:'chartRSI',ribbon:'chartRibbon'}[type]||'chartCandles').replace(/^[^\p{L}\p{N}]+/u,'').trim()}
+function activeChartSymbol(){return roomSymbol&&mode==='room'?roomSymbol:(selected&&entries.has(selected)?selected:symbols[mobileIndex%symbols.length]||symbols[0])}
+let lastChartFocus=null;
+function updateChartDock(){
+ const current=activeChartSymbol(),select=$('gCoinPicker');
+ if(select.options.length!==symbols.length||symbols.some((s,i)=>select.options[i]?.value!==s)){select.replaceChildren();for(const sym of symbols){const o=document.createElement('option');o.value=sym;o.textContent=short(sym)+' / '+(sym.slice(short(sym).length)||'USDT');select.append(o)}}
+ select.value=current||'';$('gInterval').value=candleInterval;
+ const activeMode=modeFor(current);
+ document.querySelectorAll('#gChartModes [data-gchart]').forEach(btn=>{const on=btn.dataset.gchart===activeMode;btn.setAttribute('aria-pressed',String(on));btn.title=chartTitle(btn.dataset.gchart)});
+ if(current!==lastChartFocus){lastChartFocus=current;const rail=$('gChartModes'),chosen=rail.querySelector('[data-gchart="'+activeMode+'"]');if(chosen)rail.scrollLeft=Math.max(0,chosen.offsetLeft-rail.offsetLeft-(rail.clientWidth-chosen.offsetWidth)/2)}
+}
+function placeGalleryControls(){if(!active)return;
+ const header=$('galleryShell').querySelector('.galleryTop'),dock=$('galleryChartDock'),pill=$('galleryModePill');
+ const dockTop=Math.ceil(header.getBoundingClientRect().bottom+7);dock.style.top=dockTop+'px';
+ pill.style.top=Math.ceil(dockTop+dock.offsetHeight+8)+'px';
+ const side=$('gallerySide'),sideTop=Math.ceil(dockTop+dock.offsetHeight+56);side.style.top=Math.min(sideTop,Math.max(160,CH-230))+'px';side.style.maxHeight='calc(100dvh - '+(parseFloat(side.style.top)+24)+'px)';
+}
+$('gChartModes').addEventListener('click',ev=>{const b=ev.target.closest('[data-gchart]');if(!b)return;const sym=activeChartSymbol();if(!sym)return;chartPreferences[sym]=b.dataset.gchart;saveChartSettings();updateChartDock();toast(short(sym)+' · '+chartTitle(b.dataset.gchart))});
+$('gApplyAll').addEventListener('click',()=>{const t=modeFor(activeChartSymbol());for(const s of symbols)chartPreferences[s]=t;saveChartSettings();updateChartDock();toast(window.TCUX('chartApplied')+' · '+chartTitle(t))});
+$('gCoinPicker').addEventListener('change',ev=>{const s=ev.target.value;if(!entries.has(s))return;selected=s;mobileIndex=Math.max(0,symbols.indexOf(s));if(mode==='room')startEnter(s);else if(mode==='hub')updateUI();updateChartDock()});
+$('gInterval').addEventListener('change',ev=>{if(!['1m','5m','15m','1h','4h','1d'].includes(ev.target.value))return;candleInterval=ev.target.value;++candleRevision;for(const e of entries.values())e.candles=[];saveChartSettings();refresh();toast(window.TCUX('chartInterval')+' · '+candleInterval)});
+function updateUI(){const roomish=(mode==='room') || (mode==='transition'&&transition?.type==='exit') || (mode==='transition'&&transition?.type==='enter'&&transition.progress>.55);const hubMobile=window.innerWidth<=780&&mode==='hub';$('gPrev').hidden=!(roomish||hubMobile);$('gNext').hidden=!(roomish||hubMobile);$('gBack').hidden=!roomish;$('gHome').textContent=window.TCUX(roomish?'homeReset':'home');const pill=$('galleryModePill');if(mode==='room'&&roomSymbol){pill.innerHTML=window.TCUX('portal')+' · '+roomSymbol+'<small>'+window.TCUX('focusInfo')+'</small>';$('gHintText').textContent=window.TCUX('hintRoom')}else if(mode==='transition'){pill.innerHTML=(transition?.type==='enter'?window.TCUX('warpEnter'):window.TCUX('warpExit'))+'<small>'+window.TCUX('warpInfo')+'</small>';$('gHintText').textContent=window.TCUX('warpHint')}else{pill.innerHTML=window.TCUX('hub')+'<small>'+window.TCUX('hubInfo')+'</small>';$('gHintText').textContent=window.TCUX('hintHub')}updateChartDock();placeGalleryControls()}
+window.TCGalleryRefresh=function(){renderList();updateUI();$('gTour').textContent=window.TCUX(tour?'tourStop':'tour');placeGalleryControls()};
+function renderList(){const node=$('galleryList');node.replaceChildren();for(const s of symbols){const row=document.createElement('div');row.className='gRow';const label=document.createElement('span');const e=entries.get(s);label.textContent=s+' · '+(e.price==null?'—':money(e.price));const focus=document.createElement('button');focus.className='gBtn';focus.textContent=window.TCUX('openRoom');focus.onclick=()=>{selected=s;$('gallerySide').classList.remove('open');startEnter(s)};const del=document.createElement('button');del.className='gBtn';del.textContent='×';del.title=window.TCUX('remove');del.disabled=symbols.length<=1;del.onclick=()=>{if(symbols.length<=1)return;symbols=symbols.filter(x=>x!==s);entries.delete(s);delete chartPreferences[s];saveChartSettings();mobileIndex=Math.min(mobileIndex,Math.max(0,symbols.length-1));if(selected===s)selected=null;if(roomSymbol===s){roomSymbol=null;mode='hub'}save();renderList();connect();updateUI()};row.append(label,focus,del);node.append(row)}}
+function enter(){if(active)return;active=true;mode='hub';roomSymbol=null;transition=null;shell.classList.add('active');document.body.style.overflow='hidden';resize();specks=Array.from({length:150},()=>({x:Math.random(),y:Math.random(),r:Math.random()*1.25+.35,a:Math.random()*.34+.03}));renderList();updateUI();last=performance.now();raf=requestAnimationFrame(draw);refresh();fetchTimer=setInterval(refresh,65000);connect()}
+function exit(){active=false;shell.classList.remove('active');document.body.style.overflow='';cancelAnimationFrame(raf);clearInterval(fetchTimer);clearTimeout(wsTimer);if(socket){socket.onclose=null;socket.close();socket=null}}
+$('galleryLaunch').onclick=enter;$('gExit').onclick=exit;$('gAdd').onclick=()=>$('gallerySide').classList.toggle('open');$('gDismiss').onclick=()=>$('gallerySide').classList.remove('open');$('gHome').onclick=()=>{if(mode==='room'){ang=0;pitch=0.02;dist=2.45;offsetX=0;offsetZ=-.7;roomYaw=0}else{ang=0;pitch=.13;dist=16;offsetX=0;offsetZ=0;selected=null;tour=false;$('gTour').textContent=window.TCUX('tour')}updateUI()};$('gBack').onclick=startExit;$('gPrev').onclick=()=>{if(mode==='hub'&&window.innerWidth<=780){mobileIndex=(mobileIndex+symbols.length-1)%symbols.length;selected=symbols[mobileIndex];updateUI()}else stepRoom(-1)};$('gNext').onclick=()=>{if(mode==='hub'&&window.innerWidth<=780){mobileIndex=(mobileIndex+1)%symbols.length;selected=symbols[mobileIndex];updateUI()}else stepRoom(1)};$('gTour').onclick=()=>{tour=!tour;$('gTour').textContent=tour?window.TCUX('tourStop'):window.TCUX('tour')};$('gQuality').onclick=()=>{quality=quality==='auto'?'eco':quality==='eco'?'high':'auto';$('gQuality').textContent=quality==='auto'?'Auto':quality==='eco'?'Eco':'High'};
+$('gSubmit').onclick=async()=>{const input=$('gSymbol'),msg=$('gFormMessage');let sym=input.value.toUpperCase().trim().replace(/[^A-Z0-9]/g,'');if(!sym){msg.textContent=window.TCUX('enterCoin');return}if(!/(USDT|USDC|BTC|FDUSD)$/.test(sym))sym+=$('gQuote').value;if(!/^[A-Z0-9]{5,22}$/.test(sym)){msg.textContent=window.TCUX('invalidPair');return}if(entries.has(sym)){msg.textContent=sym+' '+window.TCUX('alreadyThere');return}if(symbols.length>=MAX){msg.textContent=window.TCUX('maximum')+' '+MAX;return}msg.textContent=window.TCUX('checking')+' '+sym+' · Binance…';try{const d=await json('ticker/price?symbol='+encodeURIComponent(sym));if(!d||!Number.isFinite(+d.price))throw Error('keine Kursdaten');symbols.push(sym);entries.set(sym,{symbol:sym,price:+d.price,change:null,candles:[],buy:0,sell:0,stamp:Date.now(),valid:true});save();updateChartDock();renderList();connect();fetchOne(sym);msg.textContent=sym+' '+window.TCUX('added');input.value='';toast(window.TCUX('added')+': '+sym)}catch(e){msg.textContent=window.TCUX('unavailable')+': '+sym+' ('+e.message+')'}};
+canvas.addEventListener('pointerdown',e=>{drag=true;moved=false;downX=e.clientX;downY=e.clientY;canvas.setPointerCapture(e.pointerId);tour=false;$('gTour').textContent=window.TCUX('tour')});
+canvas.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-downX,dy=e.clientY-downY;if(Math.abs(dx)+Math.abs(dy)>2)moved=true;if(mode==='room'){roomYaw=clamp(roomYaw+dx*.0018,-.85,.85)}else if(mode==='hub'){ang+=dx*.0048;pitch=clamp(pitch+dy*.0034,-.45,.6)}downX=e.clientX;downY=e.clientY});
+canvas.addEventListener('pointerup',e=>{if(!moved&&mode==='hub'){const a=targets.filter(p=>e.clientX>=p.x&&e.clientX<=p.x+p.w&&e.clientY>=p.y&&e.clientY<=p.y+p.h);if(a.length){startEnter(a[a.length-1].entry.symbol)}}drag=false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();if(mode==='room')dist=clamp(dist+e.deltaY*.006,1.85,5.6);else dist=clamp(dist+e.deltaY*.009,5.5,23)},{passive:false});
+let touchDist=0;canvas.addEventListener('touchmove',e=>{if(e.touches.length===2){const a=e.touches[0],b=e.touches[1],d=Math.hypot(a.clientX-b.clientX,a.clientY-b.clientY);if(touchDist){if(mode==='room')dist=clamp(dist+(touchDist-d)*.012,1.85,5.6);else dist=clamp(dist+(touchDist-d)*.018,5.5,23)}touchDist=d;e.preventDefault()}},{passive:false});canvas.addEventListener('touchend',()=>touchDist=0);
+window.addEventListener('keydown',e=>{if(!active)return;if(e.key==='Escape'){if($('gallerySide').classList.contains('open')){$('gallerySide').classList.remove('open')}else if(mode==='room'){startExit()}else exit();return}if(e.target.closest('input,textarea,select'))return;const d=.35;switch(e.key.toLowerCase()){case'w':case'arrowup':if(mode==='hub'){offsetZ-=Math.cos(ang)*d;offsetX+=Math.sin(ang)*d}break;case's':case'arrowdown':if(mode==='hub'){offsetZ+=Math.cos(ang)*d;offsetX-=Math.sin(ang)*d}break;case'a':if(mode==='hub'){offsetX-=Math.cos(ang)*d;offsetZ-=Math.sin(ang)*d}break;case'd':if(mode==='hub'){offsetX+=Math.cos(ang)*d;offsetZ+=Math.sin(ang)*d}break;case'arrowleft':if(mode==='room'){stepRoom(-1)}else{offsetX-=Math.cos(ang)*d;offsetZ-=Math.sin(ang)*d}break;case'arrowright':if(mode==='room'){stepRoom(1)}else{offsetX+=Math.cos(ang)*d;offsetZ+=Math.sin(ang)*d}break;case'enter':if(mode==='hub'&&selected)startEnter(selected);break;default:return}offsetX=clamp(offsetX,-5,5);offsetZ=clamp(offsetZ,-5,5);e.preventDefault()});
+window.addEventListener('resize',()=>{if(active)resize()});document.addEventListener('visibilitychange',()=>{if(active&&!document.hidden){last=performance.now()}});
+updateUI();
+})();
+</script>
+
+<style>
+#rxLaunch{position:fixed;right:18px;bottom:18px;z-index:10002;padding:13px 19px;border:1px solid #6ce5ff77;border-radius:18px;background:linear-gradient(125deg,#0e3650,#102135);color:#e8fbff;box-shadow:0 8px 35px #000b,0 0 24px #33d9ff33;font:700 12px system-ui;letter-spacing:.075em;cursor:pointer}
+#rxWorld{position:fixed;inset:0;z-index:10003;background:#030911;color:#e6f6ff;display:none;font-family:system-ui,sans-serif;overflow:hidden}
+#rxWorld.rxOpen{display:grid;grid-template-rows:auto minmax(0,1fr)}
+#rxWorld *{box-sizing:border-box}#rxWorld button,#rxWorld select{font:inherit;color:inherit;cursor:pointer}#rxWorld button{border:1px solid #6acffb38;background:#122a3c;border-radius:11px;padding:9px 11px}#rxWorld button:hover{border-color:#53dfff}#rxWorld button:focus-visible,#rxWorld select:focus-visible,#rxWorld input:focus-visible{outline:2px solid #6ce5ff;outline-offset:2px}#rxWorld button.on{background:#206180;border-color:#55e8ff}
+#rxTop{display:flex;align-items:center;gap:12px;padding:12px 17px;background:#061422ed;border-bottom:1px solid #63dbff35;flex-wrap:wrap}#rxTop b{letter-spacing:.15em;font-size:14px}#rxTop small{color:#91b6c8}#rxTop button:first-of-type{margin-left:auto}
+#rxLayout{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:0}#rxStage{position:relative;min-height:0;overflow:hidden;background:radial-gradient(circle at 50% 50%,#143044 0%,#04101e 48%,#02060d 95%)}#rxCanvas{width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+#rxHud{position:absolute;top:15px;left:15px;display:flex;gap:8px;flex-wrap:wrap;pointer-events:none;max-width:calc(100% - 30px)}.rxChip{padding:7px 10px;background:#051420d9;border:1px solid #61d9ff34;border-radius:10px;font-size:11px;font-variant-numeric:tabular-nums}#rxLegend{position:absolute;bottom:13px;left:15px;font-size:11px;color:#a4bfd2;background:#061521b9;border-radius:10px;padding:9px;max-width:calc(100% - 30px)}
+#rxControls{overflow-y:auto;padding:15px;background:#071521;border-left:1px solid #6dd4ff25;display:flex;flex-direction:column;gap:14px}#rxControls section{padding:12px;background:#0b2131;border:1px solid #65bddd23;border-radius:15px}#rxControls h3{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#9bcedb;margin:0 0 12px}#rxControls label{display:block;font-size:12px;color:#d9efff;margin:11px 0 5px}#rxControls input[type=range]{width:100%;accent-color:#58dfff}#rxControls select,#rxControls input[type=file]{width:100%;max-width:100%;font-size:12px}#rxControls select{background:#092031;border:1px solid #6bdfff55;padding:9px;border-radius:9px}#rxControls .rxButtons{display:flex;gap:7px;flex-wrap:wrap}#rxControls .rxButtons button{font-size:11px;flex:1}#rxAudio{width:100%;margin-top:8px;accent-color:#59dfff}#rxStatus{color:#b2d7e6;font-size:11px;line-height:1.5}#rxWorld .rxNote{font-size:10px;color:#8aabbe;line-height:1.5;margin:7px 0 0}
+@media(max-width:780px){#rxLayout{grid-template-columns:1fr;grid-template-rows:minmax(230px,1fr) minmax(0,38vh)}#rxControls{border-left:0;border-top:1px solid #6dd4ff25;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;padding:9px}#rxControls section{padding:10px}#rxTop{gap:7px;padding:8px 10px}#rxTop b{font-size:11px}#rxTop small{display:none}#rxLegend{font-size:9px}#rxLaunch{right:11px;bottom:11px}}
+@media(max-width:440px){#rxControls{grid-template-columns:1fr 1fr}#rxControls section:last-child{grid-column:1/-1}#rxControls input[type=file]{font-size:10px}#rxControls h3{font-size:10px}}
+</style>
+
+<style id="tcUXPolishV2">
+/* V2: reserved navigational area: buttons never hover over the data canvas. */
+:root { --panel:#0b1a2a; --line:rgba(115,194,222,.27); }
+.top,.toolbar,.overview,.scene-column,.rail-card,.oracle-hud,.settings-shelf { isolation:isolate; }
+.primary-nav{gap:6px;border:1px solid #6fa7c22b;padding:5px;background:#061421;border-radius:15px}
+.primary-nav button{min-height:43px;border-radius:10px;line-height:1.3;transition:background .16s,color .16s,box-shadow .16s}
+.primary-nav button.active{background:linear-gradient(145deg,#1b5369,#103244);color:#effbff;box-shadow:inset 0 0 0 1px #65d8f36b,0 5px 15px #0004}
+.tool-button,.gBtn,.action-button,.icon-button,.history-action {font-weight:650;letter-spacing:.01em}
+.tool-button{border:1px solid #75b7d125;background:linear-gradient(150deg,#0f2636,#0a1928)}
+.market-card{border:1px solid #71b4d53b;background:linear-gradient(145deg,#102638,#0a1726 70%);box-shadow:inset 0 1px #bbf0ff10,0 8px 21px #0003;border-radius:16px;min-height:72px}
+.market-card.active{border-color:#78ddff93;background:linear-gradient(130deg,#15465e9e,#0b2338);box-shadow:0 0 0 1px #55d5f31a,0 12px 26px #0004,inset 0 1px #a5eeff25}
+.market-card:focus-visible{outline:2px solid #78dbff;outline-offset:3px}
+.market-name b{font-size:12px;font-weight:750;letter-spacing:.05em}.market-name span{color:#aac5d4}
+.market-price b{color:#e9faff;font-weight:750;font-variant-numeric:tabular-nums}
+.rail-card,.oracle-hud{border-color:#83b5d334;box-shadow:inset 0 1px #c9f0ff0b,0 10px 25px #0002}
+.experience-dock{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;padding:10px clamp(12px,2vw,26px);border-bottom:1px solid #79bdda2e;background:linear-gradient(110deg,#071523,#0a1b2b 56%,#0c1727)}
+.experience-dock__intro{display:flex;flex-direction:column;gap:2px;min-width:0}
+.experience-dock__intro strong{font-size:11px;letter-spacing:.12em;color:#d1e8f7;text-transform:uppercase}
+.experience-dock__intro span{font-size:10px;color:#82a7b9;line-height:1.4}
+.experience-dock__buttons{display:flex;flex-wrap:wrap;gap:9px;min-width:0}
+#galleryLaunch,#rxLaunch{position:static!important;inset:auto!important;z-index:auto!important;display:inline-flex;gap:10px;align-items:center;justify-content:center;min-height:43px;min-width:178px;margin:0!important;padding:10px 16px;border:1px solid #64c7e46e;border-radius:12px;background:linear-gradient(135deg,#15425b,#102a40 66%,#112338);color:#ebfaff;box-shadow:inset 0 1px #bceaff24,0 6px 18px #0003;font:750 12px system-ui;letter-spacing:.035em;transition:border-color .16s,background .16s,transform .16s,box-shadow .16s}
+#rxLaunch{border-color:#e3b97071;background:linear-gradient(135deg,#5c4624,#342b25 65%,#162334);color:#fff0c9}
+#galleryLaunch:hover,#galleryLaunch:focus-visible,#rxLaunch:hover,#rxLaunch:focus-visible{transform:translateY(-1px);border-color:#a8eeff;box-shadow:0 8px 22px #0006,0 0 18px #32b9ea2a;outline-offset:3px}
+#rxLaunch:hover,#rxLaunch:focus-visible{border-color:#f5d69a}
+#galleryShell{z-index:10000}#rxWorld{z-index:10001}
+.galleryTop{display:grid;grid-template-columns:auto minmax(0,1fr);align-items:start;gap:12px}
+.galleryControls{min-width:0;max-width:none;display:flex;justify-content:flex-end;flex-wrap:wrap;gap:6px}
+#galleryShell .gBtn{border:1px solid #7bc9e34e;background:linear-gradient(155deg,#123148,#0b1c2f);color:#dff6ff;border-radius:10px;min-height:40px;box-shadow:inset 0 1px #cef3ff0b,0 4px 9px #0003}
+#galleryShell .gBtn:hover,#galleryShell .gBtn:focus-visible{border-color:#92ecff;background:#18455c;outline:2px solid transparent;box-shadow:0 0 0 2px #4dd4f929}
+#galleryShell .gBtn.hot{background:linear-gradient(145deg,#22708b,#12455c);border-color:#64d4f080;color:white}
+#gallerySide{border-color:#7bc9e366;background:linear-gradient(180deg,#0d2537fb,#081b2cfb);box-shadow:0 20px 70px #000c}
+#gallerySide .gRow{background:#0c2233;padding:8px;border:1px solid #7bc0df25;margin:5px 0;border-radius:10px;flex-wrap:wrap}
+#gallerySide .gRow button:last-child{border-color:#fa899944;color:#ffc1c9}
+#gallerySide .gRow span{overflow-wrap:anywhere;min-width:125px}
+#rxWorld{background:#04101a}
+#rxTop{display:flex;align-items:center;gap:8px 10px;padding:12px 16px;background:#0b1d2b;border-bottom:1px solid #7cdeed38}
+#rxTop button,#rxWorld button{min-height:39px;border-radius:10px;background:linear-gradient(145deg,#15394d,#0c2335);border:1px solid #6ebbd151}
+#rxTop button{padding:8px 12px}
+#rxTop button:hover,#rxWorld button:hover{background:#214b60;border-color:#a0eafa}
+#rxLayout{grid-template-columns:minmax(0,1fr) clamp(312px,27vw,378px);min-height:0}
+#rxStage{min-width:0}
+#rxHud{display:flex;gap:6px;flex-wrap:wrap;max-width:calc(100% - 28px);top:12px;left:14px;right:14px}
+.rxChip{background:#071b2ae8;border:1px solid #8acde251;border-radius:9px;padding:7px 10px;color:#c2e6f4;line-height:1.4}
+.rxChipMemory{border-color:#e2bd6c73;background:#362916bf;color:#f7deab}
+#rxLegend{bottom:10px;left:12px;max-width:calc(100% - 24px);padding:8px 10px;background:#071828ed;color:#a7c7d5;border:1px solid #6d9db836;line-height:1.5}
+#rxControls{padding:13px;gap:10px;background:#071725;border-left:1px solid #72bcd13d}
+#rxControls section{padding:14px;border:1px solid #70b9d440;background:linear-gradient(155deg,#102a3b,#0b2030 70%);border-radius:14px;box-shadow:inset 0 1px #c2f0ff0b}
+#rxControls h3{color:#bae3ef;font-size:11px;line-height:1.5;letter-spacing:.1em}
+#rxControls .rxNote{font-size:11px;line-height:1.55;color:#9fc1d2}
+.rxMemoryStats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin:12px 0}
+.rxMemoryStats>div{padding:11px;background:#061a2a;border:1px solid #5dabc535;border-radius:11px;min-width:0}
+.rxMemoryStats span{font-size:10px;color:#91bacb;display:block;line-height:1.4}
+.rxMemoryStats strong{display:block;margin-top:6px;color:#ffdf99;font-size:18px;font-weight:720;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.rxChipLevel{border-color:#7ad8ff66;background:#10263abf;color:#bcefff}.rxLevelStats{grid-template-columns:repeat(3,minmax(0,1fr))}.rxProgressBar{height:10px;border-radius:999px;background:#061826;border:1px solid #59afca34;overflow:hidden;margin-top:10px}.rxProgressBar i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#54dfff,#ffd97f)}.rxLevelCaption{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-top:8px;font-size:10px;color:#96bfce}.rxTradeCard{padding:12px;background:#071a2a;border:1px solid #5fb1cd3a;border-radius:12px;min-height:148px}.rxTradeCard[data-empty="1"]{display:flex;align-items:center;justify-content:center;text-align:center}.rxTradeEmpty{display:grid;gap:7px;color:#9abfd0;font-size:11px;line-height:1.5}.rxTradeEmpty strong{font-size:13px;color:#e6f7ff}.rxTradeHeader{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;flex-wrap:wrap;margin-bottom:10px}.rxTradeHeader strong{font-size:13px;color:#f7e1a8}.rxTradeHeader span{font-size:10px;color:#98c9d7}.rxTradeGrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.rxTradeItem{padding:9px;background:#081f31;border:1px solid #569fba2b;border-radius:10px;min-width:0}.rxTradeItem span{display:block;font-size:10px;color:#90b7c7;line-height:1.35}.rxTradeItem strong{display:block;margin-top:4px;font-size:12px;color:#effbff;overflow-wrap:anywhere}.rxTradeMeta{margin-top:10px;font-size:10px;line-height:1.5;color:#8fb2c2}.rxTradeSideBuy strong{color:#65ffd1}.rxTradeSideSell strong{color:#ff9fb2}@media(max-width:480px){.rxLevelStats{grid-template-columns:1fr}.rxTradeGrid{grid-template-columns:1fr}}
+.rxMemoryButtons{display:grid;grid-template-columns:1fr;gap:8px}
+#rxWorld #rxExport{background:#164458;border-color:#72dbec66;color:#e4fbff}
+#rxWorld #rxReset{background:#2c202a;border-color:#b36b7755;color:#f7bfca}
+#rxMemoryStatus{margin-top:9px}
+@media(max-width:1280px){.primary-nav button{padding:9px 10px}}
+@media(max-width:780px){
+ .experience-dock{gap:10px;padding:11px 13px;align-items:stretch}
+ .experience-dock__intro{flex:0 0 100%}
+ .experience-dock__buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%;gap:8px}
+ #galleryLaunch,#rxLaunch{min-width:0;width:100%;min-height:44px;font-size:11px;padding:9px 7px}
+ #rxWorld.rxOpen{grid-template-rows:auto minmax(0,1fr)}
+ #rxTop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;padding:10px 11px}
+ #rxTop b{grid-column:1/-1;font-size:12px;letter-spacing:.11em}
+ #rxTop small{display:none}
+ #rxTop button{min-width:0;margin:0!important;padding:8px 5px;white-space:normal;font-size:11px;min-height:39px}
+ #rxLayout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(230px, min(55vh,540px)) minmax(220px,1fr)}
+ #rxControls{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));align-content:start;overflow-y:auto;gap:10px;padding:10px;border-left:0;border-top:1px solid #6dcae046}
+ #rxControls section{min-width:0}
+ #rxControls section.rxMemorySection{grid-column:1/-1}
+ #rxControls .rxMemoryButtons{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .galleryTop{grid-template-columns:1fr;gap:7px;left:10px;right:10px;top:10px}
+ .galleryControls{width:100%;max-width:none;display:flex;justify-content:flex-start;flex-wrap:wrap}
+ #galleryShell .gBtn{min-height:37px;padding:7px 10px}
+ .galleryModePill{top:120px;left:12px;transform:none;font-size:10px;max-width:calc(100% - 24px)}
+ #gallerySide{top:176px;left:10px;right:10px;width:auto;max-height:calc(100dvh - 220px)}
+ .galleryBottom{bottom:9px;left:9px;right:9px;gap:5px}
+ .gStatus,.gLegend{font-size:10px;line-height:1.5;padding:7px 10px}
+}
+@media(max-width:640px){
+ .overview>.markets,.overview>.overview-metrics{width:100%;align-self:stretch}
+ .overview>.markets{order:-1}
+ .overview{display:flex;flex-direction:column}
+ .market-card{min-height:82px}
+ .market-name span{font-size:9px}
+ .primary-nav{gap:3px;padding:4px}
+ .primary-nav button{font-size:9px;padding:8px 2px;min-width:0;overflow-wrap:anywhere}
+ .toolbar-group,.tool-button{border-radius:10px}
+ #rxLayout{grid-template-rows:minmax(230px, 49vh) minmax(200px,1fr)}
+ #rxHud{max-width:calc(100% - 20px);left:10px;top:9px;right:10px;gap:5px}
+ .rxChip{font-size:9px;padding:6px 8px}
+ #rxLegend{left:8px;bottom:7px;max-width:calc(100% - 16px);font-size:9px;padding:6px 8px}
+ #rxControls{gap:7px;padding:9px}
+ #rxControls section{padding:10px}
+ #rxControls label{font-size:11px}
+ #rxControls section.rxMemorySection{grid-column:1/-1}
+ #galleryShell .galleryLogo{padding:9px 10px}
+ #galleryShell .galleryControls{gap:5px}
+ #galleryShell .gBtn{padding:6px 8px;font-size:10px}
+ .galleryModePill{top:157px}
+ #gallerySide{top:210px;max-height:calc(100dvh - 235px)}
+}
+@media(max-width:365px){.experience-dock__buttons{grid-template-columns:1fr}.rxMemoryStats strong{font-size:16px}#rxControls{grid-template-columns:1fr}#rxControls section.rxMemorySection{grid-column:auto}}
+
+/* V6 EVOLUTION / FLIGHT CONTROL SYSTEM */
+#rxFlightHud[hidden],#rxFlightPad[hidden]{display:none!important}
+#rxFlightHud{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:7;display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap;max-width:calc(100% - 16px);padding:7px 9px;background:#061c2ee8;border:1px solid #6adbed75;border-radius:13px;box-shadow:0 9px 29px #0009;color:#e6f7ff;font:600 11px system-ui}
+#rxFlightHud #rxFlightStatus{color:#7cf9d9;letter-spacing:.08em}#rxFlightDistance{color:#ffd991;white-space:nowrap}#rxWorld #rxFlightExit{padding:6px 10px;min-height:30px;font-size:11px;border-color:#d8b17680}
+#rxFlightPad{position:absolute;bottom:12px;left:12px;right:12px;z-index:6;display:flex;justify-content:space-between;align-items:flex-end;pointer-events:none;gap:12px}
+#rxFlightPad button{pointer-events:auto;touch-action:none;user-select:none;-webkit-user-select:none;min-height:46px;min-width:46px;border-radius:13px;border:1px solid #72dff5a0;background:#0a3045ec;color:#f2feff;font-size:18px;box-shadow:0 4px 18px #0014}
+#rxFlightPad button:active,#rxFlightPad button.is-held{background:#2c7794;border-color:#a7f9ff;transform:scale(.94)}
+.rxPadCluster{text-align:center;display:grid;justify-items:center;gap:3px}.rxPadCluster>div{display:flex;gap:4px}.rxPadVertical{display:flex;flex-direction:column;gap:4px}.rxPadVertical button:nth-child(2){color:#ffe293;border-color:#f8ce7a}
+#rxWorld .rxFlightButtons{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}#rxWorld .rxFlightButtons button{min-width:0;padding:11px 9px;font-weight:750;font-size:11px}
+#rxWorld #rxFlyStart{background:linear-gradient(115deg,#0c5967,#1e5967);border-color:#7ef6e6a8;color:#e1fffa}#rxWorld #rxFlyStart.is-flying{background:linear-gradient(115deg,#20486b,#4b417b)}
+#rxWorld #rxFlyStop:disabled{opacity:.38;cursor:not-allowed}#rxWorld .rxSelectedFlight{margin-top:10px;width:100%;background:#155064;border-color:#81eddc;color:#efffff;font-size:11px;font-weight:700}.rxFlightInfo{padding:9px 11px;border-radius:10px;background:#071b2d;border:1px solid #5aabc53a;color:#add1de;font-size:11px;line-height:1.5}
+#rxWorld.rxFlying #rxLegend{bottom:133px;max-width:min(350px,calc(100% - 24px))}#rxWorld.rxFlying #rxCanvas{cursor:crosshair}
+@media(max-width:780px){#rxFlightHud{top:70px;left:auto;right:8px;transform:none;font-size:9px;padding:5px}#rxFlightHud button{font-size:9px!important}#rxFlightPad{bottom:8px;left:8px;right:8px}#rxFlightPad button{min-width:43px;min-height:43px}#rxWorld.rxFlying #rxLegend{display:none}}
+@media(max-width:365px){#rxFlightHud{top:74px}#rxFlightPad button{min-height:40px;min-width:40px}.rxPadCluster>div{gap:3px}#rxWorld .rxFlightButtons{grid-template-columns:1fr}}
+</style>
+<button type="button" id="rxLaunch" aria-label="Resonanzraum öffnen" data-ux="rxLaunch">◉ RESONANZ · ENTER</button>
+<div id="rxWorld" role="dialog" aria-modal="true" aria-label="Resonanzmarkt" tabindex="-1">
+ <header id="rxTop"><b>RESONANCE × MARKET</b><small>Terra Classic · Evolution / Free Flight · V6</small><button id="rxPause" type="button" data-ux="motion">Ⅱ Bewegung</button><button id="rxShot" type="button" data-ux="shot">◫ Bild</button><button id="rxClose" type="button" data-ux="close">✕ Schließen</button></header>
+ <div id="rxLayout"><main id="rxStage"><canvas id="rxCanvas" aria-label="Interaktive dreidimensionale Klang- und Marktresonanz"></canvas><div id="rxHud"><span class="rxChip" id="rxData">● Markt: verbindet…</span><span class="rxChip" id="rxTrades">Trades: 0</span><span class="rxChip" id="rxBands">BASS 0 · MID 0 · HIGH 0</span><span class="rxChip rxChipLevel" id="rxLevelChip">⬢ Level 0 · Seed</span><span class="rxChip rxChipMemory" id="rxMemoryChip" data-ux="memoryEmpty">◈ Erinnerungen: 0</span></div><div id="rxFlightHud" hidden><span id="rxFlightStatus">EXPLORER · FLIGHT</span><span id="rxFlightDistance">0.0 u</span><button id="rxFlightExit" type="button" data-ux="flightExit">↶ Zurück</button></div><div id="rxFlightPad" hidden aria-label="Mobile Flugsteuerung"><div class="rxPadCluster"><button data-flight-key="forward" type="button" data-ux-label="flightForward" aria-label="Vorwärts">▲</button><div><button data-flight-key="left" type="button" data-ux-label="flightLeft" aria-label="Links">◀</button><button data-flight-key="back" type="button" data-ux-label="flightBack" aria-label="Rückwärts">▼</button><button data-flight-key="right" type="button" data-ux-label="flightRight" aria-label="Rechts">▶</button></div></div><div class="rxPadVertical"><button data-flight-key="up" type="button" data-ux-label="flightUp" aria-label="Steigen">＋</button><button data-flight-key="boost" type="button" data-ux-label="flightBoost" aria-label="Boost">⚡</button><button data-flight-key="down" type="button" data-ux-label="flightDown" aria-label="Sinken">－</button></div></div><div id="rxLegend" data-ux="legend">Cyan = Kauf · Koralle = Verkauf · Gold = bleibende Resonanzzentren. Tippe auf eine Kugel für Trade-Details. Marktdaten nur bei bestehender Verbindung.</div></main>
+ <aside id="rxControls"><section><h3 data-ux="audioTitle">01 · Resonanzquelle</h3><label for="rxFile" data-ux="audioFile">Eigenen Song laden</label><input type="file" id="rxFile" accept="audio/*"><audio id="rxAudio" controls preload="metadata"></audio><div class="rxButtons"><button id="rxDemo" type="button" data-ux="demo">♪ Demo-Ton</button><button id="rxMute" type="button" data-ux="marketSoundOff">♫ Marktsound: AUS</button></div><p class="rxNote" data-ux="audioNote">Musikdateien bleiben lokal im Browser. Marktsound wird nur nach Aktivierung erzeugt.</p></section>
+ <section><h3 data-ux="geometryTitle">02 · Resonanzgeometrie</h3><label for="rxMode" data-ux="geometry">Raumtyp</label><select id="rxMode"><option value="membrane" data-ux="membrane">Kymatische Membran</option><option value="tunnel" data-ux="tunnel">Resonanz-Tunnel</option><option value="sphere" data-ux="sphere">Frequenz-Sphäre</option><option value="helix" data-ux="helix">Harmonische Helix</option></select><label for="rxSym"><span data-ux="symmetry">Symmetrie</span> <output id="rxSymOut">8</output></label><input type="range" id="rxSym" min="3" max="18" value="8"><label for="rxSensitivity"><span data-ux="audioEffect">Audio-Einfluss</span> <output id="rxSensitivityOut">75%</output></label><input type="range" id="rxSensitivity" min="0" max="200" value="75"></section>
+ <section><h3 data-ux="marketTitle">03 · Marktkopplung</h3><label for="rxPair" data-ux="livePair">Live-Markt</label><select id="rxPair"><option value="luncusdt">LUNC / USDT</option><option value="ustcusdt">USTC / USDT</option></select><label for="rxInfluence"><span data-ux="marketEffect">Markteinfluss</span> <output id="rxInfluenceOut">65%</output></label><input type="range" id="rxInfluence" min="0" max="200" value="65"><label for="rxDensity"><span data-ux="detail">Detailgrad</span> <output id="rxDensityOut">60%</output></label><input type="range" id="rxDensity" min="20" max="100" value="60"><div id="rxStatus" data-ux="dataNote">Datenmodus: Binance öffentliche aggTrade-Ereignisse. Keine Kurse oder Trades werden simuliert.</div></section><section class="rxMemorySection"><h3 data-ux="memoryTitle">04 · Gedächtnis des Organismus</h3><p class="rxNote" data-ux="memoryNote">Jeder bestätigte Live-Trade stärkt eines von 24 Resonanzzentren. Die Struktur und Zähler bleiben lokal über Neustarts erhalten.</p><div class="rxMemoryStats rxLevelStats"><div><span data-ux="organismLevel">Organismus-Level</span><strong id="rxOrganismLevel">0</strong></div><div><span data-ux="stageLabel">Stufe</span><strong id="rxOrganismStage">Seed</strong></div><div><span data-ux="nextLevel">Nächstes Level</span><strong id="rxNextGoal">12</strong></div></div><div class="rxProgressBar" aria-hidden="true"><i id="rxLevelBar"></i></div><div class="rxLevelCaption"><span id="rxLevelProgressLabel">0 / 12</span><span id="rxLevelHint" data-ux="tapSphereHintShort">Kugel antippen für Trade-Infos</span></div><div class="rxMemoryStats"><div><span data-ux="stored">Gespeicherte Trades</span><strong id="rxSavedTrades">0</strong></div><div><span data-ux="centers">Aktive Zentren</span><strong id="rxActiveCenters">0 / 24</strong></div><div><span data-ux="buy">Kauf-Trades</span><strong id="rxStoredBuy">0</strong></div><div><span data-ux="sell">Verkauf-Trades</span><strong id="rxStoredSell">0</strong></div></div><div class="rxMemoryButtons"><button id="rxExport" type="button" data-ux="export">↓ JSON sichern</button><button id="rxReset" type="button" data-ux="reset">↺ Markt-Gedächtnis löschen</button></div><div id="rxMemoryStatus" role="status" class="rxNote" data-ux="storageNote">Lokale Speicherung dieses Browsers; nicht auf der Blockchain.</div></section><section class="rxTradeSection"><h3 data-ux="tradeDetailTitle">05 · Kugel-Details</h3><p class="rxNote" data-ux="tradeDetailNote">Tippe im Resonanzraum auf eine aktive Kugel. Angezeigt wird der zuletzt zugeordnete Trade dieses Zentrums.</p><div id="rxTradeDetail" class="rxTradeCard" data-empty="1"><div class="rxTradeEmpty"><strong data-ux="noSelection">Noch keine Kugel gewählt</strong><span data-ux="tapSphereHint">Wähle eine aktive Resonanzkugel im Raum, um den zugehörigen Trade zu sehen.</span></div></div></section><section class="rxEvoSection"><h3 data-ux="evoTitle">06 · Organismus-Evolution</h3><label for="rxEvoStyle" data-ux="evoVisual">Organismusform</label><select id="rxEvoStyle"><option value="auto" data-ux="evoAuto">Auto · Lebendige Evolution</option><option value="neural" data-ux="evoNeural">Neurales Netzwerk</option><option value="crystal" data-ux="evoCrystal">Kristall-Morphologie</option><option value="coral" data-ux="evoCoral">Leuchtende Koralle</option><option value="scorpion" data-ux="evoScorpion">Skorpion-Silhouette</option></select><p class="rxNote" data-ux="evoNote">Die Form entwickelt zusätzliche Strukturen, sobald bestätigte Trades neue Level freischalten. Formen sind künstlerische Datenvisualisierungen.</p></section><section class="rxFlightSection"><h3 data-ux="flightTitle">07 · Kugel-Navigation</h3><p class="rxNote" data-ux="flightNote">Erst Kugel anwählen, dann gemeinsam durch den Raum fliegen. Ohne Trades steht ein freier Erkundungsflug bereit.</p><div class="rxFlightButtons"><button id="rxFlyStart" type="button">✦ Mit Kugel fliegen</button><button id="rxFlyStop" type="button" disabled data-ux="flightStop">↶ Raumansicht</button></div><label for="rxFlightSpeed"><span data-ux="flightSpeed">Fluggeschwindigkeit</span> <output id="rxFlightSpeedOut">2.0×</output></label><input type="range" min="1" max="5" step="0.5" value="2" id="rxFlightSpeed"/><p class="rxNote" data-ux="flightKeys">W/S: vor/zurück · A/D: drehen · Leertaste/Shift: hoch/runter · Maus ziehen: steuern · Pfeiltasten oder Touch-Buttons.</p><div id="rxFlightInfo" role="status" class="rxFlightInfo">Bereit zum Erkunden</div></section></aside></div>
+</div>
+<script>
+(()=>{'use strict';
+const $=id=>document.getElementById(id),world=$('rxWorld'),cv=$('rxCanvas'),ctx=cv.getContext('2d',{alpha:false});if(!ctx)return;
+let open=false,playing=true,frame=0,last=0,angle=.4,tilt=.32,zoom=1,drag=false,pX=0,pY=0,ws=null,retry=null,tradeCount=0,events=[],buyEnergy=0,sellEnergy=0,live=false,lastTrade=0,objectURL=null,audioCtx=null,analyser=null,source=null,osc=null,gain=null,marketOsc=null,marketGain=null,marketVolume=false;
+let W=1,H=1,dpr=1,freq=new Uint8Array(1024),bass=0,mid=0,high=0,lastImpulseSound=0;
+const audio=$('rxAudio');
+// V6: flight is visual navigation only. No trade data is generated in explorer mode.
+let flightActive=false,flightExplorer=false,flightPos={x:0,y:0,z:3.2},flightYaw=Math.PI,flightPitch=0,flightVelocity=0,flightDistance=0,flightTrail=[],followCam={x:0,y:1,z:5},followDistance=1.7,lastFlightTick=0;
+const flightKeys=new Set(),clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+const FLIGHT_KEY_MAP={KeyW:'forward',ArrowUp:'forward',KeyS:'back',ArrowDown:'back',KeyA:'left',ArrowLeft:'left',KeyD:'right',ArrowRight:'right',Space:'up',KeyE:'up',ShiftLeft:'down',ShiftRight:'down',KeyQ:'down',KeyB:'boost'};
+let evoTheme='auto';
+
+
+const MEMORY_KEY='tc-resonance-organism-v3';
+const LEGACY_MEMORY_KEYS=['tc-resonance-organism-v2'];
+const MARKETS=['luncusdt','ustcusdt'];
+const LEVEL_THRESHOLDS=[0,12,36,90,180,320,520,900,1500,2400,3700,5500,8000,11500,16000,22000,30000,40000,53000,69000,90000];
+const ORGANISM_STAGE_KEYS=['stageSeed','stagePulse','stageCell','stageCluster','stageNetwork','stageOrganism','stageNexus','stageApex','stageTranscendent','stageOrbit','stageGenesis','stageGenome','stageChronosphere','stageRoot','stageVortex','stageSynapse','stageGalaxy','stageSingularity','stageSupernova','stageAscension','stageEternal'];
+const CENTER_LEVEL_THRESHOLDS=[1,3,6,12,24,48,96,160];
+const blankCenter=()=>({n:0,v:0,last:null});
+const blankMarket=()=>({count:0,buy:0,sell:0,nominal:0,first:null,last:null,centers:Array.from({length:24},blankCenter)});
+let remembered={version:3,markets:Object.fromEntries(MARKETS.map(s=>[s,blankMarket()]))};
+let memoryTimer=null,memoryStoreReady=true,lastMemoryHUD=0;
+let pickNodes=[],selectedCenter=null,selectedInfo=null,dragMoved=false,downX=0,downY=0;
+const safeNumber=(n,limit=1e16)=>Number.isFinite(Number(n))?Math.max(0,Math.min(limit,Number(n))):0;
+const safeTrade=t=>t&&typeof t==='object'?({side:t.side==='sell'?'sell':'buy',price:safeNumber(t.price,1e12),qty:safeNumber(t.qty,1e12),nominal:safeNumber(t.nominal,1e15),stamp:safeNumber(t.stamp,4e12)||Date.now(),aggId:safeNumber(t.aggId,1e15)||null,symbol:typeof t.symbol==='string'?t.symbol:'',center:safeNumber(t.center,24)}):null;
+function loadMemoryData(){
+ const candidates=[MEMORY_KEY,...LEGACY_MEMORY_KEYS];
+ for(const key of candidates){
+  try{
+   const raw=localStorage.getItem(key);if(!raw)continue;
+   const loaded=JSON.parse(raw);if(!loaded||!loaded.markets)continue;
+   for(const symbol of MARKETS){
+    const a=loaded.markets[symbol];if(!a||!Array.isArray(a.centers)||a.centers.length!==24)continue;
+    const next=blankMarket();
+    for(const k of ['count','buy','sell','nominal'])next[k]=safeNumber(a[k]);
+    next.first=safeNumber(a.first)||null;next.last=safeNumber(a.last)||null;
+    next.centers=a.centers.map(p=>({n:safeNumber(p?.n),v:safeNumber(p?.v),last:safeTrade(p?.last)||null}));
+    remembered.markets[symbol]=next;
+   }
+   remembered.version=3;
+   return;
+  }catch(e){}
+ }
+}
+try{loadMemoryData()}catch(e){memoryStoreReady=false}
+function saveMemory(){clearTimeout(memoryTimer);memoryTimer=null;try{localStorage.setItem(MEMORY_KEY,JSON.stringify(remembered));memoryStoreReady=true}catch(e){memoryStoreReady=false;const el=$('rxMemoryStatus');if(el)el.textContent=window.TCUX('storageError')}}
+function queueMemory(){if(memoryTimer===null)memoryTimer=setTimeout(saveMemory,1600)}
+function readMemory(){return remembered.markets[$('rxPair').value]||remembered.markets.luncusdt}
+function formatPair(symbol){return String(symbol||$('rxPair').value||'').replace(/usdt$/i,' / USDT').toUpperCase()}
+function formatAmount(value,maxFrac=2){const locale=window.TCI18n?.locale?.()||'de-DE';if(!Number.isFinite(value))return '—';const abs=Math.abs(value);const digits=abs>=1000?2:abs>=1?Math.min(maxFrac,4):abs>=.01?Math.max(maxFrac,6):8;return Number(value).toLocaleString(locale,{maximumFractionDigits:digits})}
+function formatPrice(value){return formatAmount(value,8)}
+function formatTime(stamp){return stamp?new Date(stamp).toLocaleString(window.TCI18n?.locale?.()||'de-DE'):'—'}
+function getOrganismLevel(count){let level=0;for(let i=1;i<LEVEL_THRESHOLDS.length;i++)if(count>=LEVEL_THRESHOLDS[i])level=i;const next=LEVEL_THRESHOLDS[Math.min(level+1,LEVEL_THRESHOLDS.length-1)];const current=LEVEL_THRESHOLDS[level];const capped=level>=LEVEL_THRESHOLDS.length-1;return {level,stageKey:ORGANISM_STAGE_KEYS[Math.min(level,ORGANISM_STAGE_KEYS.length-1)],current,next,capped,progress:capped?1:Math.max(0,Math.min(1,(count-current)/Math.max(1,next-current)))}}
+function getCenterLevel(center){let lvl=0;for(const threshold of CENTER_LEVEL_THRESHOLDS){if(center.n>=threshold)lvl++;else break}return Math.max(1,lvl)}
+function centerSide(center,index){if(center?.last?.side)return center.last.side;return index>=12?'sell':'buy'}
+function recordTrade(symbol,sell,nominal,price,stamp,qty,aggId){const m=remembered.markets[symbol];if(!m||!Number.isFinite(nominal)||nominal<=0)return;let klass=Math.floor(Math.log10(1+nominal)*3+price*1e8)%12;klass=Math.max(0,Math.min(11,klass));const centerIndex=(sell?12:0)+klass;const cell=m.centers[centerIndex];cell.n++;cell.v+=nominal;const time=Number.isFinite(stamp)&&stamp>0?stamp:Date.now();cell.last={side:sell?'sell':'buy',price:safeNumber(price,1e12),qty:safeNumber(qty,1e12),nominal:safeNumber(nominal,1e15),stamp:time,aggId:safeNumber(aggId,1e15)||null,symbol,center:centerIndex};m.count++;m[sell?'sell':'buy']++;m.nominal+=nominal;m.first=m.first||time;m.last=time;queueMemory();if(selectedCenter===centerIndex&&$('rxPair').value===symbol){selectedInfo=buildSelectionInfo(centerIndex);renderTradeDetail(selectedInfo)}if(performance.now()-lastMemoryHUD>350){lastMemoryHUD=performance.now();updateMemoryHUD()}}
+function buildSelectionInfo(centerIndex){const m=readMemory();const center=m.centers[centerIndex];if(!center||!center.n||!center.last)return null;return {center:centerIndex,count:center.n,total:center.v,level:getCenterLevel(center),trade:center.last,organism:getOrganismLevel(m.count)}}
+function renderTradeDetail(info){const box=$('rxTradeDetail');if(!box)return;if(!info||!info.trade){selectedInfo=null;box.dataset.empty='1';box.innerHTML=`<div class="rxTradeEmpty"><strong>${window.TCUX('noSelection')}</strong><span>${window.TCUX('tapSphereHint')}</span></div>`;return}selectedInfo=info;const t=info.trade,sideKey=t.side==='sell'?'sideSell':'sideBuy';box.dataset.empty='0';box.innerHTML=`<div class="rxTradeHeader"><strong>${window.TCUX('selectedSphere')} ${info.center+1}</strong><span>${window.TCUX('levelWord')} ${info.level}</span></div><div class="rxTradeGrid"><div class="rxTradeItem ${t.side==='sell'?'rxTradeSideSell':'rxTradeSideBuy'}"><span>${window.TCUX('tradeSide')}</span><strong>${window.TCUX(sideKey)}</strong></div><div class="rxTradeItem"><span>${window.TCUX('tradeCenterCount')}</span><strong>${Math.round(info.count).toLocaleString(window.TCI18n?.locale?.()||'de-DE')}</strong></div><div class="rxTradeItem"><span>${window.TCUX('tradePrice')}</span><strong>${formatPrice(t.price)}</strong></div><div class="rxTradeItem"><span>${window.TCUX('tradeQty')}</span><strong>${formatAmount(t.qty,8)}</strong></div><div class="rxTradeItem"><span>${window.TCUX('tradeNotional')}</span><strong>${formatAmount(t.nominal,8)} USDT</strong></div><div class="rxTradeItem"><span>${window.TCUX('tradeTime')}</span><strong>${formatTime(t.stamp)}</strong></div></div><div class="rxTradeMeta">${window.TCUX('tradeMeta')}<br>${window.TCUX('tradeMarket')}: <strong>${formatPair(t.symbol)}</strong>${t.aggId?` · aggTrade #${t.aggId}`:''}</div><button type="button" class="rxSelectedFlight" data-tc-fly="1">${window.TCUX('flightStart')}</button>`}
+function updateMemoryHUD(){const m=readMemory(),used=m.centers.filter(c=>c.n>0).length,org=getOrganismLevel(m.count);if(!memoryStoreReady)$('rxMemoryStatus').textContent=window.TCUX('storageError');const fmt=n=>Math.round(n).toLocaleString(window.TCI18n?.locale?.()||'de-DE');$('rxSavedTrades').textContent=fmt(m.count);$('rxActiveCenters').textContent=used+' / 24';$('rxStoredBuy').textContent=fmt(m.buy);$('rxStoredSell').textContent=fmt(m.sell);$('rxMemoryChip').textContent='◈ '+window.TCUX('memoryShort')+': '+fmt(m.count)+' · '+used+'/24';$('rxLevelChip').textContent='⬢ '+window.TCUX('levelWord')+' '+org.level+' · '+window.TCUX(org.stageKey);$('rxOrganismLevel').textContent=String(org.level);$('rxOrganismStage').textContent=window.TCUX(org.stageKey);$('rxNextGoal').textContent=org.capped?'MAX':fmt(org.next);$('rxLevelBar').style.width=(org.progress*100).toFixed(1)+'%';$('rxLevelProgressLabel').textContent=org.capped?fmt(m.count)+' / MAX':fmt(m.count)+' / '+fmt(org.next);$('rxLevelHint').textContent=window.TCUX('tapSphereHintShort');if(selectedCenter!==null)renderTradeDetail(buildSelectionInfo(selectedCenter));else renderTradeDetail(null)}
+function nodeWorldPosition(i,org,now){
+ const tiers=[{count:4,radius:.82,y:-.05,req:0,offset:.2,wobble:.10},{count:6,radius:1.24,y:.24,req:1,offset:-.15,wobble:.14},{count:6,radius:1.68,y:-.28,req:3,offset:.33,wobble:.16},{count:8,radius:2.15,y:.08,req:5,offset:-.42,wobble:.18}];
+ let start=0;for(const tier of tiers){if(i<start+tier.count){const local=i-start,unlocked=org.level>=tier.req,expansion=unlocked?1:Math.max(.45,.45+org.level/(tier.req+1)*.38),theta=local/tier.count*Math.PI*2+tier.offset+now*.00008*(i%2?1:-1),radius=tier.radius*expansion;return {x:Math.cos(theta)*radius,y:tier.y+Math.sin(now*.0011+i)*tier.wobble,z:Math.sin(theta)*radius}}start+=tier.count}return {x:0,y:0,z:0}
+}
+function drawMemoryNodes(now){const m=readMemory();pickNodes=[];const org=getOrganismLevel(m.count);drawEvolutionAnatomy(now,org,m);if(!m.count)return;const tiers=[{count:4,radius:.82,y:-.05,req:0,offset:.2,wobble:.10},{count:6,radius:1.24,y:.24,req:1,offset:-.15,wobble:.14},{count:6,radius:1.68,y:-.28,req:3,offset:.33,wobble:.16},{count:8,radius:2.15,y:.08,req:5,offset:-.42,wobble:.18}];let startIdx=0;ctx.save();ctx.globalCompositeOperation='screen';const active=[];for(const tier of tiers){const unlocked=org.level>=tier.req,expansion=unlocked?1:Math.max(.45,.45+org.level/(tier.req+1)*.38);for(let local=0;local<tier.count;local++){const i=startIdx+local,c=m.centers[i];if(!c.n)continue;const side=centerSide(c,i),theta=(local/tier.count)*Math.PI*2+tier.offset+now*.00008*(i%2?1:-1),radius=tier.radius*expansion,x=Math.cos(theta)*radius,z=Math.sin(theta)*radius,wobble=Math.sin(now*.0011+i)*tier.wobble,y=tier.y+wobble+Math.min(.5,Math.log1p(c.n)*.04),pt=project(x,y,z),centerLevel=getCenterLevel(c),base=side==='sell'?'#ff8b9f':'#55f4d1',focus=selectedCenter===i,size=(3.6+centerLevel*1.05+Math.log1p(c.n)*.5)*Math.max(.72,Math.min(1.35,pt[2]/105));if(unlocked||focus)path([[0,0,0],[x*.92,y*.92,z*.92]],focus?'rgba(255,222,149,.9)':'rgba(112,190,220,.24)',focus?1.55:1,focus?1:.85);ctx.globalAlpha=focus?.34:.18;ctx.fillStyle=base;ctx.beginPath();ctx.arc(pt[0],pt[1],size*2.6,0,Math.PI*2);ctx.fill();ctx.globalAlpha=focus?1:.8;ctx.strokeStyle=focus?'rgba(255,232,177,.98)':'rgba(252,211,143,.80)';ctx.lineWidth=focus?2.2:1.3;ctx.beginPath();ctx.arc(pt[0],pt[1],size*1.35,0,Math.PI*2);ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle=base;ctx.beginPath();ctx.arc(pt[0],pt[1],size,0,Math.PI*2);ctx.fill();ctx.fillStyle='#fff0c9';ctx.beginPath();ctx.arc(pt[0],pt[1],Math.max(1.5,size*.35),0,Math.PI*2);ctx.fill();if(centerLevel>=4){const tip=project(x*.88,y+.26+centerLevel*.018,z*.88);path([[x,y,z],[x*.88,y+.26+centerLevel*.018,z*.88]],'rgba(255,223,148,.62)',1.1,1);ctx.fillStyle='#ffe2a1';ctx.globalAlpha=.92;ctx.beginPath();ctx.arc(tip[0],tip[1],Math.min(4.2,1+centerLevel*.36),0,Math.PI*2);ctx.fill()}active.push({i,tier,local,x,y,z});pickNodes.push({x:pt[0],y:pt[1],r:size*1.5,center:i,info:buildSelectionInfo(i)})}startIdx+=tier.count}if(org.level>=4){const chains={};for(const node of active)(chains[node.tier.req]||(chains[node.tier.req]=[])).push(node);Object.values(chains).forEach(list=>{list.sort((a,b)=>a.local-b.local);for(let i=0;i<list.length;i++){const a=list[i],b=list[(i+1)%list.length];if(list.length>2)path([[a.x,a.y,a.z],[b.x,b.y,b.z]],'rgba(78,206,245,.18)',.9,.9)}})}ctx.globalAlpha=1;ctx.restore()}
+function resize(){const r=cv.getBoundingClientRect();dpr=Math.min(devicePixelRatio||1,1.7);W=Math.max(1,r.width);H=Math.max(1,r.height);cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+
+function ensureAudio(){if(audioCtx)return;audioCtx=new (window.AudioContext||window.webkitAudioContext)();analyser=audioCtx.createAnalyser();analyser.fftSize=2048;analyser.smoothingTimeConstant=.82;freq=new Uint8Array(analyser.frequencyBinCount);source=audioCtx.createMediaElementSource(audio);source.connect(analyser);analyser.connect(audioCtx.destination)}
+function demo(){ensureAudio();audioCtx.resume();if(osc){osc.stop();osc.disconnect();osc=null;$('rxDemo').textContent=window.TCUX('demo');return}osc=audioCtx.createOscillator();gain=audioCtx.createGain();osc.type='sine';osc.frequency.value=110;gain.gain.value=.075;osc.connect(gain);gain.connect(analyser);osc.start();$('rxDemo').textContent=window.TCUX('demoStop')}
+function marketSound(on){marketVolume=on;$('rxMute').textContent=window.TCUX(on?'marketSoundOn':'marketSoundOff');if(on){ensureAudio();audioCtx.resume();if(!marketOsc){marketOsc=audioCtx.createOscillator();marketGain=audioCtx.createGain();marketOsc.type='sine';marketGain.gain.value=0;marketOsc.connect(marketGain);marketGain.connect(audioCtx.destination);marketOsc.start()}}else if(marketGain)marketGain.gain.setTargetAtTime(0,audioCtx.currentTime,.05)}
+function connect(){if(!open)return;if(ws){ws.onclose=null;ws.close()}clearTimeout(retry);live=false;const symbol=$('rxPair').value;try{ws=new WebSocket('wss://stream.binance.com:9443/ws/'+symbol+'@aggTrade');ws.onopen=()=>{$('rxData').textContent='● '+symbol.toUpperCase()+' · LIVE';live=true;updateMemoryHUD()};ws.onmessage=ev=>{try{const t=JSON.parse(ev.data);if(t.e!=='aggTrade')return;const qty=Number(t.q),price=Number(t.p);if(!(qty>0&&price>0))return;const nominal=qty*price;const strength=Math.min(1,Math.log10(1+nominal)/5);const sell=!!t.m; // buyer is maker -> aggressive seller
+tradeCount++;lastTrade=Date.now();recordTrade(symbol,sell,nominal,price,Number(t.T),qty,Number(t.a));if(sell)sellEnergy=Math.min(2,sellEnergy+strength*.23);else buyEnergy=Math.min(2,buyEnergy+strength*.23);
+if(events.length>=90)events.shift();if(performance.now()-(events.length?events[events.length-1].t:0)>38)events.push({side:sell?-1:1,s:strength,t:performance.now(),p:Math.random()*Math.PI*2});$('rxTrades').textContent=window.TCUX('trades')+': '+tradeCount.toLocaleString(TCI18n.locale());if(marketVolume&&audioCtx&&marketOsc&&marketGain&&performance.now()-lastImpulseSound>110){lastImpulseSound=performance.now();marketOsc.frequency.setTargetAtTime(sell?125+strength*90:220+strength*170,audioCtx.currentTime,.035);marketGain.gain.setTargetAtTime(Math.min(.075,.012+strength*.045),audioCtx.currentTime,.02);setTimeout(()=>{if(marketGain&&audioCtx)marketGain.gain.setTargetAtTime(0,audioCtx.currentTime,.09)},85)}}catch(e){}};ws.onclose=()=>{live=false;$('rxData').textContent='● '+window.TCUX('disconnected');if(open)retry=setTimeout(connect,4500)};ws.onerror=()=>{if(ws)ws.close()}}catch(e){$('rxData').textContent='● '+window.TCUX('noFeed')}}
+function project(x,y,z){
+ if(flightActive){
+  const dx=x-followCam.x,dy=y-followCam.y,dz=z-followCam.z,sy=Math.sin(flightYaw),cy=Math.cos(flightYaw),sp=Math.sin(flightPitch),cp=Math.cos(flightPitch);
+  const forward=dx*sy*cp+dy*sp+dz*cy*cp;
+  if(forward<.17)return [-9999,-9999,0,forward];
+  const right=dx*cy-dz*sy,up=dy*cp-(dx*sy+dz*cy)*sp;
+  const scale=Math.min(W,H)*.72/(forward+0.45);
+  return [W/2+right*scale,H*.5-up*scale,scale,forward];
+ }
+ const a=angle,b=tilt,ca=Math.cos(a),sa=Math.sin(a),cb=Math.cos(b),sb=Math.sin(b);const X=x*ca-z*sa,Z=x*sa+z*ca,Y=y*cb-Z*sb,D=y*sb+Z*cb;const sc=zoom*Math.min(W,H)*.27/Math.max(.27,1+D*.17);return [W/2+X*sc,H/2+Y*sc,sc,1]
+}
+function path(points,color,width=1,alpha=1){ctx.strokeStyle=color;ctx.globalAlpha=alpha;ctx.lineWidth=width;ctx.beginPath();let moving=false,painted=false;for(const p of points){const v=project(...p);if(v[3]<.18||!Number.isFinite(v[0])){moving=false;continue}if(moving){ctx.lineTo(v[0],v[1]);painted=true}else{ctx.moveTo(v[0],v[1]);moving=true}}if(painted)ctx.stroke();ctx.globalAlpha=1} 
+
+function evoPalette(org){const form=evoTheme==='auto'?(['coral','coral','neural','neural','crystal','crystal','scorpion','scorpion','scorpion'][org.level]||'neural'):evoTheme;
+ return {form,main:form==='coral'?'#5dffca':form==='crystal'?'#b8a1ff':form==='scorpion'?'#ffca7d':'#74ddff',soft:form==='coral'?'rgba(84,245,201,.23)':form==='crystal'?'rgba(185,162,255,.23)':form==='scorpion'?'rgba(255,187,105,.26)':'rgba(111,224,255,.24)'}
+}
+function drawEvolutionAnatomy(now,org,m){
+ const lv=org.level,t=now*.001,style=evoPalette(org),col=style.main;
+ ctx.save();ctx.globalCompositeOperation='screen';
+ // Persistent central nucleus: the whole organism visibly differentiates as levels are unlocked.
+ let core=project(0,0,0);if(core[3]>.18){let rr=(10+Math.min(9,lv*1.2))*(flightActive?.67:1);ctx.globalAlpha=.18;ctx.fillStyle=col;ctx.beginPath();ctx.arc(core[0],core[1],rr*2.5,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.9;ctx.strokeStyle=col;ctx.lineWidth=2;ctx.beginPath();ctx.arc(core[0],core[1],rr,0,Math.PI*2);ctx.stroke()}
+ if(lv>=1){for(let ring=0;ring<Math.min(3,1+Math.floor(lv/3));ring++){const n=54,R=.48+ring*.31,arr=[];for(let j=0;j<=n;j++){const q=j/n*Math.PI*2;arr.push([Math.cos(q)*R,Math.sin(q*2+t)*.12*(ring+1),Math.sin(q)*R])}path(arr,ring%2?style.soft:col,ring?1:1.7,.3+lv*.04)}}
+ if(lv>=2){for(let limb=0;limb<6+Math.floor(lv/2);limb++){const theta=limb/(6+Math.floor(lv/2))*Math.PI*2+t*.06,len=.54+lv*.17,arr=[];for(let j=0;j<=20;j++){let k=j/20,rad=.16+len*k;let q=theta+Math.sin(k*Math.PI*2+t*.4)*.16*k;let y=Math.sin(k*Math.PI*2+theta+t*.7)*k*.18;arr.push([Math.cos(q)*rad,y,Math.sin(q)*rad])}path(arr,style.soft,1.3,.7)}}
+ if(lv>=3){for(let ax=0;ax<4;ax++){const coords=[];for(let j=0;j<=44;j++){const a=j/44*Math.PI*2;const R=1.06+Math.sin(a*3+ax+t*.5)*.10;coords.push([Math.cos(a+ax*.6)*R,Math.sin(a*2+ax+t*.2)*.25,Math.sin(a+ax*.6)*R])}path(coords,col,.9,.32)}}
+ if(lv>=4){for(let a=0;a<10;a++){let q=a/10*Math.PI*2,arr=[];for(let j=0;j<=22;j++){let k=j/22,R=.25+1.6*k;arr.push([Math.cos(q+Math.sin(k*4+t)*.18)*R,Math.cos(k*Math.PI*2+t+q)*.38*k,Math.sin(q+Math.sin(k*4+t)*.18)*R])}path(arr,style.soft,1.1,.56)}}
+ if(lv>=5){for(let phi=0;phi<6;phi++){let ring=[];for(let j=0;j<=60;j++){let a=j/60*Math.PI*2,theta=phi/6*Math.PI;ring.push([1.65*Math.cos(a)*Math.sin(theta+.35),1.65*Math.sin(a)*Math.sin(theta+.35),1.65*Math.cos(theta+.35)])}path(ring,style.soft,.8,.48)}}
+ if(lv>=6){for(let tent=0;tent<8;tent++){let pts=[];for(let j=0;j<=22;j++){let k=j/22,az=tent/8*Math.PI*2+Math.sin(t+k*5)*.1;pts.push([Math.cos(az)*(1.3+k*1.35),Math.sin(k*Math.PI*2+t+tent)*.22-k*.48,Math.sin(az)*(1.3+k*1.35)])}path(pts,col,1.1,.29)}}
+ if(lv>=7){let tail=[];for(let j=0;j<=44;j++){let k=j/44;tail.push([Math.sin(k*4+t*.2)*(.35+k*.8),.2+k*1.5-Math.sin(k*Math.PI)*.35,Math.cos(k*4+t*.2)*(.35+k*.85)])}path(tail,style.main,2,.45);for(let j=0;j<7;j++){const q=j/7*Math.PI*2;path([[Math.cos(q)*1.7,-.08,Math.sin(q)*1.7],[Math.cos(q)*2.3,-.34,Math.sin(q)*2.3],[Math.cos(q+.3)*2.48,-.37,Math.sin(q+.3)*2.48]],style.soft,1.7,.52)}}
+ if(lv>=8){for(let ring=0;ring<4;ring++){const arr=[];for(let j=0;j<=70;j++){let a=j/70*Math.PI*2;arr.push([(2.55+ring*.14)*Math.cos(a),.65*Math.sin(a*3+ring+t*.14),(2.55+ring*.14)*Math.sin(a)])}path(arr,ring%2?style.main:style.soft,1.4,.39)}}
+ if(lv>=10){for(let n=0;n<12;n++){let a=n/12*Math.PI*2+t*.045;path([[Math.cos(a)*1.3,0,Math.sin(a)*1.3],[Math.cos(a)*1.9,Math.sin(a*3+t)*.65,Math.sin(a)*1.9],[Math.cos(a+.35)*2.5,Math.sin(a*2+t)*.6,Math.sin(a+.35)*2.5]],style.soft,1.1,.45)}}
+ if(lv>=13){for(let n=0;n<10;n++){let a=n/10*Math.PI*2,points=[];for(let j=0;j<=24;j++){let k=j/24;points.push([Math.cos(a+Math.sin(k*4+t*.2)*.15)*(1.4+k*.75),-k*1.7,Math.sin(a+Math.sin(k*4+t*.2)*.15)*(1.4+k*.75)])}path(points,col,.9,.38)}}
+ if(lv>=16){for(let n=0;n<6;n++){let a=n*Math.PI/3,points=[];for(let j=0;j<=56;j++){const q=j/56*Math.PI*2;points.push([Math.cos(q+a)*(1.8+n*.09),Math.sin(q*2+t+n)*.85,Math.sin(q+a)*(1.8+n*.09)])}path(points,style.soft,1.1,.35)}}
+ if(lv>=19){for(let n=0;n<16;n++){let a=n/16*Math.PI*2+t*.022;path([[Math.cos(a)*.6,Math.sin(a*4+t)*.2,Math.sin(a)*.6],[Math.cos(a)*2.8,Math.sin(a*4+t)*.7,Math.sin(a)*2.8]],col,1.4,.36)}}
+ ctx.restore();
+}
+function refreshFlightButtons(){const start=$('rxFlyStart'),stop=$('rxFlyStop');start.textContent=window.TCUX(flightActive?'flightActive':'flightStart');start.classList.toggle('is-flying',flightActive);stop.disabled=!flightActive;$('rxFlightHud').hidden=!flightActive;$('rxFlightPad').hidden=!flightActive;world.classList.toggle('rxFlying',flightActive)}
+function beginFlight(){
+ if(!open)return;if(flightActive)return;
+ flightExplorer=selectedCenter===null||!buildSelectionInfo(selectedCenter);
+ const org=getOrganismLevel(readMemory().count);
+ const start=!flightExplorer?nodeWorldPosition(selectedCenter,org,performance.now()):{x:0,y:.15,z:3.2};
+ flightPos={...start};flightYaw=Math.atan2(-start.x,-start.z);flightPitch=0;flightDistance=0;flightVelocity=0;flightTrail=[];flightActive=true;
+ followCam={x:start.x-Math.sin(flightYaw)*followDistance,y:start.y+.38,z:start.z-Math.cos(flightYaw)*followDistance};
+ refreshFlightButtons();$('rxFlightInfo').textContent=window.TCUX(flightExplorer?'flightExplorer':'flightFollowing')+(flightExplorer?'':' #'+(selectedCenter+1));
+}
+function endFlight(){if(!flightActive)return;flightActive=false;flightKeys.clear();refreshFlightButtons();$('rxFlightInfo').textContent=window.TCUX('flightIdle');angle=.4;tilt=.32;zoom=1}
+function stepFlight(delta,now){
+ if(!flightActive)return;const dt=Math.min(.06,Math.max(0,delta/1000));
+ let turn=(flightKeys.has('right')?1:0)-(flightKeys.has('left')?1:0);
+ flightYaw+=turn*1.52*dt;
+ const forward=(flightKeys.has('forward')?1:0)-(flightKeys.has('back')?1:0);
+ const ascent=(flightKeys.has('up')?1:0)-(flightKeys.has('down')?1:0);
+ const speed=Number($('rxFlightSpeed').value)*(.9+(flightKeys.has('boost')?1.8:0));
+ flightVelocity+=(forward*speed-flightVelocity)*Math.min(1,dt*4.4);
+ const vx=Math.sin(flightYaw)*Math.cos(flightPitch)*flightVelocity;
+ const vz=Math.cos(flightYaw)*Math.cos(flightPitch)*flightVelocity;
+ const vy=Math.sin(flightPitch)*flightVelocity+ascent*speed*.78;
+ flightPos.x=clamp(flightPos.x+vx*dt,-20,20);flightPos.y=clamp(flightPos.y+vy*dt,-10,10);flightPos.z=clamp(flightPos.z+vz*dt,-20,20);
+ flightDistance+=(Math.abs(flightVelocity)+Math.abs(ascent*speed*.78))*dt;
+ const camTarget={x:flightPos.x-Math.sin(flightYaw)*Math.cos(flightPitch)*followDistance,y:flightPos.y+.55-Math.sin(flightPitch)*followDistance,z:flightPos.z-Math.cos(flightYaw)*Math.cos(flightPitch)*followDistance};
+ const smooth=Math.min(1,dt*10);for(const k of ['x','y','z'])followCam[k]+=(camTarget[k]-followCam[k])*smooth;
+ if(now-lastFlightTick>120){lastFlightTick=now;$('rxFlightDistance').textContent=flightDistance.toFixed(1)+' u';$('rxFlightStatus').textContent=window.TCUX(flightExplorer?'flightExplorer':'flightFollowing')+(flightExplorer?'':' #'+(selectedCenter+1))}
+ if(Math.abs(flightVelocity)+Math.abs(ascent)>.01&&flightTrail.length<60){flightTrail.push({...flightPos,t:now})}
+ else if(flightTrail.length>=60)flightTrail.shift();flightTrail=flightTrail.filter(a=>now-a.t<2500);
+}
+function drawFlightShip(now){if(!flightActive)return;
+ const col=flightExplorer?'#d5b5ff':centerSide(readMemory().centers[selectedCenter],selectedCenter)==='sell'?'#ff9aac':'#5dfbd7';
+ ctx.save();ctx.globalCompositeOperation='screen';
+ for(let i=1;i<flightTrail.length;i++){const a=flightTrail[i-1],b=flightTrail[i];path([[a.x,a.y,a.z],[b.x,b.y,b.z]],col,1.8,Math.max(.04,.32*(1-(now-a.t)/2500)))}
+ const pt=project(flightPos.x,flightPos.y,flightPos.z);
+ const px=pt[3]>.18?pt[0]:W/2,py=pt[3]>.18?pt[1]:H*.57;
+ const r=clamp(pt[2]*.1,11,23);
+ const halo=ctx.createRadialGradient(px,py,0,px,py,r*2.5);halo.addColorStop(0,'#ffffff');halo.addColorStop(.23,col);halo.addColorStop(.49,'#2c6984a0');halo.addColorStop(1,'#12314700');ctx.fillStyle=halo;ctx.beginPath();ctx.arc(px,py,r*2.5,0,Math.PI*2);ctx.fill();ctx.lineWidth=1.5;ctx.strokeStyle='#ffdf9f';ctx.beginPath();ctx.arc(px,py,r*.93,0,Math.PI*2);ctx.stroke();
+ ctx.strokeStyle='#8eddf9a8';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(W/2-11,H/2);ctx.lineTo(W/2-3,H/2);ctx.moveTo(W/2+3,H/2);ctx.lineTo(W/2+11,H/2);ctx.moveTo(W/2,H/2-11);ctx.lineTo(W/2,H/2-3);ctx.moveTo(W/2,H/2+3);ctx.lineTo(W/2,H/2+11);ctx.stroke();ctx.restore();
+}
+function soundBands(){let b=0,m=0,h=0;if(analyser&&(audio.src||osc)){analyser.getByteFrequencyData(freq);const bin=f=>Math.min(freq.length-1,Math.round(f*analyser.fftSize/audioCtx.sampleRate));function avg(lo,hi){let s=0,n=0;for(let i=bin(lo);i<=bin(hi);i++){s+=freq[i];n++}return n?s/n/255:0}b=avg(35,180);m=avg(180,1800);h=avg(1800,9000)}bass=bass*.76+b*.24;mid=mid*.76+m*.24;high=high*.76+h*.24;$('rxBands').textContent='BASS '+Math.round(bass*100)+' · MID '+Math.round(mid*100)+' · HIGH '+Math.round(high*100)}
+function draw(now){if(!open)return;frame=requestAnimationFrame(draw);if(document.hidden)return;if(now-last<26)return;const dt=last?now-last:33;last=now;resizeIfNeeded();if(playing&&!flightActive)angle+=.0014;if(flightActive)stepFlight(dt,now);soundBands();buyEnergy*=.968;sellEnergy*=.968;const audioMix=Number($('rxSensitivity').value)/100,marketMix=Number($('rxInfluence').value)/100;const B=bass*audioMix,M=mid*audioMix,Q=high*audioMix,buy=buyEnergy*marketMix,sell=sellEnergy*marketMix;
+ctx.fillStyle='#030b16';ctx.fillRect(0,0,W,H);const grad=ctx.createRadialGradient(W*.5,H*.5,5,W*.5,H*.5,Math.max(W,H)*.65);grad.addColorStop(0,'#113347');grad.addColorStop(.55,'#061827');grad.addColorStop(1,'#030811');ctx.fillStyle=grad;ctx.fillRect(0,0,W,H);
+const t=now*.001,mode=$('rxMode').value,sym=Number($('rxSym').value),density=Number($('rxDensity').value)/100,rings=Math.round(16+24*density),segments=Math.round(58+100*density);ctx.save();ctx.globalCompositeOperation='screen';
+for(let r=0;r<rings;r++){const rr=.10+r/rings*2.35,points=[];for(let j=0;j<=segments;j++){let theta=j/segments*Math.PI*2,wave=Math.sin(theta*sym+t*(.4+M*2))*Math.cos(rr*5-t*(.7+B*4)),def=wave*(.07+M*.26+Q*.12)+Math.sin(rr*sym-t*.7)*.025;let rad=rr+def*(1+B*.7),x=Math.cos(theta)*rad,z=Math.sin(theta)*rad,y=0;if(mode==='membrane')y=wave*(.15+M*.38)+(buy-sell)*Math.sin(rr*3)*.12;else if(mode==='tunnel'){y=(r/rings-.5)*3;rad=.6+Math.cos(theta*sym+t)*(.09+B*.15)+r/rings*.7;x=Math.cos(theta)*rad;z=Math.sin(theta)*rad}else if(mode==='sphere'){let phi=(r+1)/(rings+1)*Math.PI;x=Math.cos(theta)*Math.sin(phi)*1.85;z=Math.sin(theta)*Math.sin(phi)*1.85;y=Math.cos(phi)*1.85+wave*(.07+M*.23)}else{y=(r/rings-.5)*3.5+Math.sin(theta*sym+t)*(.05+Q*.14);const phase=theta+(r/rings)*Math.PI*2;x=Math.cos(phase)*(1.2+def);z=Math.sin(phase)*(1.2+def)}points.push([x,y,z])}const tint=r%3===0?`rgba(242,195,112,${.2+Q*.35})`:`rgba(71,217,255,${.16+M*.4})`;path(points,tint,r%4===0?1.4:.7)}
+const pulses=events.filter(e=>now-e.t<2100);events=pulses;for(const e of pulses){const age=(now-e.t)/2100,rad=.2+age*2.85,alpha=(1-age)*(.2+e.s*.72),col=e.side>0?'#42f4c1':'#ff7f97';const p=[];for(let j=0;j<=70;j++){const a=j/70*Math.PI*2;p.push([rad*Math.cos(a),Math.sin(a*sym+t)*.05*e.s,rad*Math.sin(a)])}path(p,col,1+e.s*2,alpha);const v=project(Math.cos(e.p)*rad,.07,Math.sin(e.p)*rad);ctx.beginPath();ctx.fillStyle=col;ctx.globalAlpha=alpha;ctx.arc(v[0],v[1],1.3+4*e.s,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1}
+ctx.restore();drawMemoryNodes(now);drawFlightShip(now);const center=project(0,0,0);if(center[3]<.18)return;ctx.beginPath();ctx.arc(center[0],center[1],4+B*13+(buy+sell)*9,0,Math.PI*2);ctx.fillStyle='#ddfaff';ctx.shadowColor='#52eaff';ctx.shadowBlur=23;ctx.fill();ctx.shadowBlur=0;}
+let prevW=0,prevH=0;function resizeIfNeeded(){const r=cv.getBoundingClientRect();if(r.width!==prevW||r.height!==prevH){resize();prevW=r.width;prevH=r.height}}
+function show(){if(open)return;refreshFlightButtons();world.classList.add('rxOpen');open=true;playing=true;tradeCount=0;events=[];last=0;selectedCenter=null;selectedInfo=null;document.body.dataset.resonanceOpen='1';updateMemoryHUD();resize();connect();world.focus();frame=requestAnimationFrame(draw)}function hide(){endFlight();open=false;world.classList.remove('rxOpen');delete document.body.dataset.resonanceOpen;saveMemory();cancelAnimationFrame(frame);clearTimeout(retry);if(ws){ws.onclose=null;ws.close();ws=null}if(marketVolume)marketSound(false);if(osc){osc.stop();osc.disconnect();osc=null;$('rxDemo').textContent=window.TCUX('demo')}audio.pause()}
+$('rxLaunch').onclick=show;$('rxClose').onclick=hide;$('rxPause').onclick=()=>{playing=!playing;$('rxPause').textContent=window.TCUX(playing?'motion':'motionContinue')};$('rxDemo').onclick=demo;$('rxMute').onclick=()=>marketSound(!marketVolume);$('rxPair').onchange=()=>{endFlight();events=[];buyEnergy=sellEnergy=0;selectedCenter=null;selectedInfo=null;updateMemoryHUD();connect()};
+$('rxFile').onchange=e=>{const f=e.target.files?.[0];if(!f)return;try{ensureAudio();if(objectURL)URL.revokeObjectURL(objectURL);objectURL=URL.createObjectURL(f);audio.src=objectURL;audio.play().catch(()=>{});$('rxStatus').textContent=window.TCUX('song')+': '+f.name+' · '+window.TCUX('audioReady')}catch(err){$('rxStatus').textContent=window.TCUX('audioError')+': '+err.message}};
+for(const id of ['rxSym','rxSensitivity','rxInfluence','rxDensity'])$(id).oninput=()=>{$(id+'Out').textContent=$(id).value+(id==='rxSym'?'':'%')};
+$('rxShot').onclick=()=>{const a=document.createElement('a');a.download='Resonance-Market-'+Date.now()+'.png';a.href=cv.toDataURL('image/png');a.click()};
+$('rxExport').onclick=()=>{saveMemory();const payload={version:3,source:'Binance public aggTrade live events',exportedAt:new Date().toISOString(),data:remembered};const blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download='TerraClassic-Resonance-Memory-'+new Date().toISOString().slice(0,10)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+$('rxReset').onclick=()=>{if(!confirm(window.TCUX('confirmReset')))return;endFlight();selectedCenter=null;selectedInfo=null;remembered.markets[$('rxPair').value]=blankMarket();saveMemory();updateMemoryHUD();$('rxMemoryStatus').textContent=window.TCUX('cleared')};
+window.addEventListener('pagehide',saveMemory);
+$('rxFlyStart').addEventListener('click',()=>{if(!flightActive)beginFlight()});$('rxTradeDetail').addEventListener('click',e=>{if(e.target.closest('[data-tc-fly]'))beginFlight()});$('rxFlyStop').addEventListener('click',endFlight);$('rxFlightExit').addEventListener('click',endFlight);
+$('rxFlightSpeed').addEventListener('input',()=>{$('rxFlightSpeedOut').textContent=Number($('rxFlightSpeed').value).toFixed(1)+'×'});
+$('rxEvoStyle').addEventListener('change',()=>{evoTheme=$('rxEvoStyle').value;try{localStorage.setItem('tc-resonance-evo-style',evoTheme)}catch(e){}});
+try{const storedEvo=localStorage.getItem('tc-resonance-evo-style');if(['auto','neural','crystal','coral','scorpion'].includes(storedEvo))evoTheme=storedEvo}catch(e){}$('rxEvoStyle').value=evoTheme;
+for(const btn of document.querySelectorAll('[data-flight-key]')){
+ const key=btn.dataset.flightKey;
+ btn.addEventListener('pointerdown',e=>{if(!flightActive)return;e.preventDefault();flightKeys.add(key);btn.classList.add('is-held');btn.setPointerCapture(e.pointerId)});
+ for(const name of ['pointerup','pointercancel','lostpointercapture'])btn.addEventListener(name,()=>{flightKeys.delete(key);btn.classList.remove('is-held')});
+}
+window.addEventListener('blur',()=>flightKeys.clear());
+function syncPadLabels(){document.querySelectorAll('[data-flight-key][data-ux-label]').forEach(btn=>{const key=btn.getAttribute('data-ux-label');btn.setAttribute('aria-label',window.TCUX(key));btn.title=window.TCUX(key)})}
+syncPadLabels();document.addEventListener('tc:language',syncPadLabels);
+document.addEventListener('keydown',e=>{if(!open||!flightActive)return;if(['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName))return;const action=FLIGHT_KEY_MAP[e.code];if(action){e.preventDefault();flightKeys.add(action)}});
+document.addEventListener('keyup',e=>{const action=FLIGHT_KEY_MAP[e.code];if(action)flightKeys.delete(action)});
+
+document.addEventListener('tc:language',()=>{updateMemoryHUD();$('rxTrades').textContent=window.TCUX('trades')+': '+tradeCount.toLocaleString(TCI18n.locale());$('rxPause').textContent=window.TCUX(playing?'motion':'motionContinue');$('rxMute').textContent=window.TCUX(marketVolume?'marketSoundOn':'marketSoundOff');$('rxDemo').textContent=window.TCUX(osc?'demoStop':'demo');renderTradeDetail(selectedInfo||buildSelectionInfo(selectedCenter??-1));refreshFlightButtons();$('rxFlightInfo').textContent=window.TCUX(flightActive?(flightExplorer?'flightExplorer':'flightFollowing'):'flightIdle')});
+function pickSphere(clientX,clientY){if(flightActive)return;const rect=cv.getBoundingClientRect();const x=clientX-rect.left,y=clientY-rect.top;let hit=null,best=1e9;for(const node of pickNodes){const d=Math.hypot(node.x-x,node.y-y);if(d<=node.r+6&&d<best){best=d;hit=node}}selectedCenter=hit?hit.center:null;renderTradeDetail(hit?hit.info:null)}cv.addEventListener('pointerdown',e=>{drag=true;dragMoved=false;downX=pX=e.clientX;downY=pY=e.clientY;cv.setPointerCapture(e.pointerId)});cv.addEventListener('pointermove',e=>{if(!drag)return;const dx=e.clientX-pX,dy=e.clientY-pY;if(Math.abs(e.clientX-downX)>5||Math.abs(e.clientY-downY)>5)dragMoved=true;if(flightActive){flightYaw+=dx*.005;flightPitch=clamp(flightPitch-dy*.003,-.8,.8)}else{angle+=dx*.006;tilt=Math.max(-1.35,Math.min(1.35,tilt+dy*.006))}pX=e.clientX;pY=e.clientY});cv.addEventListener('pointerup',e=>{if(drag&&!dragMoved)pickSphere(e.clientX,e.clientY);drag=false});cv.addEventListener('pointercancel',()=>{drag=false;dragMoved=false});cv.addEventListener('wheel',e=>{e.preventDefault();if(flightActive)followDistance=clamp(followDistance*Math.exp(e.deltaY*.001),1.1,4.4);else zoom=clamp(zoom*Math.exp(-e.deltaY*.001),.4,3.2)},{passive:false});let touch=0;cv.addEventListener('touchmove',e=>{if(e.touches.length===2){let d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);if(touch)zoom=Math.max(.4,Math.min(3.2,zoom*d/touch));touch=d;e.preventDefault()}},{passive:false});cv.addEventListener('touchend',()=>touch=0);document.addEventListener('keydown',e=>{if(open&&e.key==='Escape'){if(flightActive)endFlight();else hide()}});
+})();
+</script>
+
+<script id="tcUXLocaleV2">
+(()=>{'use strict';
+const languages=['de','en','fr','es','tr','zh','id','hi'];
+const rows=`
+spaces|Erlebnisräume|Experiences|Espaces interactifs|Espacios interactivos|Etkileşimli alanlar|互动空间|Ruang interaktif|इंटरैक्टिव कक्ष
+spacesSub|Galerie und Organismus – ohne schwebende Doppelmenüs|Gallery and organism — separate, accessible controls|Galerie et organisme, commandes accessibles|Galería y organismo, controles accesibles|Galeri ve organizma, düzenli kontroller|画廊和共振体：清晰操作|Galeri dan organisme, kontrol rapi|गैलरी और जीव, स्पष्ट नियंत्रण
+galleryLaunch|◈ 3D Marktgalerie|◈ 3D Market gallery|◈ Galerie 3D|◈ Galería 3D|◈ 3D Piyasa galerisi|◈ 3D 市场画廊|◈ Galeri pasar 3D|◈ 3D मार्केट गैलरी
+rxLaunch|◉ Resonanz-Organismus|◉ Resonance organism|◉ Organisme résonant|◉ Organismo resonante|◉ Rezonans organizması|◉ 共振生命体|◉ Organisme resonansi|◉ अनुनाद जीव
+close|✕ Schließen|✕ Close|✕ Fermer|✕ Cerrar|✕ Kapat|✕ 关闭|✕ Tutup|✕ बंद करें
+motion|Ⅱ Bewegung|Ⅱ Motion|Ⅱ Mouvement|Ⅱ Movimiento|Ⅱ Hareket|Ⅱ 运动|Ⅱ Gerakan|Ⅱ गति
+motionContinue|▶ Fortsetzen|▶ Resume|▶ Reprendre|▶ Reanudar|▶ Sürdür|▶ 继续|▶ Lanjutkan|▶ जारी रखें
+shot|◫ Bild|◫ Image|◫ Image|◫ Imagen|◫ Görsel|◫ 截图|◫ Gambar|◫ छवि
+trades|Trades|Trades|Transactions|Operaciones|İşlemler|成交|Transaksi|ट्रेड
+memoryShort|Gedächtnis|Memory|Mémoire|Memoria|Hafıza|记忆|Memori|स्मृति
+memoryEmpty|◈ Gedächtnis: 0|◈ Memory: 0|◈ Mémoire : 0|◈ Memoria: 0|◈ Hafıza: 0|◈ 记忆: 0|◈ Memori: 0|◈ स्मृति: 0
+legend|Türkis: Kauf · Koralle: Verkauf · Goldene Ringe: bleibende Erinnerungen. Raum drehen oder zoomen.|Teal: buy · Coral: sell · Gold rings: persistent memories. Rotate or zoom.|Turquoise : achat · Corail : vente · Or : souvenirs durables. Pivoter ou zoomer.|Turquesa: compra · Coral: venta · Oro: recuerdos persistentes. Girar o ampliar.|Turkuaz: alım · Mercan: satım · Altın: kalıcı izler. Döndür veya yakınlaştır.|青绿：买入 · 珊瑚：卖出 · 金环：持久记忆。旋转或缩放。|Toska: beli · Koral: jual · Emas: jejak permanen. Putar atau zum.|फिरोज़ी: खरीद · लाल: बिक्री · सुनहरा: स्थायी स्मृति। घुमाएँ या ज़ूम करें।
+audioTitle|01 · Audioquelle|01 · Audio source|01 · Source audio|01 · Fuente de audio|01 · Ses kaynağı|01 · 音频源|01 · Sumber audio|01 · ऑडियो स्रोत
+audioFile|Eigenen Song laden|Load your own song|Charger votre musique|Cargar tu canción|Şarkı yükle|上传音乐|Unggah lagu|अपना गीत लोड करें
+demo|♪ Demo-Ton|♪ Demo tone|♪ Son démo|♪ Tono demo|♪ Demo ses|♪ 演示音|♪ Suara demo|♪ डेमो ध्वनि
+demoStop|■ Demo stoppen|■ Stop demo|■ Arrêter|■ Detener demo|■ Demoyu durdur|■ 停止演示|■ Hentikan demo|■ डेमो रोकें
+marketSoundOff|♫ Marktsound: AUS|♫ Market audio: OFF|♫ Son du marché : NON|♫ Sonido del mercado: NO|♫ Piyasa sesi: KAPALI|♫ 市场音效：关|♫ Suara pasar: MATI|♫ बाज़ार ध्वनि: बंद
+marketSoundOn|♫ Marktsound: AN|♫ Market audio: ON|♫ Son du marché : OUI|♫ Sonido del mercado: SÍ|♫ Piyasa sesi: AÇIK|♫ 市场音效：开|♫ Suara pasar: AKTIF|♫ बाज़ार ध्वनि: चालू
+audioNote|Audiodateien bleiben lokal. Marktsound startet nur nach deiner Freigabe.|Audio remains local. Market sound requires activation.|Audio conservé localement. Son du marché sur demande.|Audio local. Sonido de mercado solo si lo activas.|Ses dosyaları yerel kalır. Piyasa sesi isteğe bağlıdır.|音频仅在本地处理。市场声音需手动开启。|Audio tetap lokal. Suara pasar harus diaktifkan.|ऑडियो स्थानीय रहता है। बाज़ार ध्वनि वैकल्पिक है।
+geometryTitle|02 · Resonanzgeometrie|02 · Resonance geometry|02 · Géométrie|02 · Geometría|02 · Rezonans geometrisi|02 · 共振几何|02 · Geometri resonansi|02 · अनुनाद ज्यामिति
+geometry|Raumtyp|Spatial mode|Mode spatial|Modo espacial|Uzamsal mod|空间模式|Mode ruang|स्थानिक मोड
+membrane|Kymatische Membran|Cymatic membrane|Membrane cymatique|Membrana cimática|Simatik membran|声波膜|Membran kimatik|सायमैटिक झिल्ली
+tunnel|Resonanz-Tunnel|Resonance tunnel|Tunnel résonant|Túnel resonante|Rezonans tüneli|共振隧道|Terowongan resonansi|अनुनाद सुरंग
+sphere|Frequenz-Sphäre|Frequency sphere|Sphère des fréquences|Esfera de frecuencias|Frekans küresi|频率球体|Bola frekuensi|आवृत्ति गोला
+helix|Harmonische Helix|Harmonic helix|Hélice harmonique|Hélice armónica|Harmonik sarmal|谐波螺旋|Heliks harmonik|हार्मोनिक हेलिक्स
+symmetry|Symmetrie|Symmetry|Symétrie|Simetría|Simetri|对称|Simetri|समरूपता
+audioEffect|Audio-Einfluss|Audio influence|Influence audio|Influencia del audio|Ses etkisi|音频影响|Pengaruh audio|ऑडियो प्रभाव
+marketTitle|03 · Marktkopplung|03 · Market coupling|03 · Flux du marché|03 · Enlace al mercado|03 · Piyasa bağlantısı|03 · 市场连接|03 · Koneksi pasar|03 · बाज़ार संबंध
+livePair|Live-Markt|Live market|Marché en direct|Mercado en vivo|Canlı piyasa|实时市场|Pasar langsung|लाइव बाज़ार
+marketEffect|Markteinfluss|Market influence|Influence du marché|Influencia del mercado|Piyasa etkisi|市场影响|Pengaruh pasar|बाज़ार प्रभाव
+detail|Detailgrad|Detail level|Niveau de détail|Nivel de detalle|Ayrıntı seviyesi|细节级别|Tingkat detail|विवरण स्तर
+dataNote|Nur bestätigte Binance-aggTrade-Daten. Keine künstlichen Trades.|Confirmed Binance aggTrade data only. No simulated trades.|Événements Binance aggTrade vérifiés uniquement.|Solo eventos Binance aggTrade confirmados.|Sadece doğrulanmış Binance aggTrade işlemleri.|仅使用已确认的 Binance aggTrade 数据。|Hanya transaksi Binance aggTrade terkonfirmasi.|केवल पुष्ट Binance aggTrade डेटा।
+memoryTitle|04 · Organismus-Gedächtnis|04 · Organism memory|04 · Mémoire de l'organisme|04 · Memoria del organismo|04 · Organizma hafızası|04 · 生命体记忆|04 · Memori organisme|04 · जीव की स्मृति
+memoryNote|Jeder bestätigte Trade stärkt eines von 24 Zentren. Wachstum bleibt lokal gespeichert – auch nach erneutem Öffnen.|Each confirmed trade strengthens one of 24 centers. Growth is saved locally across visits.|Chaque transaction confirmée renforce un des 24 centres. Mémoire locale persistante.|Cada operación confirmada fortalece uno de 24 centros. Se conserva localmente.|Her onaylı işlem 24 merkezden birini güçlendirir. Yerel olarak saklanır.|每次确认成交都会增强24个中心之一，本地持久保存。|Setiap transaksi terkonfirmasi memperkuat satu dari 24 pusat. Disimpan lokal.|हर पुष्ट ट्रेड 24 केंद्रों में से एक को मज़बूत करता है। स्थानीय रूप से सहेजा जाता है।
+stored|Gespeicherte Trades|Stored trades|Transactions gardées|Operaciones guardadas|Kayıtlı işlemler|已保存成交|Transaksi tersimpan|सहेजे गए ट्रेड
+centers|Aktive Zentren|Active centers|Centres actifs|Centros activos|Aktif merkezler|活跃中心|Pusat aktif|सक्रिय केंद्र
+buy|Kauf-Trades|Buy trades|Achats|Compras|Alış işlemleri|买入成交|Transaksi beli|खरीद ट्रेड
+sell|Verkauf-Trades|Sell trades|Ventes|Ventas|Satış işlemleri|卖出成交|Transaksi jual|बिक्री ट्रेड
+export|↓ JSON sichern|↓ Export JSON|↓ Exporter JSON|↓ Exportar JSON|↓ JSON dışa aktar|↓ 导出 JSON|↓ Ekspor JSON|↓ JSON निर्यात
+reset|↺ Markt-Gedächtnis löschen|↺ Clear selected market memory|↺ Effacer ce marché|↺ Borrar este mercado|↺ Piyasa hafızasını sil|↺ 清除此市场的记忆|↺ Hapus memori pasar|↺ बाज़ार स्मृति मिटाएँ
+storageNote|Im Browser gespeichert – nicht on-chain. Exportiere JSON als Backup.|Stored in this browser, not on-chain. Export JSON for backup.|Stockage local, pas on-chain. Export JSON conseillé.|Guardado en el navegador, no en cadena. Exporta JSON.|Tarayıcıda saklanır, zincirde değil. JSON yedekle.|保存在浏览器中，非链上。建议导出 JSON。|Disimpan di browser, bukan on-chain. Ekspor JSON.|ब्राउज़र में सहेजा, ऑन-चेन नहीं। JSON बैकअप लें।
+storageError|Speichern fehlgeschlagen – bitte JSON sichern.|Storage failed – please export JSON.|Échec du stockage – exportez JSON.|Error al guardar – exporta JSON.|Kayıt başarısız – JSON dışa aktar.|保存失败，请导出 JSON。|Gagal menyimpan – ekspor JSON.|सहेजना विफल – JSON निर्यात करें।
+organismLevel|Organismus-Level|Organism level|Niveau de l'organisme|Nivel del organismo|Organizma seviyesi|生命体等级|Level organisme|जीव स्तर
+stageLabel|Stufe|Stage|Stade|Etapa|Aşama|阶段|Tahap|स्तर
+nextLevel|Nächstes Level|Next level|Niveau suivant|Siguiente nivel|Sonraki seviye|下一等级|Level berikutnya|अगला स्तर
+levelWord|Level|Level|Niveau|Nivel|Seviye|等级|Level|स्तर
+tapSphereHintShort|Kugel antippen für Trade-Infos|Tap a sphere for trade info|Touchez une sphère pour les détails|Toca una esfera para ver el trade|Küreye dokun, işlem detayını gör|点击球体查看交易|Ketuk bola untuk detail trade|ट्रेड जानकारी के लिए गोला चुनें
+tradeDetailTitle|05 · Kugel-Details|05 · Sphere details|05 · Détails de la sphère|05 · Detalles de esfera|05 · Küre detayları|05 · 球体详情|05 · Detail bola|05 · गोला विवरण
+tradeDetailNote|Tippe im Resonanzraum auf eine aktive Kugel. Angezeigt wird der zuletzt zugeordnete Trade dieses Zentrums.|Tap an active sphere in the resonance room to see the latest trade assigned to that center.|Touchez une sphère active pour voir la dernière transaction liée à ce centre.|Toca una esfera activa para ver la última operación asociada a ese centro.|Aktif bir küreye dokunarak o merkeze bağlı son işlemi gör.|点击活动球体可查看分配到该中心的最近交易。|Ketuk bola aktif untuk melihat trade terakhir pada pusat itu.|सक्रिय गोले पर टैप करें और उस केंद्र का नवीनतम ट्रेड देखें।
+noSelection|Noch keine Kugel gewählt|No sphere selected yet|Aucune sphère sélectionnée|Aún no hay esfera seleccionada|Henüz küre seçilmedi|尚未选择球体|Belum ada bola dipilih|अभी कोई गोला चयनित नहीं
+tapSphereHint|Wähle eine aktive Resonanzkugel im Raum, um den zugehörigen Trade zu sehen.|Select an active resonance sphere in the room to view the linked trade.|Choisissez une sphère active pour afficher la transaction associée.|Selecciona una esfera activa para ver la operación vinculada.|Bağlı işlemi görmek için aktif rezonans küresini seç.|选择一个活动共振球体以查看对应交易。|Pilih bola resonansi aktif untuk melihat trade terkait.|संबंधित ट्रेड देखने के लिए सक्रिय अनुनाद गोला चुनें।
+selectedSphere|Kugel|Sphere|Sphère|Esfera|Küre|球体|Bola|गोला
+tradeSide|Trade-Richtung|Trade side|Sens du trade|Lado del trade|İşlem yönü|交易方向|Sisi trade|ट्रेड दिशा
+sideBuy|Kauf / Buy|Buy|Achat|Compra|Alış|买入|Beli|खरीद
+sideSell|Verkauf / Sell|Sell|Vente|Venta|Satış|卖出|Jual|बिक्री
+tradeCenterCount|Impulse im Zentrum|Impulses in center|Impulsions du centre|Impulsos del centro|Merkezdeki darbeler|中心脉冲数|Impuls di pusat|केंद्र में स्पंदन
+tradePrice|Preis|Price|Prix|Precio|Fiyat|价格|Harga|मूल्य
+tradeQty|Menge|Quantity|Quantité|Cantidad|Miktar|数量|Jumlah|मात्रा
+tradeNotional|Volumen (USDT)|Notional (USDT)|Volume (USDT)|Volumen (USDT)|Hacim (USDT)|名义金额 (USDT)|Volume (USDT)|मूल्य (USDT)
+tradeTime|Zeit|Time|Heure|Hora|Zaman|时间|Waktu|समय
+tradeMeta|Zu sehen ist der zuletzt gespeicherte Trade, der dieser Kugel zugeordnet wurde.|This shows the latest stored trade mapped to this sphere.|Ceci montre la dernière transaction mémorisée pour cette sphère.|Esto muestra la última operación guardada para esta esfera.|Bu, küreye eşlenen son kayıtlı işlemdir.|这里显示的是映射到该球体的最近一次已存储交易。|Ini menampilkan trade terakhir yang dipetakan ke bola ini.|यह उस गोले से जुड़ा नवीनतम सहेजा गया ट्रेड दिखाता है।
+tradeMarket|Markt|Market|Marché|Mercado|Piyasa|市场|Pasar|बाज़ार
+stageSeed|Seed|Seed|Graine|Semilla|Tohum|种子|Benih|बीज
+stagePulse|Pulse|Pulse|Pulsion|Pulso|Nabız|脉冲|Pulsa|स्पंदन
+stageCell|Cell|Cell|Cellule|Célula|Hücre|细胞|Sel|कोशिका
+stageCluster|Cluster|Cluster|Cluster|Clúster|Küme|簇|Klaster|समूह
+stageNetwork|Network|Network|Réseau|Red|Ağ|网络|Jaringan|जाल
+stageOrganism|Organism|Organism|Organisme|Organismo|Organizma|生命体|Organisme|जीव
+stageNexus|Nexus|Nexus|Nexus|Nexo|Nexus|枢纽|Nexus|नेक्सस
+stageApex|Apex|Apex|Apex|Ápex|Zirve|顶峰|Puncak|शीर्ष
+stageTranscendent|Transcendent|Transcendent|Transcendant|Trascendente|Aşkın|超越体|Transenden|अतिक्रांत
+stageOrbit|Orbital|Orbit|Orbitale|Órbita|Yörünge|轨道|Orbit|कक्षा
+stageGenesis|Genesis|Genesis|Genèse|Génesis|Yaratılış|创生|Genesis|उत्पत्ति
+stageGenome|Genom|Genome|Génome|Genoma|Genom|基因组|Genom|जीनोम
+stageChronosphere|Chronosphäre|Chronosphere|Chronosphère|Cronosfera|Kronosfer|时间球|Kronosfer|कालगोला
+stageRoot|Wurzelsystem|Root system|Racines|Sistema raíz|Kök sistemi|根系|Sistem akar|जड़ प्रणाली
+stageVortex|Vortex|Vortex|Vortex|Vórtice|Girdap|漩涡|Vorteks|भंवर
+stageSynapse|Synapse|Synapse|Synapse|Sinapsis|Sinaps|突触|Sinapsis|सिनेप्स
+stageGalaxy|Galaxie|Galaxy|Galaxie|Galaxia|Galaksi|星系|Galaksi|आकाशगंगा
+stageSingularity|Singularität|Singularity|Singularité|Singularidad|Tekillik|奇点|Singularitas|विशिष्टता
+stageSupernova|Supernova|Supernova|Supernova|Supernova|Süpernova|超新星|Supernova|सुपरनोवा
+stageAscension|Aufstieg|Ascension|Ascension|Ascensión|Yükseliş|升华|Kenaikan|उत्थान
+stageEternal|Ewige Form|Eternal form|Forme éternelle|Forma eterna|Sonsuz form|永恒形态|Bentuk abadi|शाश्वत रूप
+evoTitle|06 · Organismus-Evolution|06 · Organism evolution|06 · Évolution|06 · Evolución|06 · Organizma evrimi|06 · 生命体进化|06 · Evolusi organisme|06 · जीव विकास
+evoVisual|Organismusform|Organism shape|Forme de l’organisme|Forma del organismo|Organizma biçimi|生命体形态|Bentuk organisme|जीव आकार
+evoAuto|Auto · Lebendige Evolution|Auto · Living evolution|Auto · Évolution vivante|Auto · Evolución viva|Otomatik · Canlı evrim|自动 · 活体演化|Otomatis · Evolusi hidup|ऑटो · जीवित विकास
+evoNeural|Neurales Netzwerk|Neural network|Réseau neuronal|Red neuronal|Sinir ağı|神经网络|Jaringan saraf|तंत्रिका नेटवर्क
+evoCrystal|Kristall-Morphologie|Crystal morphology|Morphologie cristalline|Morfología cristalina|Kristal morfolojisi|晶体形态|Morfologi kristal|क्रिस्टल संरचना
+evoCoral|Leuchtende Koralle|Luminous coral|Corail lumineux|Coral luminoso|Işıltılı mercan|发光珊瑚|Karang bercahaya|चमकदार मूंगा
+evoScorpion|Skorpion-Silhouette|Scorpion silhouette|Silhouette scorpion|Silueta escorpión|Akrep silueti|蝎子轮廓|Siluet kalajengking|बिच्छू आकृति
+evoNote|Neue Level entfalten neue Strukturen. Die Formen sind künstlerische Darstellungen – keine zusätzlichen Marktdaten.|New levels unlock more structures. Visual forms are artistic representations, not additional market data.|Chaque niveau révèle de nouvelles structures. Ce sont des images artistiques, pas des données de marché supplémentaires.|Cada nivel revela estructuras nuevas. Son representaciones artísticas, no datos adicionales del mercado.|Yeni seviyeler yeni yapılar açar. Biçimler sanatsal görselleştirmelerdir, ek piyasa verileri değildir.|升级解锁新结构。这些是艺术化视觉表现，不是额外市场数据。|Level baru membuka struktur baru. Bentuk ini artistik, bukan data pasar tambahan.|नए स्तर नई संरचनाएँ खोलते हैं। ये कलात्मक रूप हैं, अतिरिक्त बाज़ार डेटा नहीं।
+flightTitle|07 · Kugel-Navigation|07 · Sphere navigation|07 · Navigation sphère|07 · Navegación de esferas|07 · Küre navigasyonu|07 · 球体导航|07 · Navigasi bola|07 · गोला नेविगेशन
+flightNote|Kugel auswählen und gemeinsam fliegen. Ohne Trade: neutraler Erkundungsflug.|Select a sphere and fly with it. With no trade: neutral exploration mode.|Choisissez une sphère et volez avec elle. Sans échange : exploration neutre.|Selecciona una esfera y vuela con ella. Sin trades: exploración neutral.|Küre seçip onunla uçun. İşlem yoksa tarafsız keşif modu.|选择球体并与它一起飞行。无交易时使用中立探索模式。|Pilih bola dan terbang bersamanya. Tanpa trade: mode penjelajahan netral.|गोला चुनकर उसके साथ उड़ें। ट्रेड न हो तो सामान्य अन्वेषण मोड।
+flightStart|✦ Mit Kugel fliegen|✦ Fly with sphere|✦ Voler avec la sphère|✦ Volar con esfera|✦ Küreyle uç|✦ 与球体飞行|✦ Terbang dengan bola|✦ गोले के साथ उड़ें
+flightActive|✦ Flug aktiv|✦ Flight active|✦ Vol actif|✦ Vuelo activo|✦ Uçuş etkin|✦ 飞行中|✦ Terbang aktif|✦ उड़ान सक्रिय
+flightStop|↶ Raumansicht|↶ Room view|↶ Vue espace|↶ Vista espacial|↶ Odaya dön|↶ 返回空间|↶ Tampilan ruang|↶ कक्ष दृश्य
+flightExit|↶ Zurück|↶ Return|↶ Retour|↶ Volver|↶ Geri|↶ 返回|↶ Kembali|↶ वापस
+flightSpeed|Fluggeschwindigkeit|Flight speed|Vitesse de vol|Velocidad de vuelo|Uçuş hızı|飞行速度|Kecepatan terbang|उड़ान गति
+flightKeys|W/S: vor/zurück · A/D: drehen · Leertaste/Shift: hoch/runter · Ziehen: lenken. Mobil: Touch-Buttons.|W/S: forward/back · A/D: turn · Space/Shift: up/down · Drag: steer. Mobile: touch controls.|W/S : avancer/reculer · A/D : tourner · Espace/Maj : monter/descendre · Glisser : piloter.|W/S: adelante/atrás · A/D: girar · Espacio/Mayús: subir/bajar · Arrastrar: dirigir.|W/S: ileri/geri · A/D: dön · Boşluk/Shift: yüksel/alçal · Sürükle: yönlendir.|W/S：前后 · A/D：转向 · 空格/Shift：升降 · 拖动转向。手机触控。|W/S: maju/mundur · A/D: belok · Spasi/Shift: naik/turun · Geser untuk mengarahkan.|W/S: आगे/पीछे · A/D: मोड़ें · Space/Shift: ऊपर/नीचे · खींचकर दिशा दें।
+flightIdle|Bereit zum Erkunden|Ready to explore|Prêt à explorer|Listo para explorar|Keşfe hazır|准备探索|Siap menjelajah|अन्वेषण के लिए तैयार
+flightExplorer|Erkundungsflug · keine Trade-Kugel|Explorer flight · not a trade sphere|Vol explorateur · aucune transaction|Vuelo explorador · sin trade|Keşif uçuşu · işlem küresi değil|探索飞行 · 非交易球体|Penerbangan jelajah · bukan bola trade|अन्वेषण उड़ान · ट्रेड गोला नहीं
+flightFollowing|Steuere Trade-Kugel|Piloting trade sphere|Pilotage de la sphère|Pilotando esfera de trade|İşlem küresini yönet|驾驶交易球体|Menerbangkan bola trade|ट्रेड गोला चला रहे हैं
+flightForward|Vorwärts|Forward|Avant|Adelante|İleri|前进|Maju|आगे
+flightBack|Rückwärts|Back|Arrière|Atrás|Geri|后退|Mundur|पीछे
+flightLeft|Links|Left|Gauche|Izquierda|Sol|左|Kiri|बाएँ
+flightRight|Rechts|Right|Droite|Derecha|Sağ|右|Kanan|दाएँ
+flightUp|Steigen|Ascend|Monter|Subir|Yüksel|上升|Naik|ऊपर
+flightDown|Sinken|Descend|Descendre|Bajar|Alçal|下降|Turun|नीचे
+flightBoost|Beschleunigen|Boost|Accélérer|Acelerar|Hızlan|加速|Percepat|गति बढ़ाएँ
+cleared|Gedächtnis für diesen Markt gelöscht.|Memory cleared for this market.|Mémoire de ce marché effacée.|Memoria borrada para este mercado.|Bu piyasa hafızası silindi.|已清除此市场记忆。|Memori pasar ini dihapus.|इस बाज़ार की स्मृति मिटा दी गई।
+confirmReset|Das gespeicherte Gedächtnis nur für diesen Markt wirklich löschen?|Delete stored memory for this market only?|Effacer la mémoire de ce marché uniquement ?|¿Borrar la memoria solo de este mercado?|Yalnızca bu piyasanın hafızası silinsin mi?|确定仅清除此市场记忆吗？|Hapus memori pasar ini saja?|केवल इस बाज़ार की स्मृति मिटाएँ?
+disconnected|Verbindung unterbrochen|Connection lost|Connexion interrompue|Conexión perdida|Bağlantı kesildi|连接中断|Koneksi terputus|कनेक्शन टूटा
+noFeed|Live-Feed nicht verfügbar|Live feed unavailable|Flux indisponible|Datos no disponibles|Canlı veri yok|实时数据不可用|Umpan live tidak tersedia|लाइव फ़ीड उपलब्ध नहीं
+audioReady|Lokale Audioanalyse aktiv|Local audio analysis active|Analyse audio locale active|Análisis de audio local activo|Yerel ses analizi etkin|本地音频分析已开启|Analisis audio lokal aktif|स्थानीय ऑडियो विश्लेषण सक्रिय
+audioError|Audio konnte nicht gestartet werden|Unable to start audio|Impossible de lancer l'audio|No se pudo iniciar el audio|Ses başlatılamadı|音频无法启动|Audio gagal dimulai|ऑडियो चालू नहीं हुआ
+song|Song|Song|Musique|Canción|Şarkı|歌曲|Lagu|गीत
+galleryTitle|Marktstationen verwalten|Manage market stations|Gérer les stations|Gestionar estaciones|Piyasa istasyonları|管理市场站点|Kelola stasiun pasar|बाज़ार स्टेशन प्रबंधन
+galleryNote|Nur echte, verfügbare Binance-Spot-Paare hinzufügen. Keine simulierten Kurse.|Add supported Binance Spot pairs only. Prices are never simulated.|Ajoutez uniquement les paires Binance Spot disponibles.|Añade solo pares Binance Spot disponibles.|Yalnızca Binance Spot çiftlerini ekleyin.|仅添加可用的 Binance 现货交易对。|Hanya tambahkan pasangan Binance Spot yang tersedia.|केवल उपलब्ध Binance Spot जोड़े जोड़ें।
+gallerySymbol|Coin oder Handelspaar|Coin or trading pair|Coin ou paire|Moneda o par|Coin veya işlem çifti|币种或交易对|Koin atau pasangan|कॉइन या ट्रेडिंग जोड़ी
+galleryQuote|Kurswährung|Quote currency|Devise de cotation|Moneda cotizada|Kotasyon birimi|计价货币|Mata uang kuotasi|कोट मुद्रा
+galleryAdd|Station hinzufügen|Add station|Ajouter une station|Añadir estación|İstasyon ekle|添加站点|Tambah stasiun|स्टेशन जोड़ें
+addCoin|＋ Coin|＋ Add coin|＋ Ajouter|＋ Añadir|＋ Coin ekle|＋ 添加币种|＋ Tambah koin|＋ कॉइन जोड़ें
+home|⌖ Zentrum|⌖ Center|⌖ Centre|⌖ Centro|⌖ Merkez|⌖ 中心|⌖ Pusat|⌖ केंद्र
+tour|▶ Rundflug|▶ Auto tour|▶ Visite|▶ Recorrido|▶ Tur|▶ 巡游|▶ Tur otomatis|▶ भ्रमण
+tourStop|Ⅱ Rundflug|Ⅱ Stop tour|Ⅱ Arrêter|Ⅱ Parar|Ⅱ Turu durdur|Ⅱ 暂停巡游|Ⅱ Hentikan tur|Ⅱ भ्रमण रोकें
+exit|✕ Chart|✕ Chart|✕ Graphique|✕ Gráfico|✕ Grafik|✕ 图表|✕ Grafik|✕ चार्ट
+prev|← Vorherige|← Previous|← Précédent|← Anterior|← Önceki|← 上一个|← Sebelumnya|← पिछला
+next|Nächste →|Next →|Suivant →|Siguiente →|Sonraki →|下一个 →|Berikutnya →|अगला →
+back|↺ Galerie|↺ Gallery|↺ Galerie|↺ Galería|↺ Galeri|↺ 画廊|↺ Galeri|↺ गैलरी
+galleryFoot|Bis zu 12 Stationen · Binance Spot · echte 1-Min.-Kerzen|Up to 12 stations · Binance Spot · real 1-min candles|12 stations max · Binance Spot · bougies 1 min réelles|Máximo 12 estaciones · Binance Spot · velas de 1 min|En fazla 12 istasyon · Binance Spot · gerçek 1 dk mum|最多12站 · Binance现货 · 真实1分钟K线|Hingga 12 stasiun · Binance Spot · candle 1 menit|12 स्टेशन तक · Binance Spot · वास्तविक 1-मिनट कैंडल
+openRoom|Raum|Open|Ouvrir|Abrir|Oda|进入|Buka|खोलें
+remove|Entfernen|Remove|Supprimer|Eliminar|Kaldır|移除|Hapus|हटाएँ
+portal|PORTAL · RAUM|PORTAL · ROOM|PORTAIL · SALLE|PORTAL · SALA|PORTAL · ODA|传送门 · 房间|PORTAL · RUANG|पोर्टल · कक्ष
+focusInfo|Fokusansicht mit Tiefen-Zoom|Focused view with depth zoom|Vue zoom 3D|Vista con zoom 3D|Derinlik yakınlaştırma|深度缩放视图|Tampilan fokus 3D|गहराई ज़ूम
+hintRoom|Scrollen oder Pinch zoomen · Pfeile: Markt wechseln · Esc: zurück|Scroll or pinch to zoom · Arrows: change market · Esc: back|Défiler/pincer : zoom · Flèches : changer · Esc : retour|Scroll o pellizcar: zoom · Flechas: cambiar · Esc: volver|Yakınlaştır · Oklar: piyasa değiştir · Esc: geri|滚动或捏合缩放 · 方向键切换市场 · Esc返回|Gulir/cubit: zum · Panah: ganti pasar · Esc: kembali|स्क्रोल या पिंच: ज़ूम · तीर: बाज़ार बदलें · Esc: वापस
+warpEnter|WARP · EINTRITT|WARP · ENTER|WARP · ENTRÉE|WARP · ENTRADA|WARP · GİRİŞ|跃迁 · 进入|WARP · MASUK|वॉर्प · प्रवेश
+warpExit|WARP · RÜCKFLUG|WARP · RETURN|WARP · RETOUR|WARP · VOLVER|WARP · DÖNÜŞ|跃迁 · 返回|WARP · KEMBALI|वॉर्प · वापसी
+warpInfo|Übergang zwischen Galerie und Raum|Transition between gallery and room|Transition entre galerie et salle|Transición entre galería y sala|Galeri ile oda geçişi|画廊与房间切换|Transisi galeri dan ruang|गैलरी और कक्ष के बीच
+warpHint|Raumwechsel aktiv|Transition in progress|Transition en cours|Transición en curso|Geçiş sürüyor|正在切换|Transisi berlangsung|परिवर्तन जारी
+hub|HUB · MARKTHALLE|HUB · MARKET HALL|HUB · HALLE DES MARCHÉS|HUB · SALA DE MERCADOS|HUB · PİYASA SALONU|中心 · 市场大厅|HUB · AULA PASAR|हब · मार्केट हॉल
+hubInfo|Räumliche Übersicht bestätigter Marktdaten|Spatial overview of confirmed market data|Vue 3D des marchés confirmés|Vista 3D de mercados confirmados|Doğrulanmış piyasa görünümü|已确认市场数据的空间视图|Ringkasan 3D data pasar nyata|पुष्ट बाज़ार डेटा का 3D दृश्य
+hintHub|Drehen: Maus/Touch · Zoom: Scroll/Pinch · Station antippen · Esc: zurück|Rotate: drag/touch · Zoom: scroll/pinch · Tap a station · Esc: back|Pivoter : souris/tactile · Zoom : défiler/pincer · Choisir une station|Girar: ratón/táctil · Zoom: scroll/pellizcar · Tocar estación|Döndür: fare/dokun · Yakınlaştır · İstasyona dokun|拖拽旋转 · 滚动缩放 · 点击站点 · Esc 返回|Putar: seret/sentuh · Zum · Pilih stasiun · Esc: kembali|घुमाएँ: ड्रैग/टच · ज़ूम · स्टेशन चुनें · Esc: वापस
+homeReset|⌖ Zurücksetzen|⌖ Reset|⌖ Réinitialiser|⌖ Reiniciar|⌖ Sıfırla|⌖ 重置|⌖ Reset|⌖ रीसेट
+notAvailable|Keine Live-Daten|No live data|Pas de données en direct|Sin datos en vivo|Canlı veri yok|无实时数据|Tidak ada data live|कोई लाइव डेटा नहीं
+enterRoom|Reise nach|Enter|Entrée dans|Entrar en|Giriş|进入|Masuk ke|प्रवेश
+leaveRoom|Zurück aus|Return from|Retour de|Volver desde|Dönüş|返回自|Kembali dari|वापस
+room|Marktraum|Market room|Salle de marché|Sala de mercado|Piyasa odası|市场空间|Ruang pasar|बाज़ार कक्ष
+central|Zentraler Marktplatz|Central marketplace|Marché central|Mercado central|Merkez piyasa|中央市场|Pasar pusat|केंद्रीय बाज़ार
+stations|Stationen|Stations|Stations|Estaciones|İstasyon|站点|Stasiun|स्टेशन
+livePrices|Live-Preise|Live prices|Prix en direct|Precios en vivo|Canlı fiyatlar|实时价格|Harga live|लाइव कीमतें
+enterCoin|Bitte Coin eingeben.|Please enter a coin.|Indiquez un coin.|Introduce una moneda.|Coin girin.|请输入币种。|Masukkan koin.|कॉइन दर्ज करें।
+invalidPair|Ungültiges Handelspaar.|Invalid trading pair.|Paire invalide.|Par inválido.|Geçersiz işlem çifti.|无效交易对。|Pasangan tidak valid.|अमान्य जोड़ी।
+alreadyThere|ist bereits vorhanden.|is already listed.|est déjà présent.|ya existe.|zaten var.|已存在。|sudah ada.|पहले से है।
+maximum|Maximale Stationen:|Maximum stations:|Stations max :|Máximo de estaciones:|En fazla istasyon:|最大站点数：|Maksimum stasiun:|अधिकतम स्टेशन:
+checking|Prüfe|Checking|Vérification|Comprobando|Kontrol ediliyor|正在验证|Memeriksa|जाँच रहा है
+added|Station hinzugefügt|Station added|Station ajoutée|Estación añadida|İstasyon eklendi|站点已添加|Stasiun ditambahkan|स्टेशन जोड़ा गया
+unavailable|Auf Binance Spot nicht verfügbar|Not available on Binance Spot|Indisponible sur Binance Spot|No disponible en Binance Spot|Binance Spot'ta yok|币安现货不可用|Tidak tersedia di Binance Spot|Binance Spot पर अनुपलब्ध
+chartWorlds|◈ CHARTWELTEN|◈ CHART WORLDS|◈ UNIVERS GRAPHIQUES|◈ MUNDOS GRÁFICOS|◈ GRAFİK EVRENLERİ|◈ 图表世界|◈ DUNIA GRAFIK|◈ चार्ट संसार
+chartCoin|Markt|Market|Marché|Mercado|Piyasa|市场|Pasar|बाज़ार
+chartTime|Intervall|Interval|Intervalle|Intervalo|Aralık|周期|Interval|अंतराल
+chartAll|↗ Alle Coins|↗ All coins|↗ Toutes pièces|↗ Todas monedas|↗ Tüm coinler|↗ 所有币种|↗ Semua koin|↗ सभी कॉइन
+chartCandles|▥ Kerzen|▥ Candles|▥ Bougies|▥ Velas|▥ Mumlar|▥ K线|▥ Candle|▥ कैंडल
+chartLine|⌁ Linie|⌁ Line|⌁ Ligne|⌁ Línea|⌁ Çizgi|⌁ 折线|⌁ Garis|⌁ रेखा
+chartArea|◢ Fläche|◢ Area|◢ Aire|◢ Área|◢ Alan|◢ 面积|◢ Area|◢ क्षेत्र
+chartVolume|▤ Volumen|▤ Volume|▤ Volume|▤ Volumen|▤ Hacim|▤ 成交量|▤ Volume|▤ वॉल्यूम
+chartHeikin|◇ Heikin-Ashi|◇ Heikin-Ashi|◇ Heikin-Ashi|◇ Heikin-Ashi|◇ Heikin-Ashi|◇ 平均K线|◇ Heikin-Ashi|◇ हेइकिन-अशी
+chartRSI|∿ RSI 14|∿ RSI 14|∿ RSI 14|∿ RSI 14|∿ RSI 14|∿ RSI 14|∿ RSI 14|∿ RSI 14
+chartRibbon|≋ 3D-Preisband|≋ 3D price ribbon|≋ Ruban 3D|≋ Cinta 3D|≋ 3D fiyat şeridi|≋ 三维价格带|≋ Pita harga 3D|≋ 3D मूल्य पट्टी
+chartApplied|Darstellung für alle Coins übernommen|View applied to all coins|Vue appliquée à tous|Vista aplicada a todos|Tüm coinlere uygulandı|已应用到所有币种|Tampilan diterapkan ke semua koin|सभी कॉइन पर लागू
+chartLoading|Marktdaten werden geladen…|Loading market data…|Chargement des marchés…|Cargando datos…|Veriler yükleniyor…|正在加载行情…|Memuat data pasar…|बाज़ार डेटा लोड हो रहा है…
+chartBaseVolume|Basis-Volumen je Kerze|Base asset volume per candle|Volume de base par bougie|Volumen base por vela|Mum başına baz hacim|每根K线基础币成交量|Volume aset dasar per candle|प्रति कैंडल मूल वॉल्यूम
+chartRibbonNote|Räumliche Darstellung realer Schlusskurse · keine Orderbuchtiefe|Spatial view of actual closes · not order-book depth|Clôtures réelles en 3D · pas un carnet d’ordres|Cierres reales en 3D · no es profundidad de órdenes|Gerçek kapanışlar 3D · emir derinliği değil|真实收盘价三维显示 · 非订单簿深度|Penutupan nyata 3D · bukan kedalaman order|वास्तविक क्लोज़ का 3D दृश्य · ऑर्डर बुक नहीं
+chartInterval|Zeitintervall|Time interval|Intervalle|Intervalo|Zaman aralığı|时间周期|Interval waktu|समय अंतराल
+chartSource|BINANCE SPOT|BINANCE SPOT|BINANCE SPOT|BINANCE SPOT|BINANCE SPOT|币安现货|BINANCE SPOT|BINANCE SPOT
+chartAwaitTrades|Warte auf bestätigte Trades|Waiting for confirmed trades|En attente de transactions|Esperando operaciones confirmadas|Onaylı işlemler bekleniyor|等待已确认交易|Menunggu transaksi terkonfirmasi|पुष्ट ट्रेड की प्रतीक्षा
+`.trim().split('\n');
+const dict=Object.fromEntries(languages.map(k=>[k,{}]));
+for(const row of rows){const [key,...values]=row.split('|');if(values.length!==languages.length){console.warn('Locale skipped',key);continue}languages.forEach((k,i)=>{dict[k][key]=values[i]})}
+window.TCUX=(key)=>dict[window.TCI18n?.getLanguage?.()||'de']?.[key]??dict.en[key]??dict.de[key]??key;
+function refresh(){
+ document.querySelectorAll('[data-ux]').forEach(el=>{if(refresh.didRun&&['rxDemo','rxMute','rxPause','gTour'].includes(el.id))return;el.textContent=window.TCUX(el.dataset.ux)});refresh.didRun=true;
+ const intro=document.getElementById('tcUXIntro');if(intro){intro.querySelector('strong').textContent=window.TCUX('spaces');intro.querySelector('span').textContent=window.TCUX('spacesSub')}
+ window.TCGalleryRefresh?.();
+}
+// The original HTML is still the authoritative chart; move the launchers into reserved flow.
+const toolbar=document.querySelector('.chart-shell .toolbar');
+if(toolbar){
+ const dock=document.createElement('div');dock.id='tcExperienceDock';dock.className='experience-dock';dock.setAttribute('aria-label','Spatial experiences');
+ const intro=document.createElement('div');intro.id='tcUXIntro';intro.className='experience-dock__intro';
+ const title=document.createElement('strong'),sub=document.createElement('span');intro.append(title,sub);
+ const actions=document.createElement('div');actions.className='experience-dock__buttons';
+ actions.append(document.getElementById('galleryLaunch'),document.getElementById('rxLaunch'));
+ dock.append(intro,actions);toolbar.after(dock);
+}
+refresh();
+document.addEventListener('tc:language',refresh);
+})();
+</script>
+<style id="tcUIStudioStyles">
+/* UI Studio V5 — design only. Chart and trade colors remain untouched. */
+body[data-ui-skin]{
+ --studio-panel-rgb:12 27 46;--studio-base-rgb:5 14 28;--studio-border-rgb:117 204 235;
+ --studio-accent:#65dafe;--studio-accent-rgb:101 218 254;--studio-glow-rgb:45 164 229;
+ --studio-glass:.91;--studio-radius:17px;--studio-unit:1;--studio-aura:.75;
+ --studio-border-alpha:.36;--studio-shadow:0 16px 46px rgb(0 0 0 / .25),0 3px 22px rgb(var(--studio-glow-rgb) / .10);
+ background:radial-gradient(ellipse at 2% 3%,rgb(var(--studio-glow-rgb) / calc(.24 * var(--studio-aura))),transparent 31%),radial-gradient(ellipse at 94% 0%,rgb(var(--studio-accent-rgb) / calc(.12 * var(--studio-aura))),transparent 27%),linear-gradient(165deg,rgb(var(--studio-base-rgb)),#030711 84%)!important;
+}
+body[data-ui-skin="aurora"]{--studio-panel-rgb:9 35 47;--studio-base-rgb:3 16 29;--studio-border-rgb:83 226 222;--studio-accent:#56eed3;--studio-accent-rgb:86 238 211;--studio-glow-rgb:51 177 218}
+body[data-ui-skin="prism"]{--studio-panel-rgb:30 24 65;--studio-base-rgb:12 12 34;--studio-border-rgb:172 126 255;--studio-accent:#bb8aff;--studio-accent-rgb:187 138 255;--studio-glow-rgb:138 67 229}
+body[data-ui-skin="solar"]{--studio-panel-rgb:48 30 29;--studio-base-rgb:22 14 23;--studio-border-rgb:255 168 110;--studio-accent:#ffb36b;--studio-accent-rgb:255 179 107;--studio-glow-rgb:221 90 73}
+body[data-ui-skin="royal"]{--studio-panel-rgb:13 31 65;--studio-base-rgb:5 14 38;--studio-border-rgb:122 164 255;--studio-accent:#83abff;--studio-accent-rgb:131 171 255;--studio-glow-rgb:46 98 228}
+body[data-ui-skin="rose"]{--studio-panel-rgb:50 26 53;--studio-base-rgb:24 12 31;--studio-border-rgb:255 139 197;--studio-accent:#ff93c8;--studio-accent-rgb:255 147 200;--studio-glow-rgb:204 76 150}
+body[data-ui-skin="graphite"]{--studio-panel-rgb:28 36 49;--studio-base-rgb:12 17 27;--studio-border-rgb:174 197 224;--studio-accent:#c3d9f7;--studio-accent-rgb:195 217 247;--studio-glow-rgb:103 123 153}
+body[data-ui-skin] .top,body[data-ui-skin] .overview,body[data-ui-skin] .toolbar,body[data-ui-skin] .experience-dock{
+ background:linear-gradient(120deg,rgb(var(--studio-panel-rgb) / var(--studio-glass)),rgb(var(--studio-base-rgb) / var(--studio-glass)))!important;
+ border-color:rgb(var(--studio-border-rgb) / .23)!important;
+}
+body[data-ui-skin] .top{box-shadow:0 12px 38px rgb(0 0 0 / .22),inset 0 -1px rgb(var(--studio-accent-rgb) / .18)!important}
+body[data-ui-skin] .brand-copy strong{background:linear-gradient(105deg,#fcfeff 5%,var(--studio-accent) 75%,#f9ebc2)!important;background-clip:text!important;-webkit-background-clip:text!important;color:transparent!important}
+body[data-ui-skin] .brand-mark{border-color:rgb(var(--studio-accent-rgb) / .55);box-shadow:0 0 26px rgb(var(--studio-glow-rgb) / .25)}
+body[data-ui-skin] .version-badge{color:var(--studio-accent);border:1px solid rgb(var(--studio-accent-rgb) / .35);background:rgb(var(--studio-accent-rgb) / .10)}
+body[data-ui-skin] .primary-nav,body[data-ui-skin] .toolbar-group{
+ background:rgb(var(--studio-base-rgb) / .75)!important;border:1px solid rgb(var(--studio-border-rgb) / .20)!important;border-radius:var(--studio-radius)!important;
+}
+body[data-ui-skin] .primary-nav button,body[data-ui-skin] .tool-button,body[data-ui-skin] .palette-choice{border-radius:calc(var(--studio-radius) * .68)!important}
+body[data-ui-skin] .primary-nav button.active,body[data-ui-skin] .tool-button.active,body[data-ui-skin] .palette-choice[aria-pressed="true"]{
+ color:#f7ffff!important;background:linear-gradient(130deg,rgb(var(--studio-accent-rgb) / .32),rgb(var(--studio-glow-rgb) / .16))!important;
+ box-shadow:inset 0 0 0 1px rgb(var(--studio-accent-rgb) / .48),0 6px 20px rgb(var(--studio-glow-rgb) / .16)!important;
+}
+body[data-ui-skin] .market-card,body[data-ui-skin] .metric-cell,body[data-ui-skin] .rail-card,body[data-ui-skin] .oracle-hud,body[data-ui-skin] .scene-column,body[data-ui-skin] .settings-shelf,
+body[data-ui-skin] .inspection-dock .visible,body[data-ui-skin] .feed-row,body[data-ui-skin] .flow-stat{
+ border-color:rgb(var(--studio-border-rgb) / .27)!important;
+ background:linear-gradient(150deg,rgb(var(--studio-panel-rgb) / var(--studio-glass)),rgb(var(--studio-base-rgb) / var(--studio-glass)))!important;
+ border-radius:var(--studio-radius)!important;
+ box-shadow:var(--studio-shadow)!important;
+}
+body[data-ui-skin] .market-card:hover{border-color:rgb(var(--studio-accent-rgb) / .75)!important;box-shadow:0 8px 32px rgb(var(--studio-glow-rgb) / .20)!important}
+body[data-ui-skin] .market-card.active{border-color:rgb(var(--studio-accent-rgb) / .85)!important;background:linear-gradient(140deg,rgb(var(--studio-accent-rgb) / .18),rgb(var(--studio-panel-rgb) / var(--studio-glass)))!important}
+body[data-ui-skin] .scene-header,body[data-ui-skin] .scene-footer,body[data-ui-skin] .inspection-dock{background:rgb(var(--studio-panel-rgb) / .57)!important;border-color:rgb(var(--studio-border-rgb) / .25)!important}
+body[data-ui-skin] .market-card.active::after{background:linear-gradient(90deg,transparent,var(--studio-accent),transparent)!important}
+body[data-ui-skin] .connection,body[data-ui-skin] .language-shell,body[data-ui-skin] .action-button:not(.x-action),body[data-ui-skin] .icon-button,
+body[data-ui-skin] .settings-shelf .tool-button,body[data-ui-skin] .history-range{
+ color:#ecf8ff;background:rgb(var(--studio-panel-rgb) / .82)!important;border:1px solid rgb(var(--studio-border-rgb) / .36)!important;border-radius:calc(var(--studio-radius) * .76)!important;
+}
+body[data-ui-skin] .action-button:hover,body[data-ui-skin] .icon-button:hover{border-color:var(--studio-accent)!important}
+body[data-ui-skin] .focus-hint,body[data-ui-skin] .spatial-key,body[data-ui-skin] .depth-note{color:#b6d0dc}
+/* Gallery and organism: same design identity, no changes to price/side/data rendering. */
+body[data-ui-skin] #galleryShell,body[data-ui-skin] #rxWorld{background:rgb(var(--studio-base-rgb))!important}
+body[data-ui-skin] #galleryShell::before{background:radial-gradient(ellipse at 42% 39%,rgb(var(--studio-glow-rgb) / calc(.29 * var(--studio-aura))),transparent 35%),radial-gradient(ellipse at 93% 4%,rgb(var(--studio-accent-rgb) / calc(.12 * var(--studio-aura))),transparent 28%)}
+body[data-ui-skin] #galleryShell .galleryLogo,body[data-ui-skin] #galleryShell .galleryChartDock,body[data-ui-skin] #galleryShell .gStatus,
+body[data-ui-skin] #galleryShell .gLegend,body[data-ui-skin] #galleryShell #gallerySide,body[data-ui-skin] #galleryShell .galleryModePill,
+body[data-ui-skin] #rxTop,body[data-ui-skin] #rxControls,body[data-ui-skin] #rxControls section,body[data-ui-skin] #rxTradeDetail,
+body[data-ui-skin] #rxControls .rxMemoryStats>div{
+ background:linear-gradient(145deg,rgb(var(--studio-panel-rgb) / var(--studio-glass)),rgb(var(--studio-base-rgb) / var(--studio-glass)))!important;
+ border:1px solid rgb(var(--studio-border-rgb) / .32)!important;
+ border-radius:var(--studio-radius)!important;box-shadow:var(--studio-shadow)!important;
+}
+body[data-ui-skin] #rxTop{border-radius:0!important}
+body[data-ui-skin] #rxControls{border-radius:0!important}
+body[data-ui-skin] #rxControls h3,body[data-ui-skin] #galleryShell .gChartEyebrow{color:var(--studio-accent)!important}
+body[data-ui-skin] #rxTop button,body[data-ui-skin] #rxControls button,body[data-ui-skin] #galleryShell .gBtn,
+body[data-ui-skin] #galleryShell .gChartModes button,body[data-ui-skin] #galleryShell .gChartAll,
+body[data-ui-skin] #galleryShell .gChartChoice select{
+ border-radius:calc(var(--studio-radius) * .70)!important;border-color:rgb(var(--studio-border-rgb) / .40)!important;
+ background:rgb(var(--studio-panel-rgb) / .86)!important;
+}
+body[data-ui-skin] #galleryShell .gBtn.hot,body[data-ui-skin] #galleryShell .gChartModes button[aria-pressed="true"]{
+ color:#fff!important;border-color:rgb(var(--studio-accent-rgb) / .68)!important;
+ background:linear-gradient(145deg,rgb(var(--studio-accent-rgb) / .42),rgb(var(--studio-glow-rgb) / .29))!important;
+}
+body[data-ui-skin] .rxProgressBar i{background:linear-gradient(90deg,var(--studio-accent),#f2d49b)!important}
+body[data-ui-skin] #rxLevelChip{border-color:rgb(var(--studio-accent-rgb) / .65)!important;color:var(--studio-accent)!important}
+body[data-ui-skin] .experience-dock__buttons button{border-color:rgb(var(--studio-border-rgb) / .47)!important;border-radius:calc(var(--studio-radius) * .75)!important}
+body[data-ui-skin] .experience-dock__buttons button:hover{border-color:var(--studio-accent)!important}
+body[data-ui-skin] #galleryShell .gChartChoice select:focus-visible,body[data-ui-skin] button:focus-visible,body[data-ui-skin] input:focus-visible,body[data-ui-skin] select:focus-visible{outline:2px solid var(--studio-accent)!important;outline-offset:2px}
+body[data-ui-skin] .top button,body[data-ui-skin] .top select,body[data-ui-skin] .toolbar button,body[data-ui-skin] #galleryShell button,body[data-ui-skin] #rxTop button{
+ min-height:calc(36px * var(--studio-unit))!important;font-size:calc(12px * var(--studio-unit));
+}
+body[data-ui-skin] .top .primary-nav button{padding-left:calc(10px * var(--studio-unit));padding-right:calc(10px * var(--studio-unit))}
+body[data-ui-skin] .market-card{padding:calc(11px * var(--studio-unit))!important;min-height:calc(64px * var(--studio-unit))!important}
+body[data-ui-skin] #rxControls section{padding:calc(13px * var(--studio-unit))!important}
+body[data-ui-skin][data-ui-contrast="high"]{--studio-border-alpha:.68}
+body[data-ui-skin][data-ui-contrast="high"] .market-card,body[data-ui-skin][data-ui-contrast="high"] .rail-card,body[data-ui-skin][data-ui-contrast="high"] .oracle-hud,body[data-ui-skin][data-ui-contrast="high"] .tool-button,
+body[data-ui-skin][data-ui-contrast="high"] #rxControls section,body[data-ui-skin][data-ui-contrast="high"] #galleryShell .galleryChartDock{border-color:rgb(var(--studio-border-rgb) / .68)!important}
+body[data-ui-skin][data-ui-contrast="high"] :is(.settings-label,.market-name span,.rail-heading span,.metric-cell span,.gStatus,.rxNote){color:#d3e8f1!important}
+body[data-ui-skin][data-ui-motion="reduce"] *,body[data-ui-skin][data-ui-motion="reduce"] *::before,body[data-ui-skin][data-ui-motion="reduce"] *::after{transition-duration:0s!important;animation-duration:0s!important;scroll-behavior:auto!important}
+body[data-ui-skin][data-ui-motion="reduce"] .ui-particle-canvas{opacity:.10!important}
+/* Access points in the existing flex/grid toolbars */
+#studioMain{padding:0 10px;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;min-height:39px}
+#studioMain svg{width:16px;height:16px;flex:none}#studioMain .studioTriggerName{font-size:11px;font-weight:750}
+#studioGallery{margin:0 5px 0 0}#studioResonance{margin-left:0!important}
+body[data-ui-skin] .studioRoomButton{display:inline-flex;align-items:center;justify-content:center;gap:5px;min-width:40px;font-size:12px;font-weight:800;color:var(--studio-accent)!important;border-color:rgb(var(--studio-accent-rgb) / .66)!important}
+@media(max-width:770px){#studioMain .studioTriggerName{display:none}#studioMain{min-width:36px;padding:0 9px}#studioGallery{padding:7px 9px;min-height:37px}#studioResonance{min-width:38px}}
+@media(max-width:410px){.galleryTop #studioGallery{font-size:0;min-width:38px}.galleryTop #studioGallery span{font-size:14px}#rxTop #studioResonance{padding:7px}}
+/* Studio popup */
+#studioOverlay[hidden]{display:none!important}
+#studioOverlay{position:fixed;inset:0;z-index:12000;display:flex;justify-content:flex-end;align-items:stretch;font-family:Inter,ui-sans-serif,system-ui,sans-serif;color:#ecf7ff}
+#studioScrim{position:absolute;inset:0;border:0;background:rgb(2 6 14 / .69);backdrop-filter:blur(6px);cursor:pointer}
+#studioPanel{position:relative;z-index:1;width:min(445px,100%);height:100%;overflow:auto;background:linear-gradient(165deg,rgb(var(--studio-panel-rgb) / .99),rgb(var(--studio-base-rgb) / .99))!important;border-left:1px solid rgb(var(--studio-border-rgb) / .45);box-shadow:-20px 0 70px rgb(0 0 0 / .54);padding:23px 22px max(28px,env(safe-area-inset-bottom));scrollbar-color:#65849c transparent}
+#studioPanel button,#studioPanel input,#studioPanel select{font:inherit}#studioPanel button{cursor:pointer}#studioPanel button:focus-visible,#studioPanel input:focus-visible,#studioPanel select:focus-visible{outline:2px solid var(--studio-accent);outline-offset:3px}
+.studioTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.studioBrand{font-size:10px;letter-spacing:.21em;text-transform:uppercase;font-weight:840;color:var(--studio-accent)}
+.studioTop h2{font-size:25px;line-height:1.16;font-weight:810;letter-spacing:-.04em;margin:7px 0 5px;color:#f8fcff}.studioDesc{font-size:12px;line-height:1.65;color:#acc7d8;margin:6px 0 15px}
+#studioClose{width:39px;height:39px;min-width:39px;border-radius:12px;border:1px solid #9bbed050;background:#102233;color:#e6faff;font-size:22px}
+.studioPreview{position:relative;isolation:isolate;overflow:hidden;min-height:125px;border:1px solid rgb(var(--studio-border-rgb) / .60);border-radius:var(--studio-radius);background:radial-gradient(circle at 75% 18%,rgb(var(--studio-accent-rgb) / calc(.37 * var(--studio-aura))),transparent 42%),linear-gradient(128deg,rgb(var(--studio-panel-rgb)),rgb(var(--studio-base-rgb)));padding:17px 18px;box-shadow:var(--studio-shadow)}
+.studioPreview::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(90deg,transparent 0 38px,rgb(255 255 255 / .035) 38px 39px);pointer-events:none}
+.studioPreviewHead{font-size:10px;letter-spacing:.13em;font-weight:800;color:#c4e0ea;display:flex;justify-content:space-between;gap:8px;align-items:center}.studioPreviewHead i{height:7px;width:7px;background:#59f2b4;border-radius:50%;box-shadow:0 0 12px #59f2b4}
+.studioPreviewCharts{height:51px;margin:5px 0 0;display:flex;align-items:end;gap:6px}.studioPreviewCharts b{flex:1;border-radius:5px 5px 0 0;background:linear-gradient(180deg,var(--studio-accent),rgb(var(--studio-glow-rgb) / .30));opacity:.86}
+.studioPreviewMeta{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:10px;color:#d5ebf2;margin-top:8px}
+.studioSection{padding:17px 0;border-bottom:1px solid rgb(var(--studio-border-rgb) / .20)}.studioSectionHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:11px}
+.studioSection h3{margin:0;color:#e5f5ff;font-size:11px;text-transform:uppercase;letter-spacing:.12em;font-weight:810}.studioHint{font-size:10px;color:#9fbfd0}.studioSkinGrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.studioSkin{min-width:0;display:flex;flex-direction:column;gap:7px;align-items:stretch;padding:8px;border-radius:13px;border:1px solid #8bacc23e;background:#081b2bad;color:#d9edf5;text-align:left;transition:transform .15s,border-color .15s,background .15s}
+.studioSkin:hover{transform:translateY(-2px);border-color:#d5f4fc9e}.studioSkin[aria-pressed="true"]{border-color:var(--studio-accent);background:rgb(var(--studio-accent-rgb) / .13);box-shadow:inset 0 0 0 1px rgb(var(--studio-accent-rgb) / .25)}
+.studioSwatch{height:47px;border-radius:9px;background:radial-gradient(circle at 73% 20%,var(--swatch-a),transparent 50%),linear-gradient(135deg,var(--swatch-b),var(--swatch-c));position:relative;overflow:hidden}
+.studioSwatch:after{content:"";position:absolute;left:9px;right:9px;bottom:10px;height:6px;border-radius:10px;background:var(--swatch-a);opacity:.78;box-shadow:0 0 12px var(--swatch-a)}
+.studioSkinLabel{font-size:10px;font-weight:800;padding:0 2px 2px;display:flex;align-items:center;justify-content:space-between}.studioSkin[aria-pressed="true"] .studioSkinLabel::after{content:"✓";color:var(--studio-accent)}
+.studioField{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:12px 0 9px;font-size:12px;color:#d9eef7}.studioField span:last-child{font-variant-numeric:tabular-nums;color:#b6d8e8}
+.studioField small{display:block;font-size:10px;color:#94b8c9;margin-top:3px}.studioInputColor{background:#0d2330;border:1px solid #698faa86;width:48px;height:39px;border-radius:11px;padding:3px;cursor:pointer}
+#studioPanel input[type=range]{display:block;width:100%;accent-color:var(--studio-accent);height:22px;cursor:pointer}
+.studioSegments{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.studioSegments button{border:1px solid #739cb355;background:#0a1e2c;color:#b9d6e6;border-radius:10px;min-height:39px;padding:7px 4px;font-size:11px!important;font-weight:700}
+.studioSegments button[aria-pressed=true]{border-color:var(--studio-accent);background:rgb(var(--studio-accent-rgb) / .24);color:#fff}
+.studioToggle{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:10px 0;cursor:pointer;font-size:12px;color:#e0eff7}.studioToggle small{display:block;color:#9abaca;margin-top:4px;font-size:10px}.studioToggle input{width:19px;height:19px;accent-color:var(--studio-accent)}
+.studioFooter{display:flex;gap:9px;align-items:center;justify-content:space-between;padding:20px 0 5px}.studioFooter button{border:1px solid #8ca8bb55;border-radius:11px;min-height:41px;padding:0 14px;color:#eefaff;background:#102638;font-size:12px;font-weight:780}.studioFooter button.studioPrimary{border-color:rgb(var(--studio-accent-rgb) / .75);background:rgb(var(--studio-accent-rgb) / .26)}.studioSave{font-size:10px;color:#99d8ce;line-height:1.5;margin:9px 0 0}
+@media(max-width:580px){#studioPanel{width:100%;padding:18px 16px max(24px,env(safe-area-inset-bottom))}.studioSkinGrid{gap:8px}.studioTop h2{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.studioSkin{transition:none}}
+
+@media(max-width:640px){
+ body[data-ui-skin] .primary-nav button,body[data-ui-skin] .primary-nav button span{
+  white-space:nowrap!important;word-break:keep-all!important;overflow-wrap:normal!important;letter-spacing:0!important;
+  font-size:clamp(8px,2.15vw,10px)!important;
+ }
+ body[data-ui-skin] .primary-nav button{padding:7px 1px!important}
+ body[data-ui-skin] #rxTop{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px!important;padding:9px!important}
+ body[data-ui-skin] #rxTop b{grid-column:1/-1;font-size:11px!important}
+ body[data-ui-skin] #rxTop small{display:none!important}
+ body[data-ui-skin] #rxTop button{margin:0!important;min-width:0!important;min-height:38px!important;padding:6px 2px!important;font-size:10px!important}
+ body[data-ui-skin] #rxControls section h3{font-size:9px!important;letter-spacing:.06em!important}
+}
+</style>
+<div id="studioOverlay" hidden>
+ <button id="studioScrim" aria-label="Close design studio" type="button" tabindex="-1"></button>
+ <aside id="studioPanel" role="dialog" aria-modal="true" aria-labelledby="studioTitle" tabindex="-1">
+  <div class="studioTop"><div><div class="studioBrand">LEC23 · TERRA CLASSIC</div><h2 id="studioTitle" data-stext="title">Interface Studio</h2></div><button type="button" id="studioClose" aria-label="Close">×</button></div>
+  <p class="studioDesc" data-stext="intro">Deine Oberfläche, dein Stil. Änderungen werden sofort sichtbar und lokal gespeichert.</p>
+  <div class="studioPreview" aria-hidden="true"><div class="studioPreviewHead"><span>TERRA CLASSIC / LIVE</span><i></i></div><div class="studioPreviewCharts"><b style="height:28%"></b><b style="height:56%"></b><b style="height:43%"></b><b style="height:86%"></b><b style="height:64%"></b><b style="height:93%"></b><b style="height:72%"></b><b style="height:98%"></b><b style="height:69%"></b><b style="height:85%"></b><b style="height:59%"></b><b style="height:77%"></b></div><div class="studioPreviewMeta"><span data-stext="preview">Live-Vorschau</span><span id="studioPreviewName">Aurora</span></div></div>
+  <section class="studioSection"><div class="studioSectionHead"><h3 data-stext="colorWorlds">01 · Farbwelten</h3><span class="studioHint" data-stext="sixLooks">6 Designprofile</span></div><div class="studioSkinGrid" id="studioSkinGrid"></div>
+   <label class="studioField" for="studioAccent"><div><span data-stext="customAccent">Akzentfarbe</span><small data-stext="accentHint">Für Schaltflächen und Konturen</small></div><input class="studioInputColor" id="studioAccent" type="color" value="#56eed3" aria-label="Accent color"></label>
+  </section>
+  <section class="studioSection"><div class="studioSectionHead"><h3 data-stext="surfaces">02 · Oberflächen</h3><span class="studioHint" data-stext="instant">Sofortige Vorschau</span></div>
+   <label class="studioField" for="studioGlass"><span data-stext="glass">Glasintensität</span><span id="studioGlassVal">91%</span></label><input type="range" id="studioGlass" min="55" max="100" step="1" value="91">
+   <label class="studioField" for="studioGlow"><span data-stext="glow">Farbleuchten</span><span id="studioGlowVal">75%</span></label><input type="range" id="studioGlow" min="0" max="100" step="1" value="75">
+   <label class="studioField" for="studioRadius"><span data-stext="radius">Rundungen</span><span id="studioRadiusVal">17 px</span></label><input type="range" id="studioRadius" min="8" max="26" step="1" value="17">
+  </section>
+  <section class="studioSection"><div class="studioSectionHead"><h3 data-stext="comfort">03 · Lesbarkeit & Komfort</h3></div>
+   <div class="studioField"><span data-stext="density">Bediengröße</span></div><div id="studioSize" class="studioSegments" role="group" aria-label="UI size"><button type="button" data-size="compact" data-stext="compact">Kompakt</button><button type="button" data-size="balanced" data-stext="balanced">Normal</button><button type="button" data-size="large" data-stext="large">Groß</button></div>
+   <label class="studioToggle"><span><span data-stext="contrast">Mehr Kontrast</span><small data-stext="contrastHelp">Deutlichere Kanten und Beschriftungen</small></span><input type="checkbox" id="studioContrast"></label>
+   <label class="studioToggle"><span><span data-stext="calm">Ruhigere Oberfläche</span><small data-stext="calmHelp">Weniger Interface-Animationen</small></span><input type="checkbox" id="studioMotion"></label>
+  </section>
+  <div class="studioFooter"><button type="button" id="studioReset" data-stext="reset">↺ Standard</button><button type="button" class="studioPrimary" id="studioDone" data-stext="done">✓ Übernehmen</button></div>
+  <p class="studioSave" id="studioStatus" role="status" data-stext="saved">✓ Einstellungen nur in diesem Browser gespeichert</p>
+ </aside>
+</div>
+<script id="tcUIStudioLogic">
+(()=>{'use strict';
+ const KEY='tc-resonance-interface-studio-v5';
+ const $=id=>document.getElementById(id);
+ const palette={
+  aurora:{accent:'#56eed3',panel:'#09232f',bg:'#03101d',label:'Aurora'},
+  prism:{accent:'#bb8aff',panel:'#1e1841',bg:'#0c0c22',label:'Prism'},
+  solar:{accent:'#ffb36b',panel:'#301e1d',bg:'#160e17',label:'Solar'},
+  royal:{accent:'#83abff',panel:'#0d1f41',bg:'#050e26',label:'Royal'},
+  rose:{accent:'#ff93c8',panel:'#321a35',bg:'#180c1f',label:'Rose'},
+  graphite:{accent:'#c3d9f7',panel:'#1c2431',bg:'#0c111b',label:'Graphite'}
+ };
+ const langStrings={
+ de:{open:'Design',title:'Interface Studio',intro:'Deine Oberfläche, dein Stil. Änderungen werden sofort sichtbar und lokal gespeichert.',preview:'Live-Vorschau',colorWorlds:'01 · Farbwelten',sixLooks:'6 Designprofile',customAccent:'Akzentfarbe',accentHint:'Für Schaltflächen und Konturen',surfaces:'02 · Oberflächen',instant:'Sofortige Vorschau',glass:'Glasintensität',radius:'Rundungen',glow:'Farbleuchten',comfort:'03 · Lesbarkeit & Komfort',density:'Bediengröße',compact:'Kompakt',balanced:'Normal',large:'Groß',contrast:'Mehr Kontrast',contrastHelp:'Deutlichere Kanten und Beschriftungen',calm:'Ruhigere Oberfläche',calmHelp:'Weniger Interface-Animationen',reset:'↺ Standard',done:'✓ Übernehmen',saved:'✓ Einstellungen in diesem Browser gespeichert',storageUnavailable:'⚠ Browser-Speicher nicht verfügbar',close:'Schließen'},
+ en:{open:'Design',title:'Interface Studio',intro:'Make the interface your own. Changes appear immediately and are saved locally.',preview:'Live preview',colorWorlds:'01 · Color worlds',sixLooks:'6 design presets',customAccent:'Accent color',accentHint:'For buttons and outlines',surfaces:'02 · Surfaces',instant:'Instant preview',glass:'Glass intensity',radius:'Corner radius',glow:'Color glow',comfort:'03 · Readability & comfort',density:'Control size',compact:'Compact',balanced:'Normal',large:'Large',contrast:'Higher contrast',contrastHelp:'Clearer outlines and labels',calm:'Calmer interface',calmHelp:'Reduce UI animation',reset:'↺ Reset',done:'✓ Apply',saved:'✓ Settings saved in this browser',storageUnavailable:'⚠ Browser storage is unavailable',close:'Close'},
+ fr:{open:'Design',title:'Studio d’interface',intro:'Personnalisez votre interface. Modifications immédiates et enregistrées localement.',preview:'Aperçu en direct',colorWorlds:'01 · Palettes',sixLooks:'6 styles',customAccent:'Couleur d’accent',accentHint:'Boutons et contours',surfaces:'02 · Surfaces',instant:'Aperçu immédiat',glass:'Transparence du verre',radius:'Coins arrondis',glow:'Intensité des couleurs',comfort:'03 · Lisibilité',density:'Taille des commandes',compact:'Compact',balanced:'Normal',large:'Grand',contrast:'Contraste renforcé',contrastHelp:'Contours et textes plus nets',calm:'Interface apaisée',calmHelp:'Moins d’animations',reset:'↺ Réinitialiser',done:'✓ Appliquer',saved:'✓ Réglages enregistrés dans ce navigateur',storageUnavailable:'⚠ Stockage du navigateur indisponible',close:'Fermer'},
+ es:{open:'Diseño',title:'Estudio de interfaz',intro:'Personaliza tu interfaz. Los cambios se ven al instante y se guardan localmente.',preview:'Vista previa',colorWorlds:'01 · Colores',sixLooks:'6 estilos',customAccent:'Color de acento',accentHint:'Botones y bordes',surfaces:'02 · Superficies',instant:'Vista en directo',glass:'Intensidad del vidrio',radius:'Esquinas redondeadas',glow:'Brillo de color',comfort:'03 · Comodidad',density:'Tamaño de controles',compact:'Compacto',balanced:'Normal',large:'Grande',contrast:'Más contraste',contrastHelp:'Bordes y etiquetas más claros',calm:'Interfaz tranquila',calmHelp:'Menos animaciones',reset:'↺ Restablecer',done:'✓ Aplicar',saved:'✓ Ajustes guardados en este navegador',storageUnavailable:'⚠ Almacenamiento local no disponible',close:'Cerrar'},
+ tr:{open:'Tasarım',title:'Arayüz Stüdyosu',intro:'Arayüzünüzü kişiselleştirin. Değişiklikler anında görünür ve yerel kaydedilir.',preview:'Canlı önizleme',colorWorlds:'01 · Renk paletleri',sixLooks:'6 tasarım',customAccent:'Vurgu rengi',accentHint:'Düğmeler ve çerçeveler',surfaces:'02 · Yüzeyler',instant:'Anlık önizleme',glass:'Cam yoğunluğu',radius:'Köşe yuvarlaklığı',glow:'Renk ışıltısı',comfort:'03 · Okunabilirlik',density:'Kontrol boyutu',compact:'Kompakt',balanced:'Normal',large:'Büyük',contrast:'Yüksek kontrast',contrastHelp:'Belirgin kenarlar ve yazılar',calm:'Sakin arayüz',calmHelp:'Daha az animasyon',reset:'↺ Sıfırla',done:'✓ Uygula',saved:'✓ Ayarlar tarayıcıya kaydedildi',storageUnavailable:'⚠ Tarayıcı depolaması kullanılamıyor',close:'Kapat'},
+ zh:{open:'设计',title:'界面设计室',intro:'个性化界面。更改即时生效并保存在本地浏览器。',preview:'实时预览',colorWorlds:'01 · 色彩世界',sixLooks:'6种风格',customAccent:'强调色',accentHint:'按钮与边框',surfaces:'02 · 面板',instant:'即时预览',glass:'玻璃透明度',radius:'圆角',glow:'色彩光晕',comfort:'03 · 易读与舒适',density:'控件大小',compact:'紧凑',balanced:'正常',large:'宽大',contrast:'高对比度',contrastHelp:'更清晰的边框和文字',calm:'简洁动画',calmHelp:'减少界面动画',reset:'↺ 重置',done:'✓ 应用',saved:'✓ 设置已保存在浏览器中',storageUnavailable:'⚠ 无法使用浏览器存储',close:'关闭'},
+ id:{open:'Desain',title:'Studio Antarmuka',intro:'Sesuaikan tampilan. Perubahan langsung terlihat dan disimpan secara lokal.',preview:'Pratinjau langsung',colorWorlds:'01 · Palet warna',sixLooks:'6 gaya',customAccent:'Warna aksen',accentHint:'Tombol dan garis',surfaces:'02 · Permukaan',instant:'Pratinjau instan',glass:'Intensitas kaca',radius:'Sudut membulat',glow:'Cahaya warna',comfort:'03 · Kenyamanan',density:'Ukuran kontrol',compact:'Ringkas',balanced:'Normal',large:'Besar',contrast:'Kontras tinggi',contrastHelp:'Garis dan label lebih jelas',calm:'Antarmuka tenang',calmHelp:'Lebih sedikit animasi',reset:'↺ Atur ulang',done:'✓ Terapkan',saved:'✓ Pengaturan disimpan di browser ini',storageUnavailable:'⚠ Penyimpanan browser tidak tersedia',close:'Tutup'},
+ hi:{open:'डिज़ाइन',title:'इंटरफ़ेस स्टूडियो',intro:'इंटरफ़ेस को अपने अनुसार बदलें। बदलाव तुरंत दिखेंगे और इसी ब्राउज़र में सहेजे जाएँगे।',preview:'लाइव पूर्वावलोकन',colorWorlds:'01 · रंग शैली',sixLooks:'6 डिज़ाइन',customAccent:'मुख्य रंग',accentHint:'बटन और बॉर्डर',surfaces:'02 · सतहें',instant:'तुरंत पूर्वावलोकन',glass:'ग्लास प्रभाव',radius:'गोल कोने',glow:'रंग की चमक',comfort:'03 · पठनीयता',density:'कंट्रोल आकार',compact:'कॉम्पैक्ट',balanced:'सामान्य',large:'बड़ा',contrast:'अधिक कंट्रास्ट',contrastHelp:'स्पष्ट बॉर्डर और लेबल',calm:'शांत इंटरफ़ेस',calmHelp:'कम एनिमेशन',reset:'↺ रीसेट',done:'✓ लागू करें',saved:'✓ सेटिंग इस ब्राउज़र में सहेजी गईं',storageUnavailable:'⚠ ब्राउज़र संग्रहण उपलब्ध नहीं है',close:'बंद करें'}
+ };
+ let storageOK=true;
+ const defaults={skin:'aurora',accent:null,glass:91,glow:75,radius:17,size:'balanced',contrast:false,calm:false};
+ const validSize=['compact','balanced','large'];
+ const clean=v=>({skin:palette[v?.skin]?v.skin:defaults.skin,accent:typeof v?.accent==='string'&&/^#[0-9a-f]{6}$/i.test(v.accent)?v.accent:null,glass:Math.max(55,Math.min(100,Number(v?.glass??91)||91)),glow:Math.max(0,Math.min(100,Number.isFinite(Number(v?.glow))?Number(v.glow):75)),radius:Math.max(8,Math.min(26,Number(v?.radius??17)||17)),size:validSize.includes(v?.size)?v.size:'balanced',contrast:v?.contrast===true,calm:v?.calm===true});
+ let config={...defaults};try{config=clean(JSON.parse(localStorage.getItem(KEY)||'null'))}catch(e){storageOK=false}
+ const rgb=hex=>parseInt(hex.slice(1,3),16)+' '+parseInt(hex.slice(3,5),16)+' '+parseInt(hex.slice(5,7),16);
+ const getLang=()=>{const s=$('languageSelect');return langStrings[s?.value]?s.value:'de'};
+ const t=key=>(langStrings[getLang()]||langStrings.de)[key]||langStrings.en[key]||key;
+ function save(){try{localStorage.setItem(KEY,JSON.stringify(config));storageOK=true}catch(e){storageOK=false}$('studioStatus').textContent=storageOK?t('saved'):t('storageUnavailable')}
+ function sync(){
+  document.body.dataset.uiSkin=config.skin;
+  document.body.dataset.uiContrast=config.contrast?'high':'normal';
+  document.body.dataset.uiMotion=config.calm?'reduce':'normal';
+  const base=config.accent||palette[config.skin].accent;
+  document.body.style.setProperty('--studio-accent',base);
+  document.body.style.setProperty('--studio-accent-rgb',rgb(base));
+  document.body.style.setProperty('--studio-glass',(config.glass/100).toFixed(2));
+  document.body.style.setProperty('--studio-aura',(config.glow/100).toFixed(2));
+  document.body.style.setProperty('--studio-radius',config.radius+'px');
+  document.body.style.setProperty('--studio-unit',String(config.size==='large'?1.16:config.size==='compact'?.92:1));
+  $('studioGlass').value=config.glass;$('studioGlow').value=config.glow;$('studioRadius').value=config.radius;$('studioAccent').value=base;
+  $('studioGlassVal').textContent=config.glass+'%';$('studioGlowVal').textContent=config.glow+'%';$('studioRadiusVal').textContent=config.radius+' px';
+  $('studioContrast').checked=config.contrast;$('studioMotion').checked=config.calm;
+  $('studioPreviewName').textContent=palette[config.skin].label;
+  document.querySelectorAll('.studioSkin').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.skin===config.skin)));
+  document.querySelectorAll('#studioSize [data-size]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.size===config.size)));
+ }
+ function translate(){
+  document.querySelectorAll('[data-stext]').forEach(el=>el.textContent=t(el.dataset.stext));
+  document.querySelectorAll('[data-studio-open]').forEach(btn=>{btn.setAttribute('aria-label',t('open'));btn.title=t('open')});
+  $('studioMain').querySelector('.studioTriggerName').textContent=t('open');
+  $('studioClose').setAttribute('aria-label',t('close'));
+  $('studioScrim').setAttribute('aria-label',t('close'));
+  $('studioStatus').textContent=storageOK?t('saved'):t('storageUnavailable');
+ }
+ function open(){const overlay=$('studioOverlay');if(!overlay.hidden)return;overlay.hidden=false;lastFocus=document.activeElement;$('studioClose').focus()}
+ function close(){const overlay=$('studioOverlay');overlay.hidden=true;lastFocus?.focus?.()}
+ let lastFocus=null;
+ const createTrigger=(id,cls,iconOnly=false)=>{const b=document.createElement('button');b.type='button';b.id=id;b.className=cls;b.setAttribute('data-studio-open','');b.innerHTML='<span aria-hidden="true">✦</span>'+(iconOnly?'':'<span class="studioTriggerName">Design</span>');b.onclick=open;return b};
+ const top=document.querySelector('.top-tools');if(top){const b=createTrigger('studioMain','action-button studioTrigger');top.insertBefore(b,$('shareButton'))}
+ const gal=document.querySelector('.galleryControls');if(gal){const b=createTrigger('studioGallery','gBtn studioRoomButton',true);b.innerHTML='<span aria-hidden="true">✦</span>';gal.insertBefore(b,$('gExit'))}
+ const res=$('rxTop');if(res){const b=createTrigger('studioResonance','studioRoomButton',true);b.innerHTML='<span aria-hidden="true">✦</span>';res.insertBefore(b,$('rxClose'))}
+ const grid=$('studioSkinGrid');for(const [key,val] of Object.entries(palette)){const b=document.createElement('button');b.type='button';b.className='studioSkin';b.dataset.skin=key;b.innerHTML=`<span class="studioSwatch" style="--swatch-a:${val.accent};--swatch-b:${val.panel};--swatch-c:${val.bg}"></span><span class="studioSkinLabel">${val.label}</span>`;b.onclick=()=>{config.skin=key;config.accent=null;sync();save()};grid.append(b)}
+ $('studioAccent').addEventListener('input',e=>{config.accent=e.target.value;sync();save()});
+ $('studioGlass').addEventListener('input',e=>{config.glass=Number(e.target.value);sync();save()});
+ $('studioGlow').addEventListener('input',e=>{config.glow=Number(e.target.value);sync();save()});
+ $('studioRadius').addEventListener('input',e=>{config.radius=Number(e.target.value);sync();save()});
+ document.querySelectorAll('#studioSize [data-size]').forEach(b=>b.onclick=()=>{config.size=b.dataset.size;sync();save()});
+ $('studioContrast').addEventListener('change',e=>{config.contrast=e.target.checked;sync();save()});
+ $('studioMotion').addEventListener('change',e=>{config.calm=e.target.checked;sync();save()});
+ $('studioReset').onclick=()=>{config={...defaults};sync();save()};
+ $('studioClose').onclick=close;$('studioDone').onclick=close;$('studioScrim').onclick=close;
+ document.addEventListener('keydown',e=>{if($('studioOverlay').hidden)return;if(e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();close()}if(e.key==='Tab'){const items=[...$('studioPanel').querySelectorAll('button,input,select')].filter(x=>!x.disabled&&x.offsetParent!==null);if(!items.length)return;const first=items[0],last=items[items.length-1];if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus()}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus()}}},true);
+ const l=$('languageSelect');l?.addEventListener('change',()=>{requestAnimationFrame(translate)});document.addEventListener('tc:language',translate);
+ sync();translate();
+})();
+</script>
+</body></html>
